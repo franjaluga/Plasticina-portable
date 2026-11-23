@@ -71,11 +71,80 @@
     T.assertEqual(Store.pendingBalanceDocuments(year)[0].calculated_balance, 690);
   });
 
+  T.test('Store administra owners, cuentas y plantillas en SQLite', function () {
+    T.resetStore();
+    const owner = Store.createOwner({ rut: '99999999-9', name: 'Otra Empresa', account_plan_type: 'standard_pyme' });
+    T.assertEqual(Store.owners().length, 2);
+    T.assertEqual(Store.accounts(owner.id).length, 161);
+    Store.updateOwner(owner.id, { rut: '99999999-9', name: 'Otra Empresa SA' });
+    T.assertEqual(Store.owner(owner.id).name, 'Otra Empresa SA');
+    const account = Store.createAccount({ owner_id: owner.id, code: '9999999', name: 'Prueba', category: 'activo' });
+    Store.updateAccount(account.id, { code: '9999999', name: 'Prueba 2', category: 'activo' });
+    T.assertEqual(Store.account(account.id).name, 'Prueba 2');
+    Store.deleteAccount(account.id);
+    T.assertEqual(Store.account(account.id), null);
+    Store.setActiveOwner(owner.id);
+    T.assertEqual(Store.activeOwner().id, owner.id);
+    const template = Store.createTemplate({ name: 'Plan Prueba', description: 'demo' });
+    T.assertEqual(Store.templateItems(template.id).length, 161);
+    Store.updateTemplate(template.id, { name: 'Plan Prueba 2', description: 'demo 2' }, []);
+    T.assertEqual(Store.template(template.id).name, 'Plan Prueba 2');
+    T.assertEqual(Store.templateItems(template.id).length, 0);
+    Store.deleteTemplate(template.id);
+    T.assertEqual(Store.template(template.id), null);
+    Store.deleteOwner(owner.id);
+    T.assertEqual(Store.owners().length, 1);
+  });
+
+  T.test('Store administra asientos manuales y reportes en SQLite', function () {
+    T.resetStore();
+    const entries = [
+      { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ];
+    const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento manual', entries);
+    T.assertEqual(Store.journal(id).entries.length, 2);
+    Store.updateManualJournal(id, year, 3, year + '-03-06', 'Asiento editado', entries);
+    T.assertEqual(Store.journal(id).description, 'Asiento editado');
+    T.assertEqual(Store.ledger('1010101', 3, year).length, 1);
+    const doc = Store.createDocument(sampleDocument(50, 1190));
+    Store.registerDocumentJournal(doc.id, '4010101');
+    T.assertEqual(Store.queryDocuments('V', 3, year).length, 1);
+    T.assertEqual(Store.systemJournals(year, {}).length, 2);
+    Store.deleteJournal(id, false);
+    T.assertEqual(Store.journal(id), null);
+  });
+
+  T.test('Store importa documentos por CSV a SQLite', function () {
+    T.resetStore();
+    const source = sampleDocument(60, 1190);
+    const header = 'month_register,year_register,type_vc,rut,entity_name,folio,doctype,document_type_name,date,rut_ref,folio_ref,td_ref,net,exempt,vat_rec,vat_no_rec,plus_oth_tax,minus_oth_tax,total,date_centralize';
+    const values = [source.month_register, source.year_register, source.type_vc, source.rut, source.entity_name,
+      source.folio, source.doctype, source.document_type_name, source.date, '', '', '', source.net, '',
+      source.vat_rec, '', '', '', source.total, ''].join(',');
+    T.assertEqual(Store.importCsv(header + '\n' + values), 1);
+    T.assertEqual(Store.documents().length, 1);
+    T.assertEqual(Store.documents()[0].folio, 60);
+  });
+
   T.test('Store analiza CSV con comillas y delimitadores', function () {
     T.resetStore();
     const rows = Store.parseCsv('a;"b;c";d\n1;2;3', ';');
     T.assertDeepEqual(rows[0], ['a', 'b;c', 'd']);
     T.assertDeepEqual(rows[1], ['1', '2', '3']);
+  });
+
+  T.test('Store exporta e importa un respaldo SQLite', function () {
+    T.resetStore();
+    const created = Store.createDocument(sampleDocument(40, 1190));
+    const bytes = Store.exportSqlite();
+    T.assert(bytes instanceof Uint8Array, 'El respaldo debe ser un Uint8Array');
+    T.assertEqual(String.fromCharCode.apply(null, bytes.subarray(0, 15)), 'SQLite format 3');
+    T.resetStore();
+    T.assertEqual(Store.documents().length, 0);
+    Store.importSqlite(bytes);
+    T.assertEqual(Store.documents().length, 1);
+    T.assertEqual(Store.document(created.id).folio, 40);
   });
 
   T.test('Store exporta e importa un respaldo JSON', function () {

@@ -3,8 +3,6 @@
 
   const s = window.Plasticina.store.internals;
 
-  s.load();
-
   window.Store = {
     get state() { return s.state; },
     load: s.load,
@@ -13,6 +11,8 @@
     replaceState: s.replaceState,
     exportJson: s.exportJson,
     importJson: s.importJson,
+    exportSqlite: s.exportSqlite,
+    importSqlite: s.importSqlite,
     transaction: s.transaction,
     nextId: s.nextId,
     clone: s.clone,
@@ -22,6 +22,15 @@
     owner: s.owner,
     activeOwner: s.activeOwner,
     setActiveOwner: s.setActiveOwner,
+    createOwner: s.createOwner,
+    updateOwner: s.updateOwner,
+    deleteOwner: s.deleteOwner,
+    createAccount: s.createAccount,
+    updateAccount: s.updateAccount,
+    deleteAccount: s.deleteAccount,
+    createTemplate: s.createTemplate,
+    updateTemplate: s.updateTemplate,
+    deleteTemplate: s.deleteTemplate,
     accounts: s.accounts,
     activeOwnerAccounts: s.activeOwnerAccounts,
     account: s.account,

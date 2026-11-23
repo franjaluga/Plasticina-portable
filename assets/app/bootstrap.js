@@ -12,5 +12,11 @@
     router.render();
   }
 
-  bootstrap();
+  window.Plasticina.db.ready.then(bootstrap, function (error) {
+    const container = document.getElementById('app');
+    if (container) {
+      container.innerHTML = '<div class="w-full p-8 text-sm text-red-700">No se pudo abrir la base de datos SQLite: ' +
+        String(error && error.message ? error.message : error) + '</div>';
+    }
+  });
 })();

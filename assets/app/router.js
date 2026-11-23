@@ -70,7 +70,7 @@
   function render() {
     const parsed = UI.parseHash(window.location.hash);
     if (parsed.path === '/system/database/export') {
-      if (window.Actions['system.export']) window.Actions['system.export']();
+      if (window.Actions['system.sqlite-export']) window.Actions['system.sqlite-export']();
       return;
     }
     if (parsed.path === '/vc-documents/libro-diario/export-csv') {

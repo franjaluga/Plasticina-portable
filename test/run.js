@@ -61,13 +61,21 @@ function createContext() {
   const context = {
     console: console,
     Intl: global.Intl,
+    Uint8Array: global.Uint8Array,
+    ArrayBuffer: global.ArrayBuffer,
+    TextDecoder: global.TextDecoder,
+    TextEncoder: global.TextEncoder,
+    btoa: function (value) { return Buffer.from(value, 'binary').toString('base64'); },
+    atob: function (value) { return Buffer.from(value, 'base64').toString('binary'); },
     setTimeout: setTimeout,
     clearTimeout: clearTimeout,
     URL: Url,
     URLSearchParams: global.URLSearchParams,
     Blob: global.Blob,
+    navigator: { userAgent: 'node' },
     sessionStorage: createStorage(),
     localStorage: createStorage(),
+    __PLASTICINA_SQLITE_BYTES__: null,
     location: { hash: '#/' },
     history: { replaceState: function () {} },
     scrollTo: function () {},
@@ -75,7 +83,9 @@ function createContext() {
     RadioNodeList: function RadioNodeList() {},
     FileReader: function FileReader() {
       this.readAsText = function () {};
+      this.readAsArrayBuffer = function () {};
     },
+    addEventListener: function () {},
     document: dom.document
   };
   vm.createContext(context);
@@ -89,12 +99,14 @@ function load(context, filename) {
   vm.runInContext(code, context, { filename: filename });
 }
 
-function main() {
+async function main() {
   const context = createContext();
   const files = scriptSources().concat(testSources());
   if (files.length === 0) throw new Error('No se encontraron scripts en index.html.');
   files.forEach(function (filename) { load(context, filename); });
 
+  await context.window.Plasticina.db.ready;
+  context.window.Store.load();
   const results = context.window.PlasticinaTest.run();
   results.forEach(function (result) {
     process.stdout.write((result.ok ? 'ok   ' : 'FAIL ') + result.name + '\n');
@@ -105,4 +117,7 @@ function main() {
   if (failed.length) process.exitCode = 1;
 }
 
-main();
+main().catch(function (error) {
+  process.stderr.write(String(error && error.stack ? error.stack : error) + '\n');
+  process.exitCode = 1;
+});

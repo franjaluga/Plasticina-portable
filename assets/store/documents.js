@@ -2,7 +2,9 @@
   'use strict';
 
   const s = window.Plasticina.store.internals;
+  const db = window.Plasticina.db;
   const {
+    AMOUNT_FIELDS,
     activeOwnerRaw,
     clone,
     entityRut,
@@ -83,72 +85,42 @@
   }
 
   function documents(options) {
-    const opts = options || {};
-    const ownerId = opts.owner_id !== undefined ? Number(opts.owner_id) : null;
-    const year = opts.year_register !== undefined ? Number(opts.year_register) : (opts.year !== undefined ? Number(opts.year) : null);
-    const month = opts.month_register !== undefined ? Number(opts.month_register) : (opts.month !== undefined ? Number(opts.month) : null);
-    const typeVc = opts.type_vc !== undefined ? opts.type_vc : opts.typeVc;
-    let rows = s.state.documents.filter(function (item) {
-      if (ownerId !== null && Number(item.owner_id) !== ownerId) return false;
-      if (year !== null && Number(item.year_register) !== year) return false;
-      if (month !== null && Number(item.month_register) !== month) return false;
-      if (typeVc !== undefined && typeVc !== null && typeOf(item) !== String(typeVc).trim().toUpperCase()) return false;
-      if (opts.entity_id !== undefined && Number(item.entity_id) !== Number(opts.entity_id)) return false;
-      if (opts.document_type_id !== undefined && Number(item.document_type_id) !== Number(opts.document_type_id)) return false;
-      if (opts.folio !== undefined && Number(item.folio) !== Number(opts.folio)) return false;
-      if (opts.rut !== undefined && !like(entityRut(item), opts.rut)) return false;
-      if (opts.date !== undefined && String(item.date) !== String(opts.date)) return false;
-      if (opts.date_from !== undefined && String(item.date) < String(opts.date_from)) return false;
-      if (opts.date_to !== undefined && String(item.date) > String(opts.date_to)) return false;
-      if (opts.pending && s.state.journals.some(function (journal) { return Number(journal.vc_document_id) === Number(item.id); })) return false;
-      return true;
-    });
-    const direction = opts.order === 'desc' ? -1 : 1;
-    rows.sort(function (a, b) {
-      const left = [Number(a.month_register), String(a.date), Number(a.folio), Number(a.id)];
-      const right = [Number(b.month_register), String(b.date), Number(b.folio), Number(b.id)];
-      for (let i = 0; i < left.length; i++) {
-        if (left[i] < right[i]) return -1 * direction;
-        if (left[i] > right[i]) return 1 * direction;
-      }
-      return 0;
-    });
-    return rows.map(function (item) { return hydrateDocument(item, opts.withJournal !== false); });
+    const opts = Object.assign({}, options || {});
+    const filters = {
+      owner_id: opts.owner_id,
+      year_register: opts.year_register !== undefined ? opts.year_register : opts.year,
+      month_register: opts.month_register !== undefined ? opts.month_register : opts.month,
+      type_vc: opts.type_vc !== undefined ? opts.type_vc : opts.typeVc,
+      entity_id: opts.entity_id,
+      document_type_id: opts.document_type_id,
+      folio: opts.folio,
+      rut: opts.rut,
+      date: opts.date,
+      date_from: opts.date_from,
+      date_to: opts.date_to,
+      pending: opts.pending,
+      order: opts.order
+    };
+    return db.repositories.vcDocuments.list(filters)
+      .map(function (item) { return hydrateDocument(item, opts.withJournal !== false); });
   }
 
   function document(id) {
-    return hydrateDocument(rawDocument(id), true);
+    return hydrateDocument(db.repositories.vcDocuments.find(id), true);
   }
 
   function entries(journalId) {
-    return s.state.journalEntries
-      .filter(function (item) { return Number(item.journal_id) === Number(journalId); })
-      .sort(function (a, b) { return Number(a.id) - Number(b.id); })
-      .map(function (item) {
-        const entry = clone(item);
-        entry.account = clone(rawAccountByCode(entry.account_code));
-        entry.debit = num(entry.debit);
-        entry.credit = num(entry.credit);
-        if (entry.component_name === undefined || entry.component_name === null) entry.component_name = 'manual';
-        return entry;
-      });
+    return db.repositories.journalEntries.byJournal(journalId).map(function (entry) {
+      const hydrated = clone(entry);
+      hydrated.account = clone(rawAccountByCode(entry.account_code));
+      return hydrated;
+    });
   }
 
   function journals(options) {
     const opts = options || {};
-    let rows = s.state.journals.filter(function (item) {
-      if (opts.owner_id !== undefined && Number(item.owner_id) !== Number(opts.owner_id)) return false;
-      if (opts.year !== undefined && Number(item.year) !== Number(opts.year)) return false;
-      if (opts.date_from !== undefined && opts.date_to !== undefined && (String(item.date) < String(opts.date_from) || String(item.date) > String(opts.date_to))) return false;
-      return true;
-    });
-    const direction = opts.order === 'desc' ? -1 : 1;
-    rows.sort(function (a, b) {
-      if (String(a.date) < String(b.date)) return -1 * direction;
-      if (String(a.date) > String(b.date)) return 1 * direction;
-      return (num(a.entry_number) - num(b.entry_number)) * direction;
-    });
-    return rows.map(function (item) { return hydrateJournal(item, opts.withDocument !== false); });
+    return db.repositories.journals.list(opts)
+      .map(function (item) { return hydrateJournal(item, opts.withDocument !== false); });
   }
 
   function journal(id) {
@@ -156,37 +128,17 @@
   }
 
   function pendingDocuments(filters) {
-    const opts = filters || {};
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
-    const rows = s.state.documents.filter(function (item) {
-      if (Number(item.owner_id) !== Number(ownerRecord.id)) return false;
-      if (Number(item.year_register) !== workingYear()) return false;
-      if (s.state.journals.some(function (journalRecord) { return Number(journalRecord.vc_document_id) === Number(item.id); })) return false;
-      if (opts.rut !== undefined && !like(entityRut(item), opts.rut)) return false;
-      if (opts.document_type_id !== undefined && Number(item.document_type_id) !== Number(opts.document_type_id)) return false;
-      if (opts.date !== undefined && String(item.date) !== String(opts.date)) return false;
-      if (opts.folio !== undefined && Number(item.folio) !== Number(opts.folio)) return false;
-      return true;
-    });
-    rows.sort(function (a, b) {
-      return Number(a.month_register) - Number(b.month_register) || String(a.date).localeCompare(String(b.date), 'en');
-    });
-    return rows.map(function (item) { return hydrateDocument(item, true); });
+    return db.repositories.vcDocuments.pending(ownerRecord.id, workingYear(), filters || {})
+      .map(function (item) { return hydrateDocument(item, true); });
   }
 
   function queryDocuments(typeVc, month, year) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
     const target = String(typeVc === null || typeVc === undefined ? '' : typeVc).trim().toUpperCase();
-    return s.state.documents
-      .filter(function (item) {
-        return Number(item.owner_id) === Number(ownerRecord.id)
-          && typeOf(item) === target
-          && Number(item.month_register) === Number(month)
-          && Number(item.year_register) === Number(year);
-      })
-      .sort(function (a, b) { return Number(a.folio) - Number(b.folio); })
+    return db.repositories.vcDocuments.query(target, month, year, ownerRecord.id)
       .map(function (item) { return hydrateDocument(item, true); });
   }
 
@@ -199,48 +151,18 @@
   }
 
   function systemJournals(year, filters) {
-    const opts = filters || {};
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
-    const rows = s.state.journals.filter(function (item) {
-      if (Number(item.owner_id) !== Number(ownerRecord.id)) return false;
-      if (Number(item.year) !== Number(year)) return false;
-      const source = item.vc_document_id ? rawDocument(item.vc_document_id) : null;
-      const date = effectiveJournalDate(item);
-      if (opts.entry_from !== undefined && num(item.entry_number) < num(opts.entry_from)) return false;
-      if (opts.entry_to !== undefined && num(item.entry_number) > num(opts.entry_to)) return false;
-      if (opts.date_from !== undefined && String(date) < String(opts.date_from)) return false;
-      if (opts.date_to !== undefined && String(date) > String(opts.date_to)) return false;
-      if (opts.folio_from !== undefined && (!source || num(source.folio) < num(opts.folio_from))) return false;
-      if (opts.folio_to !== undefined && (!source || num(source.folio) > num(opts.folio_to))) return false;
-      if (opts.rut !== undefined && !like(source ? entityRut(source) : '', opts.rut)) return false;
-      if (opts.document_type_id !== undefined && (!source || Number(source.document_type_id) !== Number(opts.document_type_id))) return false;
-      if (opts.folio_ref !== undefined && !like(source ? source.folio_ref : '', opts.folio_ref)) return false;
-      return true;
-    });
-    rows.sort(function (a, b) {
-      return String(a.date).localeCompare(String(b.date), 'en') || num(a.entry_number) - num(b.entry_number);
-    });
-    return rows.map(function (item) { return hydrateJournal(item, true); });
+    return db.repositories.journals.system(ownerRecord.id, year, filters || {})
+      .map(function (item) { return hydrateJournal(item, true); });
   }
 
   function ledger(accountCode, month, year) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
     const target = String(accountCode === null || accountCode === undefined ? '' : accountCode).trim();
-    const rows = s.state.journals.filter(function (item) {
-      if (Number(item.owner_id) !== Number(ownerRecord.id)) return false;
-      const parsed = parseDate(item.date);
-      if (!parsed || Number(parsed.slice(0, 4)) !== Number(year)) return false;
-      if (Number(parsed.slice(5, 7)) !== Number(month)) return false;
-      return s.state.journalEntries.some(function (entry) {
-        return Number(entry.journal_id) === Number(item.id) && String(entry.account_code) === target;
-      });
-    });
-    rows.sort(function (a, b) {
-      return String(a.date).localeCompare(String(b.date), 'en') || num(a.entry_number) - num(b.entry_number);
-    });
-    return rows.map(function (item) { return hydrateJournal(item, true); });
+    return db.repositories.journals.ledger(ownerRecord.id, year, month, target)
+      .map(function (item) { return hydrateJournal(item, true); });
   }
 
   function validateDocument(data) {
@@ -314,27 +236,23 @@
       throw new Error('El documento no está cuadrado: los componentes no suman el total indicado.');
     }
     return transaction(function () {
-      let entity = s.state.entities.find(function (item) { return String(item.rut) === String(data.rut); });
+      let entity = db.repositories.entities.byRut(String(data.rut));
       if (!entity) {
-        entity = { id: nextId('entities'), rut: String(data.rut), name: String(data.entity_name) };
-        s.state.entities.push(entity);
+        entity = db.repositories.entities.create({ rut: String(data.rut), name: String(data.entity_name) });
       }
-      let documentType = rawDocumentType(data.doctype);
+      let documentType = db.repositories.documentTypes.byDoctype(data.doctype);
       const doctype = documentType ? Number(documentType.doctype) : Number(data.doctype);
       if (!documentType) {
-        documentType = { id: nextId('documentTypes'), doctype: doctype, name: String(data.document_type_name) };
-        s.state.documentTypes.push(documentType);
+        documentType = db.repositories.documentTypes.create({
+          doctype: doctype, name: String(data.document_type_name)
+        });
       }
-      const duplicate = s.state.documents.find(function (item) {
-        return Number(item.entity_id) === Number(entity.id) && Number(item.document_type_id) === doctype && Number(item.folio) === Number(data.folio);
-      });
-      if (duplicate) {
+      if (db.repositories.vcDocuments.duplicate(entity.id, doctype, Number(data.folio))) {
         throw new Error('El documento con este RUT, Tipo de Documento y Folio ya se encuentra registrado.');
       }
       const ownerRecord = activeOwnerRaw();
       if (!ownerRecord) throw new Error('No hay un Owner activo seleccionado.');
-      const created = {
-        id: nextId('documents'),
+      const created = db.repositories.vcDocuments.create({
         month_register: Number(data.month_register),
         year_register: Number(data.year_register),
         type_vc: String(data.type_vc),
@@ -354,9 +272,11 @@
         minus_oth_tax: num(data.minus_oth_tax),
         total: num(data.total),
         owner_id: Number(ownerRecord.id)
-      };
-      s.state.documents.push(created);
-      return hydrateDocument(created, true);
+      });
+      const hydrated = hydrateDocument(created, true);
+      hydrated.entity = clone(entity);
+      hydrated.documentType = clone(documentType);
+      return hydrated;
     });
   }
 

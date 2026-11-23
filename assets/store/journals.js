@@ -2,6 +2,7 @@
   'use strict';
 
   const s = window.Plasticina.store.internals;
+  const db = window.Plasticina.db;
   const {
     activeOwnerRaw,
     hydrateJournal,
@@ -41,10 +42,9 @@
   }
 
   function insertJournal(data) {
-    const journal = {
-      id: nextId('journals'),
-      vc_document_id: data.vc_document_id === undefined || data.vc_document_id === null ? null : Number(data.vc_document_id),
-      ref_doc_payed: data.ref_doc_payed === undefined || data.ref_doc_payed === null ? null : Number(data.ref_doc_payed),
+    return db.repositories.journals.create({
+      vc_document_id: data.vc_document_id,
+      ref_doc_payed: data.ref_doc_payed,
       owner_id: Number(data.owner_id),
       year: Number(data.year),
       entry_number: Number(data.entry_number),
@@ -53,22 +53,11 @@
       total_debit: num(data.total_debit),
       total_credit: num(data.total_credit),
       is_balanced: true
-    };
-    s.state.journals.push(journal);
-    return journal;
+    });
   }
 
   function insertEntries(journalId, entries) {
-    entries.forEach(function (entry) {
-      s.state.journalEntries.push({
-        id: nextId('journalEntries'),
-        journal_id: Number(journalId),
-        account_code: String(entry.account_code || ''),
-        component_name: entry.component_name === undefined || entry.component_name === null ? 'manual' : String(entry.component_name),
-        debit: num(entry.debit),
-        credit: num(entry.credit)
-      });
-    });
+    return db.repositories.journalEntries.insertMany(journalId, entries);
   }
 
   function accountMapping(document, customNetAccount) {
@@ -90,7 +79,7 @@
   function registerDocumentJournal(documentId, customNetAccount, glosa) {
     const source = rawDocument(documentId);
     if (!source) throw new Error('Doc ID ' + documentId + ': No encontrado.');
-    if (s.state.journals.some(function (item) { return Number(item.vc_document_id) === Number(source.id); })) {
+    if (db.repositories.journals.hasJournal(source.id)) {
       throw new Error('El documento con ID ' + documentId + ' ya ha sido contabilizado previamente.');
     }
     const ownerId = Number(source.owner_id);
@@ -175,15 +164,17 @@
     if (source.vc_document_id) throw new Error('Este asiento está asociado a un documento V/C y no puede actualizarse como manual.');
     const normalized = normalizeEntries(entries);
     return transaction(function () {
-      source.year = Number(year);
-      source.date = String(date || '');
-      source.description = String(description || '');
-      source.total_debit = normalized[1];
-      source.total_credit = normalized[2];
-      source.is_balanced = true;
-      s.state.journalEntries = s.state.journalEntries.filter(function (item) { return Number(item.journal_id) !== Number(source.id); });
+      const updated = db.repositories.journals.update(source.id, {
+        year: Number(year),
+        date: String(date || ''),
+        description: String(description || ''),
+        total_debit: normalized[1],
+        total_credit: normalized[2],
+        is_balanced: true
+      });
+      db.repositories.journalEntries.removeByJournal(source.id);
       insertEntries(source.id, normalized[0]);
-      return hydrateJournal(source, true);
+      return hydrateJournal(updated, true);
     });
   }
 
@@ -203,14 +194,17 @@
       }
     });
     return transaction(function () {
-      source.date = String(date || '');
-      source.description = String(description || '');
-      source.total_debit = normalized[1];
-      source.total_credit = normalized[2];
-      source.is_balanced = true;
-      s.state.journalEntries = s.state.journalEntries.filter(function (item) { return Number(item.journal_id) !== Number(source.id); });
+      const updated = db.repositories.journals.update(source.id, {
+        year: Number(source.year),
+        date: String(date || ''),
+        description: String(description || ''),
+        total_debit: normalized[1],
+        total_credit: normalized[2],
+        is_balanced: true
+      });
+      db.repositories.journalEntries.removeByJournal(source.id);
       insertEntries(source.id, normalized[0]);
-      return hydrateJournal(source, true);
+      return hydrateJournal(updated, true);
     });
   }
 
@@ -225,16 +219,7 @@
     const parsedDate = parseDate(date);
     const year = parsedDate ? Number(parsedDate.slice(0, 4)) : Number(String(date).slice(0, 4));
     return transaction(function () {
-      let paid = 0;
-      s.state.journals.forEach(function (journalRecord) {
-        if (Number(journalRecord.owner_id) !== Number(ownerRecord.id)) return;
-        if (Number(journalRecord.ref_doc_payed) !== Number(source.id)) return;
-        s.state.journalEntries.forEach(function (entry) {
-          if (Number(entry.journal_id) !== Number(journalRecord.id)) return;
-          if (String(entry.account_code) !== clientAccount) return;
-          paid += num(entry[paidColumn]);
-        });
-      });
+      const paid = db.repositories.journals.paidAmount(ownerRecord.id, source.id, clientAccount, paidColumn);
       const balance = round2(num(source.total) - paid);
       if (round2(amount) > balance) {
         throw new Error('El monto ingresado (' + amount + ') excede el saldo pendiente del documento (' + balance + ').');
@@ -270,15 +255,17 @@
       if (withDocument && source.vc_document_id) {
         const documentId = Number(source.vc_document_id);
         const relatedIds = s.state.journals
-          .filter(function (item) { return Number(item.vc_document_id) === documentId || Number(item.ref_doc_payed) === documentId; })
+          .filter(function (item) {
+            return Number(item.vc_document_id) === documentId || Number(item.ref_doc_payed) === documentId;
+          })
           .map(function (item) { return Number(item.id); });
-        s.state.journalEntries = s.state.journalEntries.filter(function (item) { return !relatedIds.includes(Number(item.journal_id)); });
-        s.state.journals = s.state.journals.filter(function (item) { return !relatedIds.includes(Number(item.id)); });
-        s.state.documents = s.state.documents.filter(function (item) { return Number(item.id) !== documentId; });
+        db.repositories.journalEntries.removeMany(relatedIds);
+        db.repositories.journals.removeMany(relatedIds);
+        db.repositories.vcDocuments.remove(documentId);
         return true;
       }
-      s.state.journalEntries = s.state.journalEntries.filter(function (item) { return Number(item.journal_id) !== Number(source.id); });
-      s.state.journals = s.state.journals.filter(function (item) { return Number(item.id) !== Number(source.id); });
+      db.repositories.journalEntries.removeByJournal(source.id);
+      db.repositories.journals.remove(source.id);
       return true;
     });
   }

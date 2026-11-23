@@ -119,6 +119,7 @@ def main():
     tests_html = (ASSETS / 'tests' / 'index.html').read_text(encoding='utf-8')
     test_scripts = [src[3:] for src in re.findall(r'<script\s+src="(\.\./[^"]+\.js)"></script>', tests_html)
                     if src.startswith('../') and 'tests/' not in src]
+    test_scripts = [src[len('assets/'):] if src.startswith('assets/') else src for src in test_scripts]
     if test_scripts != scripts:
         ok = fail('tests/index.html no carga los mismos scripts que index.html')
 

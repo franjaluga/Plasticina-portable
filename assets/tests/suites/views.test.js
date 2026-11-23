@@ -36,7 +36,7 @@
   T.test('Los maestros, el sistema y la portada exponen sus accesos', function () {
     T.resetStore();
     T.assertIncludes(window.Views.templatesIndex(ctx), 'data-action="templates.store"');
-    T.assertIncludes(window.Views.systemConfig(ctx), 'masters.account-templates');
+    T.assertIncludes(window.Views.systemConfig(ctx), 'masters/account-templates');
     T.assertIncludes(window.Views.welcome(ctx), 'data-action="period.update"');
   });
 })();

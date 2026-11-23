@@ -2,6 +2,7 @@
   'use strict';
 
   const s = window.Plasticina.store.internals;
+  const db = window.Plasticina.db;
   const {
     activeOwnerRaw,
     hydrateDocument,
@@ -16,18 +17,8 @@
 
   function collectAccountTotals(ownerId, year) {
     const grouped = {};
-    s.state.journals.forEach(function (journalRecord) {
-      if (Number(journalRecord.owner_id) !== Number(ownerId)) return;
-      if (Number(journalRecord.year) !== Number(year)) return;
-      s.state.journalEntries.forEach(function (entry) {
-        if (Number(entry.journal_id) !== Number(journalRecord.id)) return;
-        const code = String(entry.account_code);
-        const linkedAccount = rawAccountByCode(code, journalRecord.owner_id);
-        const row = grouped[code] || createAccountRow(code, linkedAccount);
-        grouped[code] = row;
-        row.sum_debit += num(entry.debit);
-        row.sum_credit += num(entry.credit);
-      });
+    db.repositories.journals.taxTotals(ownerId, year).forEach(function (row) {
+      grouped[row.code] = row;
     });
     return grouped;
   }
@@ -106,17 +97,7 @@
   }
 
   function paidAmount(documentId, ownerId, account, column) {
-    let paid = 0;
-    s.state.journals.forEach(function (journalRecord) {
-      if (Number(journalRecord.owner_id) !== Number(ownerId)) return;
-      if (Number(journalRecord.ref_doc_payed) !== Number(documentId)) return;
-      s.state.journalEntries.forEach(function (entry) {
-        if (Number(entry.journal_id) !== Number(journalRecord.id)) return;
-        if (String(entry.account_code) !== account) return;
-        paid += num(entry[column]);
-      });
-    });
-    return paid;
+    return db.repositories.journals.paidAmount(ownerId, documentId, account, column);
   }
 
   function pendingBalanceDocuments(year) {

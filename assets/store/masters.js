@@ -2,6 +2,7 @@
   'use strict';
 
   const s = window.Plasticina.store.internals;
+  const db = window.Plasticina.db;
   const {
     clone,
     num,
@@ -51,14 +52,7 @@
   }
 
   function nextEntryNumber(ownerId, year) {
-    let last = 0;
-    s.state.journals.forEach(function (journal) {
-      if (Number(journal.owner_id) !== Number(ownerId)) return;
-      if (Number(journal.year) !== Number(year)) return;
-      const value = num(journal.entry_number);
-      if (value > last) last = value;
-    });
-    return last + 1;
+    return db.repositories.journals.nextEntryNumber(ownerId, year);
   }
 
   function owners() {
@@ -79,15 +73,17 @@
     const item = rawOwner(id);
     if (!item) throw new Error('Owner no encontrado.');
     return transaction(function () {
-      s.state.owners.forEach(function (candidate) { candidate.is_active = Number(candidate.id) === Number(item.id); });
-      s.state.settings.activeOwnerId = Number(item.id);
+      db.repositories.owners.setActive(item.id);
+      db.repositories.settings.set('active_owner_id', item.id);
       return clone(item);
     });
   }
 
   function accounts(ownerId) {
+    const ownerRecord = ownerId === undefined || ownerId === null ? activeOwnerRaw() : null;
+    const target = ownerRecord ? ownerRecord.id : ownerId;
     return clone(s.state.accounts
-      .filter(function (item) { return Number(item.owner_id) === Number(ownerId); })
+      .filter(function (item) { return Number(item.owner_id) === Number(target); })
       .sort(function (a, b) { return String(a.code).localeCompare(String(b.code), 'en'); }));
   }
 
@@ -188,6 +184,158 @@
     });
   }
 
+  function createOwner(data) {
+    if (!data.rut || !data.name || !data.account_plan_type) throw new Error('Complete todos los campos obligatorios.');
+    if (owners().some(function (owner) { return owner.rut === data.rut; })) throw new Error('Ya existe una empresa con ese RUT.');
+    const plan = accountPlan(data.account_plan_type);
+    return transaction(function () {
+      const owner = db.repositories.owners.create({
+        rut: data.rut,
+        name: data.name,
+        account_plan_type: data.account_plan_type,
+        is_active: false
+      });
+      plan.forEach(function (account) {
+        db.repositories.accounts.create({
+          owner_id: owner.id,
+          code: account.code,
+          name: account.name,
+          category: account.category
+        });
+      });
+      return clone(owner);
+    });
+  }
+
+  function updateOwner(id, data) {
+    const owner = rawOwner(id);
+    if (!owner) throw new Error('Empresa no encontrada.');
+    if (owners().some(function (item) { return item.rut === data.rut && Number(item.id) !== Number(owner.id); })) {
+      throw new Error('Ya existe una empresa con ese RUT.');
+    }
+    return transaction(function () {
+      return clone(db.repositories.owners.update(owner.id, {
+        rut: data.rut,
+        name: data.name,
+        account_plan_type: owner.account_plan_type
+      }));
+    });
+  }
+
+  function deleteOwner(id) {
+    const owner = rawOwner(id);
+    if (!owner) throw new Error('Empresa no encontrada.');
+    if (db.repositories.owners.hasJournals(owner.id)) {
+      throw new Error('No se puede eliminar la empresa porque tiene asientos contables registrados.');
+    }
+    return transaction(function () {
+      db.repositories.accounts.removeByOwner(owner.id);
+      db.repositories.owners.remove(owner.id);
+      if (Number(s.state.settings.activeOwnerId) === Number(owner.id)) {
+        const next = db.repositories.owners.list()[0];
+        if (next) {
+          db.repositories.owners.setActive(next.id);
+          db.repositories.settings.set('active_owner_id', next.id);
+        } else {
+          db.repositories.settings.set('active_owner_id', 0);
+        }
+      }
+      return true;
+    });
+  }
+
+  function createAccount(data) {
+    const ownerId = Number(data.owner_id);
+    if (!ownerId) throw new Error('Seleccione una empresa.');
+    if (!data.code || !data.name) throw new Error('Complete código y nombre de la cuenta.');
+    if (db.repositories.accounts.byCode(ownerId, data.code)) throw new Error('Ya existe esa cuenta para esta empresa.');
+    return transaction(function () {
+      return clone(db.repositories.accounts.create({
+        owner_id: ownerId,
+        code: data.code,
+        name: data.name,
+        category: data.category || 'activo'
+      }));
+    });
+  }
+
+  function updateAccount(id, data) {
+    const account = rawAccount(id);
+    if (!account) throw new Error('Cuenta no encontrada.');
+    if (db.repositories.accounts.byCode(account.owner_id, data.code) &&
+        Number(db.repositories.accounts.byCode(account.owner_id, data.code).id) !== Number(account.id)) {
+      throw new Error('Ya existe esa cuenta para esta empresa.');
+    }
+    if (String(account.code) !== String(data.code) && db.repositories.accounts.hasMovements(account)) {
+      throw new Error('El código de la cuenta tiene movimientos y no puede modificarse.');
+    }
+    return transaction(function () {
+      return clone(db.repositories.accounts.update(account.id, {
+        code: data.code,
+        name: data.name,
+        category: data.category || 'activo'
+      }));
+    });
+  }
+
+  function deleteAccount(id) {
+    const account = rawAccount(id);
+    if (!account) throw new Error('Cuenta no encontrada.');
+    if (db.repositories.accounts.hasMovements(account)) {
+      throw new Error('No se puede eliminar la cuenta "' + account.code + ' - ' + account.name + '" porque tiene movimientos registrados.');
+    }
+    return transaction(function () { return db.repositories.accounts.remove(account.id); });
+  }
+
+  function createTemplate(data) {
+    if (!data.name) throw new Error('El nombre del plan es obligatorio.');
+    if (templates().some(function (template) { return template.name === data.name; })) throw new Error('Ya existe un plan con ese nombre.');
+    const slug = String(data.name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (templates().some(function (template) { return template.slug === slug; })) throw new Error('Ya existe un plan con ese identificador.');
+    const plan = accountPlan('standard_pyme');
+    return transaction(function () {
+      const template = db.repositories.templates.create({ slug: slug, name: data.name, description: data.description || '' });
+      plan.forEach(function (account) {
+        db.repositories.templates.insertItem(template.id, account);
+      });
+      return clone(template);
+    });
+  }
+
+  function updateTemplate(id, data, items) {
+    const template = db.repositories.templates.find(id);
+    if (!template) throw new Error('Plan no encontrado.');
+    if (templates().some(function (item) { return item.name === data.name && Number(item.id) !== Number(template.id); })) {
+      throw new Error('Ya existe un plan con ese nombre.');
+    }
+    return transaction(function () {
+      db.repositories.templates.update(template.id, { name: data.name, description: data.description || '' });
+      const keep = [];
+      (Array.isArray(items) ? items : []).forEach(function (item) {
+        if (String(item._key).indexOf('new_') === 0) {
+          const createdItem = db.repositories.templates.insertItem(template.id, item);
+          if (createdItem) keep.push(Number(createdItem.id));
+          return;
+        }
+        const current = db.repositories.templates.item(template.id, item._key);
+        if (!current) return;
+        db.repositories.templates.updateItem(template.id, {
+          id: current.id, code: item.code || '', name: item.name || '', category: item.category || 'activo'
+        });
+        keep.push(Number(current.id));
+      });
+      const all = db.repositories.templates.items(template.id);
+      all.forEach(function (item) {
+        if (keep.indexOf(Number(item.id)) === -1) db.repositories.templates.removeItem(template.id, item.id);
+      });
+      return clone(db.repositories.templates.find(template.id));
+    });
+  }
+
+  function deleteTemplate(id) {
+    return transaction(function () { return db.repositories.templates.remove(id); });
+  }
+
   Object.assign(s, {
     typeOf,
     isSaleDocument,
@@ -203,6 +351,15 @@
     owner,
     activeOwner,
     setActiveOwner,
+    createOwner,
+    updateOwner,
+    deleteOwner,
+    createAccount,
+    updateAccount,
+    deleteAccount,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
     accounts,
     activeOwnerAccounts,
     account,

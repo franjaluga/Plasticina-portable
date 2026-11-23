@@ -2,29 +2,13 @@
   'use strict';
 
   const s = window.Plasticina.store.internals;
+  const db = window.Plasticina.db;
 
-  const STORAGE_KEY = 'plasticina_desktop_store_v1';
-  const COLLECTIONS = ['owners', 'accounts', 'entities', 'documentTypes', 'documents', 'journals', 'journalEntries', 'templates', 'templateItems'];
-  const ID_KEYS = {
-    owners: 'owners',
-    accounts: 'accounts',
-    entities: 'entities',
-    documentTypes: 'documentTypes',
-    documents: 'documents',
-    journals: 'journals',
-    journalEntries: 'journalEntries',
-    templates: 'templates',
-    templateItems: 'templateItems',
-    vc_documents: 'documents',
-    document_types: 'documentTypes',
-    journal_entries: 'journalEntries',
-    account_templates: 'templates',
-    account_template_items: 'templateItems'
-  };
+  const COLLECTIONS = ['owners', 'accounts', 'entities', 'documentTypes', 'documents', 'journals',
+    'journalEntries', 'templates', 'templateItems'];
   const AMOUNT_FIELDS = ['net', 'exempt', 'vat_rec', 'vat_no_rec', 'plus_oth_tax', 'minus_oth_tax', 'total'];
 
   let state = null;
-  let memoryStorage = null;
 
   function clone(value) {
     if (value === undefined) return undefined;
@@ -44,40 +28,10 @@
     return new Date().toISOString().slice(0, 10);
   }
 
-  function readStorage() {
-    try {
-      const value = window.localStorage.getItem(STORAGE_KEY);
-      return value === null ? memoryStorage : value;
-    } catch (error) {
-      return memoryStorage;
-    }
-  }
-
-  function writeStorage(value) {
-    memoryStorage = value;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, value);
-    } catch (error) {
-      return false;
-    }
-    return true;
-  }
-
-  function removeStorage() {
-    memoryStorage = null;
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      return false;
-    }
-    return true;
-  }
-
   function seedAccounts() {
-    const seeds = window.SEED_ACCOUNTS || [];
-    return seeds.map(function (item, index) {
+    return (window.SEED_ACCOUNTS || []).map(function (item) {
       return {
-        id: index + 1,
+        id: 0,
         owner_id: 1,
         code: String(item.code),
         name: String(item.name || ''),
@@ -182,36 +136,27 @@
     return 'Datos inválidos.';
   }
 
+  function refresh() {
+    state = db.repositories.system.hydrate();
+    return clone(state);
+  }
+
   function save() {
-    return writeStorage(JSON.stringify(state));
+    return Boolean(refresh());
   }
 
   function load() {
-    const stored = readStorage();
-    if (!stored) {
-      state = freshState();
-      save();
-      return clone(state);
-    }
-    try {
-      state = normalizeState(JSON.parse(stored));
-    } catch (error) {
-      state = freshState();
-      save();
-    }
+    state = db.repositories.system.ensureSeed();
     return clone(state);
   }
 
   function reset() {
-    removeStorage();
-    state = freshState();
-    save();
+    state = db.repositories.system.reset();
     return clone(state);
   }
 
   function replaceState(raw) {
-    state = normalizeState(raw);
-    save();
+    state = db.repositories.system.replace(normalizeState(raw));
     return clone(state);
   }
 
@@ -229,29 +174,25 @@
     return transaction(function () { return replaceState(parsed); });
   }
 
+  function exportSqlite() {
+    return db.exportBytes();
+  }
+
+  function importSqlite(bytes) {
+    db.replaceBytes(bytes);
+    state = db.repositories.system.hydrate();
+    return clone(state);
+  }
+
   function transaction(fn) {
     if (typeof fn !== 'function') throw new Error('Transacción inválida.');
-    const snapshot = JSON.stringify(state);
-    try {
-      const result = fn();
-      save();
-      return result;
-    } catch (error) {
-      state = JSON.parse(snapshot);
-      save();
-      throw error;
-    }
+    const result = db.transaction(fn);
+    refresh();
+    return result;
   }
 
   function nextId(key) {
-    const collection = ID_KEYS[key];
-    if (!collection || !COLLECTIONS.includes(collection)) throw new Error('Colección desconocida: ' + String(key));
-    let max = 0;
-    state[collection].forEach(function (item) {
-      const value = num(item.id);
-      if (value > max) max = value;
-    });
-    return max + 1;
+    return db.repositories.system.nextId(key);
   }
 
   function workingYear() {
@@ -261,8 +202,8 @@
   function setWorkingYear(year) {
     const value = Number(year);
     if (!Number.isInteger(value) || value < 2000) throw new Error('El año de trabajo no es válido.');
-    state.settings.workingYear = value;
-    save();
+    db.transaction(function () { db.repositories.settings.set('working_year', value); });
+    refresh();
     return value;
   }
 
@@ -273,12 +214,10 @@
   });
 
   Object.assign(s, {
+    AMOUNT_FIELDS,
     clone,
     currentYear,
     todayIso,
-    readStorage,
-    writeStorage,
-    removeStorage,
     seedAccounts,
     freshState,
     normalizeState,
@@ -291,12 +230,15 @@
     like,
     nullable,
     validationMessage,
+    refresh,
     save,
     load,
     reset,
     replaceState,
     exportJson,
     importJson,
+    exportSqlite,
+    importSqlite,
     transaction,
     nextId,
     workingYear,

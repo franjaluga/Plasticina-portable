@@ -1,5 +1,21 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const fs = require('fs');
 const path = require('path');
+
+const DB_FILE = path.join(app.getPath('userData'), 'plasticina.sqlite');
+
+function readDatabase() {
+  if (!fs.existsSync(DB_FILE)) return null;
+  return new Uint8Array(fs.readFileSync(DB_FILE));
+}
+
+function writeDatabase(bytes) {
+  fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+  fs.writeFileSync(DB_FILE, Buffer.from(bytes));
+}
+
+ipcMain.handle('sqlite:read', function () { return readDatabase(); });
+ipcMain.handle('sqlite:write', function (_event, bytes) { writeDatabase(bytes); });
 
 let mainWindow = null;
 
@@ -13,7 +29,8 @@ function createWindow() {
     backgroundColor: '#f8fafc',
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 

@@ -16,7 +16,8 @@
     'accounts.store', 'accounts.update', 'accounts.destroy', 'documents.store', 'documents.csv',
     'documents.batch', 'manualJournal.store', 'manualJournal.update', 'journals.update',
     'journals.delete-only', 'journals.delete-with-document', 'payments.store', 'templates.store',
-    'templates.update', 'templates.destroy', 'system.export', 'system.import'
+    'templates.update', 'templates.destroy', 'system.export', 'system.import',
+    'system.sqlite-export', 'system.sqlite-import'
   ];
 
   T.test('Todas las acciones esperadas están registradas', function () {
