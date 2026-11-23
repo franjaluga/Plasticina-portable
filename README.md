@@ -1,8 +1,17 @@
-Este es un proyecto de port
+# Plasticina Portable
 
-se requiere portear una aplicación laravel/mysql de arquitectura cliente-servidor hacia una de escritorio usando Electron/Mysqli
+Port de escritorio de la aplicación contable Plasticina, construido únicamente con HTML, CSS y JavaScript.
 
-El proyecto actual está en la carpeta: plasticina-master
-El port lo trabajas en la raíz de la carpeta plasticina-portable
+- `plasticina-master/` es la aplicación Laravel/MariaDB original y la referencia visual/funcional.
+- La raíz contiene el port estático: `index.html`, `assets/` y `desktop/main.js`.
+- No se usa PHP ni servidor local: los datos se guardan en el almacenamiento local del navegador/Electron.
+- La UI conserva las clases y textos originales; `assets/app.css` reproduce la identidad visual de Tailwind sin dependencias externas.
 
-El port siempre usará la misma identidad visual que plasticina-master y deberá trabajar su debida traducción a css y debida refactorización
+## Ejecutar
+
+```bash
+npm install
+npm start
+```
+
+También se puede abrir `index.html` directamente en un navegador moderno.
