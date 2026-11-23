@@ -39,4 +39,15 @@
     T.assertIncludes(window.Views.systemConfig(ctx), 'masters/account-templates');
     T.assertIncludes(window.Views.welcome(ctx), 'data-action="period.update"');
   });
+
+  T.test('Los formularios de edición de owners quedan fuera de la tabla', function () {
+    T.resetStore();
+    const html = window.Views.ownersIndex(ctx);
+    const tbody = html.split('<tbody')[1].split('</tbody>')[0];
+    T.assert(!tbody.includes('data-action="owners.update"'), 'El formulario de actualización quedó dentro de tbody');
+    T.assert(!tbody.includes('data-action="owners.destroy"'), 'El formulario de eliminación quedó dentro de tbody');
+    T.assertIncludes(html, 'data-action="owners.update"');
+    T.assertIncludes(html, 'data-action="owners.destroy"');
+    T.assertIncludes(html, 'style="display:none" aria-hidden="true"');
+  });
 })();

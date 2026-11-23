@@ -22,7 +22,7 @@
     if (host) return host;
     host = document.createElement('div');
     host.id = NOTIFICATION_ID;
-    host.setAttribute('style', 'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px));');
+    host.setAttribute('style', 'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px));pointer-events:none;');
     document.body.appendChild(host);
     return host;
   }
@@ -35,7 +35,7 @@
     const color = type === 'success' ? '#059669' : type === 'warning' ? '#d97706' : '#dc2626';
     const item = document.createElement('div');
     item.setAttribute('role', 'alert');
-    item.setAttribute('style', 'display:flex;align-items:flex-start;gap:12px;background:#ffffff;border-left:4px solid ' + color + ';color:#111827;padding:12px 14px;border-radius:8px;box-shadow:0 10px 25px rgba(15,23,42,0.18);font:600 13px/1.4 system-ui,sans-serif;');
+    item.setAttribute('style', 'pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#ffffff;border-left:4px solid ' + color + ';color:#111827;padding:12px 14px;border-radius:8px;box-shadow:0 10px 25px rgba(15,23,42,0.18);font:600 13px/1.4 system-ui,sans-serif;');
     const content = document.createElement('span');
     content.textContent = text;
     const close = document.createElement('button');

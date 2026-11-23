@@ -25,7 +25,7 @@
       })
       .join('');
 
-    const rows = owners.length
+    const ownerBlocks = owners.length
       ? owners.map(function (owner) {
           const label = planName(owner.account_plan_type);
           const modalId = 'editModal' + owner.id;
@@ -38,7 +38,8 @@
                                         <input type="hidden" name="_method" value="PATCH">
                                         <button type="submit" class="px-2.5 py-1 bg-emerald-600 text-white rounded-md text-xs font-semibold hover:bg-emerald-700 transition shadow-sm">Activar</button>
                                     </form>`;
-          return `
+          return {
+            row: `
                         <tr class="hover:bg-slate-50 transition">
                             <td class="py-3 px-4 font-bold text-slate-700">${UI.h(owner.id)}</td>
                             <td class="py-3 px-4">${UI.h(owner.rut)}</td>
@@ -58,9 +59,9 @@
                                 ${activate}
                                 <button onclick="${UI.h(toggle)}" class="px-2.5 py-1 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 transition shadow-sm">Editar</button>
                             </td>
-                        </tr>
-
-                        <div id="${UI.h(modalId)}" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4">
+                        </tr>`,
+            modal: `
+                        <div id="${UI.h(modalId)}" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4" style="display:none" aria-hidden="true">
                             <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
                                 <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
                                     <h3 class="text-sm font-bold text-slate-800">Editar Owner</h3>
@@ -95,12 +96,19 @@
                                     <button type="submit" class="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition shadow-sm">Eliminar</button>
                                 </form>
                             </div>
-                        </div>`;
-        }).join('')
-      : `
+                        </div>`
+          };
+        })
+      : [{
+          row: `
                         <tr>
                             <td colspan="6" class="p-6 text-center text-slate-400">No hay empresas registradas.</td>
-                        </tr>`;
+                        </tr>`,
+          modal: ''
+        }];
+
+    const rows = ownerBlocks.map(function (item) { return item.row; }).join('');
+    const modals = ownerBlocks.map(function (item) { return item.modal; }).join('');
 
     return `
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -169,19 +177,37 @@
             </div>
         </div>
 
+        ${modals}
+
     </div>
 
     <script>
     (function () {
-      function toggleModal(modalId) {
+      function toggleModal(modalId, forceOpen) {
         const modal = document.getElementById(modalId);
-        if (modal.classList.contains('hidden')) {
-          modal.classList.remove('hidden');
-        } else {
-          modal.classList.add('hidden');
-        }
+        if (!modal) { return; }
+        const shouldOpen = forceOpen === undefined
+          ? modal.classList.contains('hidden')
+          : Boolean(forceOpen);
+        modal.classList.toggle('hidden', !shouldOpen);
+        modal.style.display = shouldOpen ? 'flex' : 'none';
+        modal.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
       }
       window.toggleModal = toggleModal;
+      if (!window.__ownersModalKeysBound) {
+        window.__ownersModalKeysBound = true;
+        document.addEventListener('keydown', function (event) {
+          if (event.key !== 'Escape') { return; }
+          Array.prototype.forEach.call(document.querySelectorAll('[id^="editModal"]'), function (modal) {
+            toggleModal(modal.id, false);
+          });
+        });
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('[id^="editModal"]'), function (modal) {
+        modal.addEventListener('click', function (event) {
+          if (event.target === modal) { toggleModal(modal.id, false); }
+        });
+      });
     })();
     </script>
     `;
