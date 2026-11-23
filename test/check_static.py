@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / 'assets'
 REGEX_PREFIXES = set('=(:,![{;?&|+-*~^%')
 REGEX_KEYWORDS = {'return', 'typeof', 'case', 'delete', 'void', 'in', 'of', 'new', 'yield', 'await', 'instanceof'}
+NATIVE_ALERT = re.compile(r'\b(?:window\.)?alert\s*\(')
 
 
 def fail(message):
@@ -132,9 +133,12 @@ def main():
             ok = fail('test/run.js no carga ' + suite)
 
     for path in sorted(ASSETS.rglob('*.js')):
-        problem = strip_and_balance(path.read_text(encoding='utf-8'))
+        source = path.read_text(encoding='utf-8')
+        problem = strip_and_balance(source)
         if problem:
             ok = fail(str(path.relative_to(ROOT)) + ': ' + problem)
+        if NATIVE_ALERT.search(source):
+            ok = fail(str(path.relative_to(ROOT)) + ': usa alert() del navegador')
 
     config = (ASSETS / 'app' / 'config.js').read_text(encoding='utf-8')
     view_names = set(re.findall(r"view: '([^']+)'", config))

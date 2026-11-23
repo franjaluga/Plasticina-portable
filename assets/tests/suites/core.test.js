@@ -46,4 +46,10 @@
     T.assertEqual(UI.old('total', 0), 100);
     T.assertEqual(UI.old('missing', 'fallback'), 'fallback');
   });
+
+  T.test('UI.notify registra mensajes para mostrarlos en la interfaz', function () {
+    const timer = UI.notify('Mensaje <b>seguro</b>', 'error');
+    T.assertEqual(UI.lastNotification(), 'Mensaje <b>seguro</b>');
+    if (timer) clearTimeout(timer);
+  });
 })();

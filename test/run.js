@@ -44,7 +44,7 @@ function createDom() {
       },
       addEventListener: function () {},
       createElement: function () {
-        return { setAttribute: function () {}, click: function () {}, style: {} };
+        return { setAttribute: function () {}, appendChild: function () {}, removeChild: function () {}, click: function () {}, style: {} };
       },
       querySelectorAll: function () { return []; }
     },

@@ -168,7 +168,7 @@
               row.remove();
               calculateTotals();
             } else {
-              window.alert('El asiento contable debe tener al menos dos líneas.');
+              UI.notify('El asiento contable debe tener al menos dos líneas.', 'error');
             }
           };
         });

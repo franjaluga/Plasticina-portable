@@ -175,7 +175,7 @@
           row.remove();
           calculateTotals();
         } else {
-          window.alert('El asiento debe tener al menos dos líneas.');
+          UI.notify('El asiento debe tener al menos dos líneas.', 'error');
         }
       }
 
@@ -195,7 +195,7 @@
         if (amountInput === null) { return; }
         var amount = parseFloat(amountInput);
         if (isNaN(amount) || amount <= 0) {
-          window.alert('Por favor, ingrese un monto válido mayor a 0.');
+          UI.notify('Por favor, ingrese un monto válido mayor a 0.', 'error');
           return;
         }
         document.getElementById('glosa-input').value = template.glosa || '';
