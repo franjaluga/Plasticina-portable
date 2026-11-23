@@ -1,7 +1,6 @@
 node_modules/
 dist/
 builds/.cache/
-builds/linux_builds/*.tar
-builds/windows_builds/*.zip
 plasticina.sqlite
 *.log
+builds/
