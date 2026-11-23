@@ -17,6 +17,7 @@ Port de escritorio de la aplicación contable Plasticina, construido únicamente
 - `views/`: una vista por archivo, agrupada por contexto (inicio, ingreso, reportes, documentos, contabilidad, owners, maestros, sistema).
 - `actions/`: helpers de formulario y un módulo por grupo de acciones; registros en `window.Actions`.
 - `app/`: configuración de rutas, router, eventos, exportación CSV y arranque.
+- `builds/`: artefactos y scripts de empaquetado. `linux_builds/` contiene el AppImage comprimido en `.tar`; `windows_builds/` contiene el ZIP autocontenido. La build excluye `plasticina-master/`, `builds/`, `test/` y `node_modules/`.
 - `tests/`: página y suites de pruebas ejecutables en el navegador.
 
 ## Ejecutar
@@ -25,6 +26,15 @@ Port de escritorio de la aplicación contable Plasticina, construido únicamente
 npm install
 npm start
 ```
+
+Para generar los paquetes autocontenidos:
+
+```bash
+npm run build:linux
+npm run build:windows
+```
+
+El build de Linux deja `builds/linux_builds/Plasticina-<version>-linux-x64.tar` con el AppImage dentro. El de Windows deja `builds/windows_builds/Plasticina-<version>-win-x64.zip` con la aplicación y Electron incluidos.
 
 También se puede abrir `index.html` directamente en un navegador moderno; en ese caso el archivo SQLite se persiste en IndexedDB.
 

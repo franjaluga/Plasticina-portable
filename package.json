@@ -7,6 +7,8 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder",
+    "build:linux": "bash builds/linux_builds/export_appimage.sh",
+    "build:windows": "bash builds/windows_builds/export_zip.sh",
     "test": "node test/run.js",
     "test:static": "python3 test/check_static.py"
   },
@@ -17,11 +19,39 @@
   "build": {
     "appId": "cl.plasticina.portable",
     "productName": "Plasticina",
+    "asar": true,
+    "npmRebuild": false,
+    "compression": "maximum",
+    "directories": {
+      "output": "builds/.cache"
+    },
     "files": [
       "index.html",
       "assets/**/*",
       "!assets/tests/**/*",
-      "desktop/**/*"
-    ]
+      "desktop/**/*",
+      "!plasticina-master/**/*",
+      "!builds/**/*",
+      "!test/**/*",
+      "!node_modules/**/*"
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "Plasticina-${version}-linux-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "Plasticina-${version}-win-${arch}.${ext}"
+    }
   }
 }

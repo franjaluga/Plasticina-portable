@@ -16,6 +16,7 @@
 - `assets/views/`: una vista por archivo, separada por contexto (home, ingress, reports, documents, accounting, owners, masters, system); `shared/helpers.js` contiene los helpers de render. Todas se montan en `window.Views`.
 - `assets/actions/`: `helpers.js` y un archivo por contexto; se montan en `window.Actions`.
 - `assets/app/`: configuración de rutas, router, eventos, exportación CSV y arranque.
+- `builds/`: artefactos y scripts de empaquetado; `linux_builds/` guarda el AppImage dentro de un `.tar`, `windows_builds/` guarda el ZIP autocontenido. El staging de electron-builder va en `builds/.cache/`. La build incluye el port completo y excluye explícitamente `plasticina-master/`, `builds/`, `test/` y `node_modules/`.
 - `assets/tests/`: page de pruebas (`index.html`), harness y suites por contexto; `test/run.js` ejecuta las mismas suites en Node sin dependencias.
 - `desktop/main.js`: ventana Electron que carga `index.html` con `loadFile`; expone IPC para leer/escribir `plasticina.sqlite` en `userData`; no levanta servidores.
 
@@ -28,7 +29,9 @@
 
 ## Comandos
 - Instalar y ejecutar: `npm install && npm start`.
-- Empaquetar: `npm run dist`.
+- Empaquetar Linux (AppImage dentro de `.tar`): `npm run build:linux`.
+- Empaquetar Windows (ZIP autocontenido): `npm run build:windows`.
+- Empaquetado genérico / staging: `npm run dist` deja los artefactos en `builds/.cache/`.
 - Pruebas: `npm test` (Node) y `npm run test:static` (Python, sin dependencias).
 - También se puede abrir `index.html` directamente en un navegador moderno (la base se guarda en IndexedDB).
 
