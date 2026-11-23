@@ -3,16 +3,18 @@
 ## Workspace / misión
 - La raíz es el port a escritorio de Plasticina y debe implementarse solo con HTML, CSS y JavaScript. No usar PHP en el código del port.
 - `plasticina-master/` es la app Laravel/MariaDB original: referencia de comportamiento e identidad visual, pero no se modifica.
-- La identidad visual debe conservarse; `assets/app.css` contiene los estilos derivados de las clases Tailwind originales.
+- La identidad visual debe conservarse; `assets/styles/app.css` contiene los estilos derivados de las clases Tailwind originales.
 
 ## Arquitectura del port
-- `index.html` es el único documento; carga los scripts en este orden: `ui.js`, `seed.js`, `store.js`, vistas, `actions.js`, `app.js`.
-- `assets/ui.js`: helpers globales (`h`, `route`, `json`, `number`, `money`, `flash`, `old`, `entriesFrom`). Las rutas son hash (`#/...`).
-- `assets/seed.js`: plan de cuentas sembrado y plantillas de asientos manuales.
-- `assets/store.js`: estado en localStorage con fallback en memoria; contiene la lógica contable (documentos V/C, asientos, pagos, balance tributario, CSV).
-- `assets/views-*.js`: funciones que devuelven fragmentos HTML; se montan en `window.Views`.
-- `assets/actions.js`: manejadores de formularios; se montan en `window.Actions`.
-- `assets/app.js`: router hash, montaje de vistas, ejecución de scripts inline y exportación CSV.
+- `index.html` es el único documento de la app; carga los scripts en este orden: núcleo (`core/`), datos (`data/`), almacén (`store/`), vistas (`views/`), acciones (`actions/`) y aplicación (`app/`).
+- `assets/core/namespace.js`: espacios de nombre (`window.Plasticina`) usados por los módulos; evita colisiones entre contextos.
+- `assets/core/ui/`: módulos pequeños de rutas, formato, sesión, formularios y descargas; `index.js` compone `window.UI`. Las rutas son hash (`#/...`).
+- `assets/data/`: plan de cuentas sembrado y plantillas de asientos manuales.
+- `assets/store/`: `context.js` concentra el estado y helpers primitivos; `masters.js`, `documents.js`, `journals.js`, `accounting.js` y `csv.js` aportan la lógica contable; `index.js` publica `window.Store`.
+- `assets/views/`: una vista por archivo, separada por contexto (home, ingress, reports, documents, accounting, owners, masters, system); `shared/helpers.js` contiene los helpers de render. Todas se montan en `window.Views`.
+- `assets/actions/`: `helpers.js` y un archivo por contexto; se montan en `window.Actions`.
+- `assets/app/`: configuración de rutas, router, eventos, exportación CSV y arranque.
+- `assets/tests/`: page de pruebas (`index.html`), harness y suites por contexto; `test/run.js` ejecuta las mismas suites en Node sin dependencias.
 - `desktop/main.js`: ventana Electron que carga `index.html` con `loadFile`; no levanta servidores.
 
 ## Datos y persistencia
@@ -23,9 +25,11 @@
 ## Comandos
 - Instalar y ejecutar: `npm install && npm start`.
 - Empaquetar: `npm run dist`.
+- Pruebas: `npm test` (Node) y `npm run test:static` (Python, sin dependencias).
 - También se puede abrir `index.html` directamente en un navegador moderno.
 
 ## Verificación
-- `node`, `npm` y `php` no estaban disponibles en el entorno inicial; usar comprobaciones estáticas hasta que estén disponibles.
-- Al verificar con Node, ejecutar `node --check` sobre cada archivo de `assets/` y `desktop/main.js`.
+- Tras cualquier cambio, ejecutar `npm test` y `npm run test:static`; también se puede abrir `assets/tests/index.html` en el navegador.
+- Si Node vuelve a estar disponible en el entorno, ejecutar además `node --check` sobre cada archivo de `assets/` y `desktop/main.js`.
+- Al añadir scripts, actualizar `index.html` y `assets/tests/index.html` con el mismo orden: `test/check_static.py` verifica que coincidan.
 - No generar archivos PHP ni reintroducir dependencias del servidor Laravel.

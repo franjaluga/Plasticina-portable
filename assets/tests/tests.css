@@ -1,0 +1,47 @@
+body {
+  margin: 0;
+  padding: 2rem;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+main {
+  margin: 0 auto;
+  max-width: 60rem;
+}
+
+h1 {
+  font-size: 1.1rem;
+}
+
+.hint {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+#results {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+}
+
+.case {
+  border-left: 3px solid #cbd5e1;
+  background: #fff;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.case.ok {
+  border-color: #10b981;
+}
+
+.case.fail {
+  border-color: #ef4444;
+}
+
+.case pre {
+  white-space: pre-wrap;
+  color: #b91c1c;
+}

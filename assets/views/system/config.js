@@ -1,0 +1,38 @@
+(function () {
+  'use strict';
+
+  window.Views = window.Views || {};
+
+  window.Views.systemConfig = function (ctx) {
+    return `
+    <div class="max-w-2xl w-full mx-auto p-8 bg-white shadow-xl rounded-2xl border border-slate-100">
+        <div class="mb-6">
+            <a href="${UI.h(UI.route('welcome'))}" class="inline-flex items-center text-xs font-semibold bg-white text-slate-600 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">&larr; Volver al Inicio</a>
+        </div>
+
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-extrabold text-slate-800">Configuración General del Sistema</h1>
+            <p class="text-sm text-slate-500 mt-1">Administra los parámetros maestros y estructuras globales</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4">
+            <a href="${UI.h(UI.route('masters.account_templates.index'))}" class="flex items-center justify-between p-5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-xl transition group shadow-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 group-hover:text-amber-800">Planes de Cuentas Maestros</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Gestiona y edita las plantillas base utilizadas para clonar cuentas al crear nuevas empresas.</p>
+                </div>
+                <span class="text-amber-600 font-bold text-lg group-hover:translate-x-1 transition-transform">&rarr;</span>
+            </a>
+
+            <a href="${UI.h(UI.route('system.database.export'))}" class="flex items-center justify-between p-5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl transition group shadow-sm">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 group-hover:text-emerald-800">Exportar Base de Datos (MariaDB)</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Descarga un respaldo completo en formato SQL listo para restaurar en cualquier momento.</p>
+                </div>
+                <span class="text-emerald-600 font-bold text-lg group-hover:translate-x-1 transition-transform">&darr;</span>
+            </a>
+        </div>
+    </div>
+    `;
+  };
+})();

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Plasticina · Pruebas</title>
+  <link rel="stylesheet" href="tests.css">
+</head>
+<body>
+  <main>
+    <h1>Plasticina · suite de pruebas</h1>
+    <p class="hint">Carga la misma aplicación que <code>index.html</code> y ejecuta las suites sobre el estado real.</p>
+    <div id="results"></div>
+  </main>
+
+  <script src="../core/namespace.js"></script>
+  <script src="../core/ui/routes.js"></script>
+  <script src="../core/ui/format.js"></script>
+  <script src="../core/ui/session.js"></script>
+  <script src="../core/ui/forms.js"></script>
+  <script src="../core/ui/dom.js"></script>
+  <script src="../core/ui/index.js"></script>
+  <script src="../data/chart-of-accounts.js"></script>
+  <script src="../data/journal-templates.js"></script>
+  <script src="../store/context.js"></script>
+  <script src="../store/masters.js"></script>
+  <script src="../store/documents.js"></script>
+  <script src="../store/journals.js"></script>
+  <script src="../store/accounting.js"></script>
+  <script src="../store/csv.js"></script>
+  <script src="../store/index.js"></script>
+  <script src="../views/shared/helpers.js"></script>
+  <script src="../views/home/welcome.js"></script>
+  <script src="../views/system/config.js"></script>
+  <script src="../views/ingress/manual.js"></script>
+  <script src="../views/ingress/import.js"></script>
+  <script src="../views/reports/hub.js"></script>
+  <script src="../views/reports/journal-context.js"></script>
+  <script src="../views/reports/balance-context.js"></script>
+  <script src="../views/reports/ledger-context.js"></script>
+  <script src="../views/reports/date-range.js"></script>
+  <script src="../views/documents/create.js"></script>
+  <script src="../views/documents/pending.js"></script>
+  <script src="../views/documents/journal-book.js"></script>
+  <script src="../views/accounting/index.js"></script>
+  <script src="../views/accounting/analytics.js"></script>
+  <script src="../views/accounting/tax-balance.js"></script>
+  <script src="../views/accounting/system-journals.js"></script>
+  <script src="../views/accounting/journal-detail.js"></script>
+  <script src="../views/accounting/edit-journal.js"></script>
+  <script src="../views/accounting/edit-manual-journal.js"></script>
+  <script src="../views/accounting/manual-journal-create.js"></script>
+  <script src="../views/accounting/audit.js"></script>
+  <script src="../views/accounting/payments.js"></script>
+  <script src="../views/accounting/document-query.js"></script>
+  <script src="../views/accounting/document-detail.js"></script>
+  <script src="../views/accounting/ledger-results.js"></script>
+  <script src="../views/owners/index.js"></script>
+  <script src="../views/owners/show.js"></script>
+  <script src="../views/owners/accounts.js"></script>
+  <script src="../views/masters/index.js"></script>
+  <script src="../views/masters/edit.js"></script>
+  <script src="../actions/helpers.js"></script>
+  <script src="../actions/period.js"></script>
+  <script src="../actions/owners.js"></script>
+  <script src="../actions/accounts.js"></script>
+  <script src="../actions/documents.js"></script>
+  <script src="../actions/journals.js"></script>
+  <script src="../actions/payments.js"></script>
+  <script src="../actions/templates.js"></script>
+  <script src="../actions/system.js"></script>
+  <script src="../app/config.js"></script>
+  <script src="../app/csv-export.js"></script>
+  <script src="../app/router.js"></script>
+  <script src="../app/events.js"></script>
+  <script src="../app/bootstrap.js"></script>
+  <script src="harness.js"></script>
+  <script src="suites/core.test.js"></script>
+  <script src="suites/store.test.js"></script>
+  <script src="suites/views.test.js"></script>
+  <script src="suites/app.test.js"></script>
+  <script src="suites/actions.test.js"></script>
+  <script>PlasticinaTest.run();</script>
+</body>
+</html>
