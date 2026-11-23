@@ -89,7 +89,7 @@
                                         <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-sm">Actualizar</button>
                                     </div>
                                 </form>
-                                <form data-action="owners.destroy" class="mt-3 flex justify-end" onsubmit="return confirm('¿Estás seguro de eliminar esta empresa?');">
+                                <form data-action="owners.destroy" class="mt-3 flex justify-end" data-confirm="¿Estás seguro de eliminar esta empresa?">
                                     <input type="hidden" name="owner_id" value="${UI.h(owner.id)}">
                                     <input type="hidden" name="_method" value="DELETE">
                                     <button type="submit" class="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition shadow-sm">Eliminar</button>

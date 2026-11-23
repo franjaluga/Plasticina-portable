@@ -56,7 +56,17 @@
     const filename = 'libro_diario_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
     UI.download(filename, toCsv(buildRows(journals)), 'text/csv;charset=utf-8');
     UI.flash('success', 'Libro diario exportado en CSV.');
-    window.location.hash = UI.route('vc_documents.journal_book');
+    const route = UI.route('vc_documents.journal_book');
+    const filters = query && query.date_from && query.date_to
+      ? '?' + encodeURIComponent('date_from') + '=' + encodeURIComponent(query.date_from) +
+        '&' + encodeURIComponent('date_to') + '=' + encodeURIComponent(query.date_to)
+      : '';
+    const target = '#' + route.replace(/^#/, '') + filters;
+    if (window.location.hash === target) {
+      if (window.App) window.App.render();
+    } else {
+      window.location.hash = target;
+    }
   }
 
   window.Plasticina.app.exportJournalCsv = exportJournalCsv;

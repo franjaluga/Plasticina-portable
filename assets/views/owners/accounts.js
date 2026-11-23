@@ -39,7 +39,7 @@
                                         Editar
                                     </button>
 
-                                    <form data-action="accounts.destroy" class="inline-block" onsubmit="return confirm('¿Estás seguro de eliminar esta cuenta?');">
+                                    <form data-action="accounts.destroy" class="inline-block" data-confirm="¿Estás seguro de eliminar esta cuenta?">
                                         <input type="hidden" name="owner_id" value="${UI.h(owner.id)}">
                                         <input type="hidden" name="account_id" value="${UI.h(account.id)}">
                                         <input type="hidden" name="_method" value="DELETE">

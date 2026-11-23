@@ -15,10 +15,10 @@
                         <td class="py-3 px-4 text-center font-semibold">${UI.h(UI.number(tpl.items_count))} cuentas</td>
                         <td class="py-3 px-4 text-center space-x-2">
                             <a href="${UI.h(UI.route('masters.account_templates.edit', { accountTemplate: tpl.id }))}" class="px-2.5 py-1 bg-amber-500 text-white rounded-md text-xs font-semibold hover:bg-amber-600 transition">Editar Cuentas</a>
-                            <form data-action="templates.destroy" class="inline" onsubmit="return confirm('¿Borrar este plan maestro?');">
+                            <form data-action="templates.destroy" class="inline">
                                 <input type="hidden" name="account_template_id" value="${UI.h(tpl.id)}">
                                 <input type="hidden" name="_method" value="DELETE">
-                                <button type="submit" class="px-2.5 py-1 bg-rose-600 text-white rounded-md text-xs font-semibold hover:bg-rose-700 transition">Eliminar</button>
+                                <button type="submit" data-confirm="¿Borrar este plan maestro?" class="px-2.5 py-1 bg-rose-600 text-white rounded-md text-xs font-semibold hover:bg-rose-700 transition">Eliminar</button>
                             </form>
                         </td>
                     </tr>`;

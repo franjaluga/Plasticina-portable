@@ -2,6 +2,7 @@
   'use strict';
 
   const router = window.Plasticina.app.router;
+  const helpers = window.Plasticina.actions.helpers;
 
   function confirmSubmission(form, button) {
     const message = button && button.getAttribute('data-confirm')
@@ -11,13 +12,22 @@
   }
 
   async function onSubmit(event) {
-    const form = event.target.closest('form[data-action]');
-    if (!form) return;
+    const form = event.target && event.target.closest
+      ? event.target.closest('form[data-action]')
+      : null;
+    if (!form || event.defaultPrevented) return;
     event.preventDefault();
     if (!confirmSubmission(form, event.submitter)) return;
 
     const action = form.dataset.action;
-    const values = window.Actions.readForm(form);
+    let values;
+    try {
+      values = helpers.readForm(form);
+    } catch (error) {
+      UI.flash('error', error.message || String(error));
+      router.render();
+      return;
+    }
     const getActions = window.Plasticina.app.config.getActions;
     const getRoute = Object.prototype.hasOwnProperty.call(getActions, action) ? getActions[action] : null;
 

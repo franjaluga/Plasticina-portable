@@ -61,7 +61,12 @@
   function afterSuccess(message, routeName, parameters) {
     UI.flash('success', message);
     if (routeName) {
-      window.location.hash = UI.route(routeName, parameters);
+      const target = UI.route(routeName, parameters);
+      if (window.location.hash === target) {
+        if (window.App) window.App.render();
+      } else {
+        window.location.hash = target;
+      }
     } else if (window.App) {
       window.App.render();
     }
