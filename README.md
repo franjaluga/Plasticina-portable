@@ -1,6 +1,8 @@
 # Plasticina Portable
 
-Port de escritorio de la aplicación contable Plasticina, construido únicamente con HTML, CSS y JavaScript.
+Port de escritorio del programa [Plasticina](https://www.github.com/franjaluga/plasticina), construido únicamente con HTML, CSS y JavaScript.
+
+Este proyecto es una adaptación del programa original y se distribuye bajo la misma licencia [AGPLv3](LICENCE.md).
 
 - `plasticina-master/` es la aplicación Laravel/MariaDB original y la referencia visual/funcional.
 - La raíz contiene el port estático: `index.html`, `assets/` y `desktop/main.js`.
