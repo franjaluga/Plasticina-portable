@@ -37,6 +37,43 @@
     { path: '/masters/account-templates/{accountTemplate}/edit', view: 'templatesEdit' }
   ];
 
+  const centered = 'font-sans antialiased bg-slate-50 text-slate-900 flex items-center justify-center min-h-screen p-4';
+  const slateList = 'bg-slate-50 text-slate-900 font-sans antialiased min-h-screen py-10';
+  const grayList = 'bg-gray-50 text-gray-900 font-sans antialiased min-h-screen py-10';
+  const bodyClasses = {
+    welcome: centered,
+    ingressManual: centered,
+    ingressImport: centered,
+    analyticsHub: centered,
+    journalContext: centered,
+    balanceContext: centered,
+    ledgerContext: centered,
+    dateRangeForm: centered,
+    systemConfig: centered,
+    ownersIndex: slateList,
+    ownersShow: slateList,
+    ownersAccounts: slateList,
+    documentCreate: 'font-sans antialiased bg-gray-100 text-gray-900',
+    documentUpload: centered,
+    documentPending: grayList,
+    journalBook: grayList,
+    taxBalance: 'bg-white text-slate-900 font-sans p-8 max-w-6xl mx-auto',
+    documentQueryResults: 'bg-white text-black font-sans p-6 max-w-[95%] mx-auto',
+    accountingIndex: centered,
+    accountingAnalytics: centered,
+    auditIndex: 'font-sans antialiased bg-slate-50 text-slate-900 p-6',
+    systemJournals: 'bg-gray-50 text-gray-900 font-sans antialiased min-h-screen py-10',
+    journalDetail: grayList,
+    editJournal: grayList,
+    editManualJournal: grayList,
+    manualJournalCreate: 'bg-white text-black font-sans p-6 max-w-4xl mx-auto',
+    paymentsIndex: 'font-sans antialiased bg-slate-50 text-slate-900 p-6',
+    ledgerResults: 'bg-white text-black font-sans p-6 max-w-[95%] mx-auto',
+    documentDetail: 'bg-white text-slate-900 font-sans p-8 max-w-3xl mx-auto',
+    templatesIndex: slateList,
+    templatesEdit: slateList
+  };
+
   const getActions = {
     'vc_documents.pending': 'vc_documents.pending',
     'vc_documents.journal_book.generate': 'vc_documents.journal_book.generate',
@@ -126,15 +163,17 @@
 
     const match = matchRoute(parsed.path);
     const flash = UI.takeFlash();
+    const viewName = match ? match.view : 'welcome';
+    document.body.className = bodyClasses[viewName] || centered;
     if (!match || typeof window.Views[match.view] !== 'function') {
-      app.innerHTML = flash + '<div class="max-w-xl mx-auto p-10 text-center text-sm text-slate-600">404 - Vista no encontrada.</div>';
+      app.innerHTML = '<div class="w-full">' + flash + '<div class="max-w-xl mx-auto p-10 text-center text-sm text-slate-600">404 - Vista no encontrada.</div></div>';
       return;
     }
     try {
-      app.innerHTML = flash + window.Views[match.view]({ params: match.params, query: parsed.query });
+      app.innerHTML = '<div class="w-full">' + flash + window.Views[match.view]({ params: match.params, query: parsed.query }) + '</div>';
       runScripts(app);
     } catch (error) {
-      app.innerHTML = flash + '<div class="max-w-2xl mx-auto p-8"><div class="bg-red-50 border-l-4 border-red-500 p-4 text-xs text-red-700">' + UI.h(error.message || String(error)) + '</div></div>';
+      app.innerHTML = '<div class="w-full">' + flash + '<div class="max-w-2xl mx-auto p-8"><div class="bg-red-50 border-l-4 border-red-500 p-4 text-xs text-red-700">' + UI.h(error.message || String(error)) + '</div></div></div>';
     }
     sessionStorage.removeItem('plasticina_old');
     window.scrollTo(0, 0);

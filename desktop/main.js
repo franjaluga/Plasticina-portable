@@ -10,7 +10,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     title: 'Plasticina',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
