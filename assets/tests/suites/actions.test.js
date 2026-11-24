@@ -17,7 +17,7 @@
     'documents.batch', 'manualJournal.store', 'manualJournal.update', 'journals.update',
     'journals.delete-only', 'journals.delete-with-document', 'payments.store', 'templates.store',
     'templates.update', 'templates.destroy', 'system.export', 'system.import',
-    'system.sqlite-export', 'system.sqlite-import'
+    'system.sqlite-export', 'system.sqlite-import', 'system.reset'
   ];
 
   T.test('Todas las acciones esperadas están registradas', function () {
@@ -93,5 +93,42 @@
 
   T.test('Una acción inexistente no se ejecuta silenciosamente', function () {
     T.assertEqual(typeof window.Actions['no.existe'], 'undefined');
+  });
+
+  T.test('system.reset deja la base como en el primer uso', function () {
+    T.resetStore();
+    const currentYear = new Date().getFullYear();
+    const owner = Store.createOwner({
+      rut: '77777777-7', name: 'Empresa a borrar', account_plan_type: 'standard_pyme',
+      start_month: 1, start_year: currentYear
+    });
+    Store.setActiveOwner(owner.id);
+    Store.createDocument({
+      month_register: 3, year_register: currentYear, type_vc: 'V', rut: '11111111-1',
+      entity_name: 'Cliente Prueba', doctype: 33, document_type_name: 'Factura Electrónica',
+      folio: 999, date: currentYear + '-03-10', net: 1000, vat_rec: 190, total: 1190
+    });
+    Store.createTemplate({ name: 'Plantilla a borrar', description: 'demo' });
+    T.assertEqual(Store.owners().length, 2);
+    T.assertEqual(Store.documents().length, 1);
+
+    sessionStorage.removeItem('plasticina_flash');
+    window.location.hash = UI.route('system.config');
+    window.Actions['system.reset']();
+
+    T.assertEqual(Store.owners().length, 1);
+    T.assertEqual(Store.owners()[0].id, 1);
+    T.assertEqual(Store.owners()[0].rut, '55555555-5');
+    T.assertEqual(Store.activeOwner().name, 'Test');
+    T.assertEqual(Store.accounts().length, 161);
+    T.assertEqual(Store.documents().length, 0);
+    T.assertEqual(Store.journals().length, 0);
+    T.assertEqual(Store.templates().length, 0);
+    T.assertEqual(Store.workingYear(), currentYear);
+    T.assertEqual(Store.state.settings.activeOwnerId, 1);
+    T.assertIncludes(UI.takeFlash(), 'Base de datos reiniciada correctamente.');
+    T.assertEqual(window.location.hash, UI.route('welcome'));
+    window.location.hash = '#/';
+    T.resetStore();
   });
 })();

@@ -97,6 +97,34 @@
     T.assertIncludes(window.Views.welcome(ctx), 'data-action="period.update"');
   });
 
+  T.test('system/config ofrece reset con dos confirmaciones alternadas', function () {
+    T.resetStore();
+    const html = window.Views.systemConfig(ctx);
+    T.assertEqual((html.match(/p-5 /g) || []).length, 4);
+    [
+      'Planes de Cuentas Maestros',
+      'Exportar Base de Datos (SQLite)',
+      'Restaurar Base de Datos (SQLite)',
+      'Reiniciar Base de Datos'
+    ].forEach(function (title) { T.assertIncludes(html, title); });
+    T.assertIncludes(html, 'id="resetDatabaseModal"');
+    T.assertIncludes(html, 'id="resetStepOne"');
+    T.assertIncludes(html, 'id="resetStepTwo"');
+    T.assertIncludes(html, 'data-reset-step="1" data-reset-advance');
+    T.assertIncludes(html, 'data-reset-step="2" data-link-action="system.reset"');
+    T.assert(!html.includes('data-confirm'), 'El reset no debe usar confirmación nativa');
+
+    const stepOne = html.split('id="resetStepOne"')[1].split('id="resetStepTwo"')[0];
+    const stepTwo = html.split('id="resetStepTwo"')[1].split('</script>')[0];
+    T.assert(stepOne.indexOf('data-reset-step="1"') < stepOne.indexOf('Cancelar'),
+      'El primer Confirmar debe estar a la izquierda');
+    T.assert(stepTwo.indexOf('Cancelar') < stepTwo.indexOf('data-reset-step="2"'),
+      'El segundo Confirmar debe estar a la derecha');
+
+    const script = html.split('<script>')[1].split('</script>')[0];
+    new Function(script);
+  });
+
   T.test('Los formularios de edición de owners quedan fuera de la tabla', function () {
     T.resetStore();
     const html = window.Views.ownersIndex(ctx);

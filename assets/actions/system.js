@@ -58,4 +58,9 @@
     reader.readAsText(file, 'UTF-8');
   };
 
+  window.Actions['system.reset'] = function () {
+    Store.reset();
+    afterSuccess('Base de datos reiniciada correctamente.', 'welcome');
+  };
+
 })();
