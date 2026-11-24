@@ -17,9 +17,6 @@
     const year = oldValue(oldValues, 'year', workingYear);
     const glosa = oldValue(oldValues, 'glosa', '');
 
-    const accountsMap = {};
-    accounts.forEach(function (acc) { accountsMap[acc.code] = acc.name; });
-
     let monthOptions = '';
     for (let value = 1; value <= 12; value++) {
       monthOptions += `<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)}</option>`;
@@ -124,15 +121,9 @@
       var viewHelpers = window.Plasticina.views.helpers;
       var templatesData = ${UI.json(templates)};
       var accountsData = ${UI.json(accounts)};
-      var accountsMap = ${UI.json(accountsMap)};
       var oldEntries = ${UI.json(oldEntries)};
       var rowIndex = 0;
       var tbody = document.getElementById('entries-body');
-      var accountSearchOptions = {
-        onSelect: function (account, input) { updateAccountName(input); },
-        onInput: function (input) { updateAccountName(input); },
-        onResolve: function (account, input) { updateAccountName(input); }
-      };
 
       function textOf(value) {
         return value === undefined || value === null ? '' : String(value);
@@ -140,42 +131,23 @@
 
       function addRow(account, debit, credit) {
         var code = textOf(account);
-        var initialName = accountsMap[code] || 'Seleccione o escriba cuenta';
         var row = document.createElement('tr');
         row.innerHTML = [
           '<td class="py-2 px-2">',
           viewHelpers.accountSearchField('entries[' + rowIndex + '][account_code]', code, {
             accounts: accountsData,
-            wrapperClass: 'relative flex items-center space-x-2',
             inputClass: 'account-input w-28 text-xs p-1.5 border border-gray-300 font-sans',
-            placeholder: 'Código o nombre',
-            showLabel: false
+            placeholder: 'Código o nombre'
           }),
-          '<span class="text-gray-600 text-[11px] font-sans truncate account-name-label" style="max-width: 220px;">' + initialName + '</span>',
           '</td>',
           '<td class="py-2 px-2 text-right"><input type="number" step="any" name="entries[' + rowIndex + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input" oninput="calculateTotals()" required></td>',
           '<td class="py-2 px-2 text-right"><input type="number" step="any" name="entries[' + rowIndex + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input" oninput="calculateTotals()" required></td>',
           '<td class="py-2 px-2 text-center"><button type="button" onclick="removeRow(this)" class="text-red-600 font-bold px-2 py-1">&times;</button></td>'
         ].join('');
         tbody.appendChild(row);
-        viewHelpers.bindAccountSearch(row.querySelector('.account-input'), accountsData, accountSearchOptions);
+        viewHelpers.bindAccountSearch(row.querySelector('.account-input'), accountsData, {});
         rowIndex++;
         calculateTotals();
-      }
-
-      function updateAccountName(input) {
-        var code = input.value.trim();
-        var label = input.closest('td').querySelector('.account-name-label');
-        var account = viewHelpers.resolveAccount(accountsData, code).account;
-        if (account) {
-          label.innerText = account.name;
-          label.classList.remove('text-gray-400', 'italic');
-          label.classList.add('text-gray-800', 'font-medium');
-        } else {
-          label.innerText = code ? 'Cuenta no encontrada' : 'Seleccione o escriba cuenta';
-          label.classList.remove('text-gray-800', 'font-medium');
-          label.classList.add('text-gray-400', 'italic');
-        }
       }
 
       function removeRow(btn) {
@@ -218,7 +190,6 @@
 
       window.addRow = addRow;
       window.removeRow = removeRow;
-      window.updateAccountName = updateAccountName;
       window.loadTemplate = loadTemplate;
       Array.prototype.forEach.call(document.querySelectorAll('[data-template]'), function (button) {
         button.addEventListener('click', function () { loadTemplate(button.getAttribute('data-template')); });
@@ -230,7 +201,7 @@
         addRow('', 0, 0);
         addRow('', 0, 0);
       }
-      viewHelpers.bindAccountSearchForm(document.querySelector('form[data-action="manualJournal.store"]'), accountsData, accountSearchOptions);
+      viewHelpers.bindAccountSearchForm(document.querySelector('form[data-action="manualJournal.store"]'), accountsData, {});
       calculateTotals();
     })();
     </script>

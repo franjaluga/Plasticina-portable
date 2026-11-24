@@ -151,9 +151,18 @@
     T.assertEqual(ambiguous.account, null);
     T.assertEqual(ambiguous.ambiguous, true);
 
-    const field = helpers.accountSearchField('account_code', '', { accounts: accounts, showLabel: false });
+    const field = helpers.accountSearchField('account_code', '1010102', { accounts: accounts });
     T.assertIncludes(field, 'data-account-search');
     T.assertIncludes(field, 'placeholder="Código o nombre"');
+    T.assertIncludes(field, 'account-search-wrap flex items-center gap-2');
+    T.assertIncludes(field, 'account-search-field relative min-w-0 flex-1');
+    T.assertIncludes(field, 'account-name-label truncate');
+    T.assertIncludes(field, '>Banco Cuenta Corriente<');
+    T.assert(field.indexOf('mt-1') === -1, 'La etiqueta no debe mostrarse debajo del cuadro');
+
+    T.assertEqual(helpers.accountLabelState(accounts, '1010102').state, 'valid');
+    T.assertEqual(helpers.accountLabelState(accounts, '1010102').text, 'Banco Cuenta Corriente');
+    T.assertEqual(helpers.accountLabelState(accounts, '').state, 'empty');
   });
 
   T.test('Los formularios de contabilización buscan cuentas por código o nombre', function () {
@@ -221,6 +230,7 @@
     T.assertIncludes(html, 'bank_account_code');
     T.assertIncludes(html, 'Código o nombre');
     T.assert(html.indexOf('<select name="bank_account_code"') === -1, 'Cobros y pagos aún usa select de cuenta');
+    T.assert(html.indexOf('showLabel: false') === -1, 'La cuenta de pagos debe mostrar su nombre al lado');
     T.assertIncludes(html, 'bindAccountSearchForm');
   });
 })();

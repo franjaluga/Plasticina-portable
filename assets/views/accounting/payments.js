@@ -32,8 +32,7 @@
                                     ${accountSearchField('bank_account_code', defaultAccountCode, {
                                       accounts: accounts,
                                       inputClass: 'w-32 text-xs border border-slate-300 rounded px-2 py-1 bg-white',
-                                      placeholder: 'Código o nombre',
-                                      showLabel: false
+                                      placeholder: 'Código o nombre'
                                     })}
                                     <button type="submit" class="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">${UI.h(isSale ? 'Cobrar' : 'Pagar')}</button>
                                 </form>

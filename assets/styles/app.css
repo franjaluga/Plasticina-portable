@@ -433,3 +433,5 @@ button,[role=button] { cursor:pointer; }
 .account-suggestion { display:block; width:100%; padding:0.4rem 0.75rem; text-align:left; font-size:0.75rem; line-height:1.25rem; background:transparent; border:0; cursor:pointer }
 .account-suggestion:hover, .account-suggestion:focus, .account-suggestion-active { background:#eef2ff; outline:none }
 .account-suggestion-empty { padding:0.4rem 0.75rem; font-size:0.75rem; color:#64748b }
+.min-w-0 { min-width:0px }
+.account-name-label { display:inline-block; max-width:220px }

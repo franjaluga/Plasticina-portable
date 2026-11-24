@@ -38,6 +38,10 @@
     return String(account.code || '') + ' - ' + String(account.name || '');
   }
 
+  function accountName(account) {
+    return account ? String(account.name || '') : '';
+  }
+
   function accountSource(accounts) {
     const seen = Object.create(null);
     return (Array.isArray(accounts) ? accounts : []).filter(function (account) {
@@ -81,20 +85,53 @@
     return result.account ? accountLabel(result.account) : '';
   }
 
+  function accountLabelState(accounts, value) {
+    const result = resolveAccount(accounts, value);
+    if (result.account) return { text: accountName(result.account), state: 'valid' };
+    if (!String(value === undefined || value === null ? '' : value).trim()) {
+      return { text: 'Seleccione o escriba cuenta', state: 'empty' };
+    }
+    return { text: result.ambiguous ? 'Cuenta ambigua' : 'Cuenta no encontrada', state: 'invalid' };
+  }
+
+  function updateAccountLabel(input, text, state) {
+    if (!input) return;
+    const wrap = input.closest('.account-search-wrap') || input.parentElement;
+    const label = wrap ? wrap.querySelector('.account-name-label') : null;
+    if (!label) return;
+    const value = text === undefined || text === null ? '' : String(text);
+    label.textContent = value;
+    label.setAttribute('title', value);
+    label.classList.remove('text-gray-400', 'italic', 'text-slate-600', 'font-medium');
+    if (state === 'valid') {
+      label.classList.add('text-slate-600', 'font-medium');
+    } else {
+      label.classList.add('text-gray-400', 'italic');
+    }
+  }
+
   function accountSearchField(name, value, options) {
     const opts = options || {};
     const id = opts.id ? ' id="' + UI.h(opts.id) + '"' : '';
     const required = opts.required === false ? '' : ' required';
     const showLabel = opts.showLabel !== false;
+    const labelState = opts.label === undefined
+      ? accountLabelState(opts.accounts, value)
+      : { text: String(opts.label), state: 'valid' };
+    const labelClass = labelState.state === 'valid'
+      ? 'account-name-label truncate text-xs text-slate-600 font-medium'
+      : 'account-name-label truncate text-xs text-gray-400 italic';
     const label = showLabel
-      ? '<span class="' + UI.h(opts.labelClass || 'account-name-label block text-[10px] text-slate-500 mt-1') + '">' +
-        UI.h(opts.label === undefined ? accountDisplayName(opts.accounts, value) : opts.label) + '</span>'
+      ? '<span class="' + UI.h(opts.labelClass || labelClass) +
+        '" title="' + UI.h(labelState.text) + '">' + UI.h(labelState.text) + '</span>'
       : '';
-    return '<div class="' + UI.h(opts.wrapperClass || 'relative') + '">' +
+    return '<div class="' + UI.h(opts.wrapperClass || 'account-search-wrap flex items-center gap-2') + '">' +
+      '<div class="account-search-field relative min-w-0 flex-1">' +
       '<input type="text"' + id + ' name="' + UI.h(name) + '" value="' + UI.h(value || '') +
       '" placeholder="' + UI.h(opts.placeholder || 'Código o nombre') +
       '" class="' + UI.h(opts.inputClass || 'w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white') +
-      '" data-account-search autocomplete="off"' + required + '>' + label + '</div>';
+      '" data-account-search autocomplete="off"' + required + '>' +
+      '</div>' + label + '</div>';
   }
 
   let accountSearchSequence = 0;
@@ -143,6 +180,7 @@
       if (!account) return;
       input.value = String(account.code);
       input.setCustomValidity('');
+      updateAccountLabel(input, accountName(account), 'valid');
       hide();
       if (typeof opts.onSelect === 'function') opts.onSelect(account, input);
     }
@@ -175,6 +213,8 @@
     input.addEventListener('focus', render);
     input.addEventListener('input', function () {
       input.setCustomValidity('');
+      const labelState = accountLabelState(source, input.value);
+      updateAccountLabel(input, labelState.text, labelState.state);
       render();
       if (typeof opts.onInput === 'function') opts.onInput(input);
     });
@@ -223,12 +263,14 @@
         const value = String(input.value || '').trim();
         if (!value) {
           input.setCustomValidity('');
+          updateAccountLabel(input, 'Seleccione o escriba cuenta', 'empty');
           return;
         }
         const result = resolveAccount(source, value);
         if (result.account) {
           input.value = String(result.account.code);
           input.setCustomValidity('');
+          updateAccountLabel(input, accountName(result.account), 'valid');
           if (typeof opts.onResolve === 'function') opts.onResolve(result.account, input);
           return;
         }
@@ -236,6 +278,7 @@
         const message = result.ambiguous
           ? 'La cuenta "' + value + '" es ambigua; seleccione una coincidencia de la lista.'
           : 'No existe una cuenta contable que coincida con "' + value + '".';
+        updateAccountLabel(input, result.ambiguous ? 'Cuenta ambigua' : 'Cuenta no encontrada', 'invalid');
         input.setCustomValidity(message);
         if (typeof UI !== 'undefined' && UI.notify) UI.notify(message, 'error');
       });
@@ -356,7 +399,8 @@
 
   Object.assign(helpers, {
     oldValue, pad, capitalize, num,
-    normalizeAccountText, accountLabel, searchAccounts, resolveAccount, accountDisplayName,
+    normalizeAccountText, accountLabel, accountName, searchAccounts, resolveAccount,
+    accountDisplayName, accountLabelState, updateAccountLabel,
     accountSearchField, bindAccountSearch, bindAccountSearchForm,
     accountOptions, format0, format0OrDash, queryYear, queryMonth,
     reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload
