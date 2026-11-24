@@ -37,7 +37,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                         <div>
                             <label for="month_register" class="block text-sm font-medium text-gray-700">Mes de Registro</label>
-                            <input type="number" name="month_register" id="month_register" min="1" max="12" value="${UI.h(value('month_register', ''))}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            <input type="number" name="month_register" id="month_register" min="1" max="12" value="${UI.h(value('month_register', String(new Date().getMonth() + 1)))}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                         </div>
                         <div>
                             <label for="year_register" class="block text-sm font-medium text-gray-700">Año de Registro</label>
@@ -166,12 +166,95 @@
       var yearInput = document.getElementById('year_register');
       if (yearInput && !yearInput.value) { yearInput.value = String(config.workingYear); }
 
+      var form = document.querySelector('form[data-action="documents.store"]');
+      if (form) {
+        Array.prototype.forEach.call(form.querySelectorAll('input, select, textarea'), function (field) {
+          function selectContent() {
+            try { this.select(); } catch (error) { return; }
+          }
+          field.addEventListener('focus', selectContent);
+          field.addEventListener('click', selectContent);
+        });
+      }
+
+      var centralizeInput = document.getElementById('date_centralize');
+      if (centralizeInput && !centralizeInput.value) {
+        var currentDate = new Date();
+        var monthEnd = new Date(config.workingYear, currentDate.getMonth() + 1, 0);
+        var monthText = String(monthEnd.getMonth() + 1);
+        var dayText = String(monthEnd.getDate());
+        centralizeInput.value = String(config.workingYear) + '-' +
+          (monthText.length < 2 ? '0' + monthText : monthText) + '-' +
+          (dayText.length < 2 ? '0' + dayText : dayText);
+      }
+
       var rutInput = document.getElementById('rut');
+      var folioInput = document.getElementById('folio');
+      var rutRefInput = document.getElementById('rut_ref');
+      var tdRefInput = document.getElementById('td_ref');
+      var folioRefInput = document.getElementById('folio_ref');
+      var autoRutRef = false;
+      var autoTdRef = false;
+      var autoFolioRef = false;
+
+      function syncReferences() {
+        var doctypeField = document.getElementById('doctype');
+        if (!doctypeField || !rutRefInput || !tdRefInput || !folioRefInput) return;
+        var code = String(doctypeField.value).trim();
+        if (code === '33' || code === '34') {
+          var rutValue = rutInput ? String(rutInput.value).trim() : '';
+          if (rutValue && (!rutRefInput.value || autoRutRef)) {
+            rutRefInput.value = rutValue;
+            autoRutRef = true;
+          }
+          if (!tdRefInput.value || autoTdRef) {
+            tdRefInput.value = code;
+            autoTdRef = true;
+          }
+          var folioValue = folioInput ? String(folioInput.value).trim() : '';
+          if (folioValue && (!folioRefInput.value || autoFolioRef)) {
+            folioRefInput.value = folioValue;
+            autoFolioRef = true;
+          }
+          return;
+        }
+        if (autoRutRef) { rutRefInput.value = ''; autoRutRef = false; }
+        if (autoTdRef) { tdRefInput.value = ''; autoTdRef = false; }
+        if (autoFolioRef) { folioRefInput.value = ''; autoFolioRef = false; }
+      }
+
+      if (rutRefInput) { rutRefInput.addEventListener('input', function () { autoRutRef = false; }); }
+      if (tdRefInput) { tdRefInput.addEventListener('input', function () { autoTdRef = false; }); }
+      if (folioRefInput) { folioRefInput.addEventListener('input', function () { autoFolioRef = false; }); }
+      if (rutInput) { rutInput.addEventListener('input', syncReferences); }
+      if (folioInput) { folioInput.addEventListener('input', syncReferences); }
+      syncReferences();
+
+      var totalInput = document.getElementById('total');
+      var amountIds = ['net', 'exempt', 'vat_rec', 'vat_no_rec', 'plus_oth_tax', 'minus_oth_tax'];
+      function amountOf(id) {
+        var input = document.getElementById(id);
+        var parsed = parseFloat(input ? input.value : '0');
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      function calculateTotal() {
+        if (!totalInput) return;
+        var sum = amountOf('net') + amountOf('exempt') + amountOf('vat_rec') +
+          amountOf('vat_no_rec') + amountOf('plus_oth_tax') - amountOf('minus_oth_tax');
+        totalInput.value = String(Math.round((sum + Number.EPSILON) * 100) / 100);
+      }
+      amountIds.forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) { input.addEventListener('input', calculateTotal); }
+      });
+      if (totalInput && (!totalInput.value || Number(totalInput.value) === 0)) { calculateTotal(); }
+
       var nameInput = document.getElementById('entity_name');
       var rutMessage = document.getElementById('rut_message');
       if (rutInput && nameInput && rutMessage) {
         rutInput.addEventListener('blur', function () {
           var rutValue = this.value.trim();
+          syncReferences();
           if (rutValue.length === 0) { rutMessage.textContent = ''; return; }
           rutMessage.textContent = 'Buscando...';
           rutMessage.className = 'text-xs mt-1 h-4 text-gray-500';
@@ -196,9 +279,11 @@
       var doctypeInput = document.getElementById('doctype');
       var docNameInput = document.getElementById('document_type_name');
       var doctypeMessage = document.getElementById('doctype_message');
+      if (doctypeInput) { doctypeInput.addEventListener('input', syncReferences); }
       if (doctypeInput && docNameInput && doctypeMessage) {
         doctypeInput.addEventListener('blur', function () {
           var doctypeValue = this.value.trim();
+          syncReferences();
           if (doctypeValue.length === 0) { doctypeMessage.textContent = ''; return; }
           doctypeMessage.textContent = 'Buscando...';
           doctypeMessage.className = 'text-xs mt-1 h-4 text-gray-500';

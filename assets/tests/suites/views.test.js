@@ -55,6 +55,41 @@
     T.assertIncludes(html, 'data-action="documents.store"');
   });
 
+  T.test('El formulario de documentos precarga mes, cierre de mes y referencias de 33/34', function () {
+    T.resetStore();
+    const html = window.Views.documentCreate(ctx);
+    const month = new Date().getMonth() + 1;
+    T.assertIncludes(html, 'name="month_register" id="month_register" min="1" max="12" value="' + month + '"');
+    T.assertIncludes(html, 'name="date_centralize" id="date_centralize" value=""');
+    T.assertIncludes(html, 'new Date(config.workingYear, currentDate.getMonth() + 1, 0)');
+    T.assertIncludes(html, "(monthText.length < 2 ? '0' + monthText : monthText)");
+    T.assertIncludes(html, "code === '33' || code === '34'");
+    T.assertIncludes(html, 'rutRefInput.value = rutValue;');
+    T.assertIncludes(html, 'tdRefInput.value = code;');
+    T.assertIncludes(html, 'folioRefInput.value = folioValue;');
+    T.assertIncludes(html, "if (autoRutRef) { rutRefInput.value = ''; autoRutRef = false; }");
+    T.assertIncludes(html, "if (autoTdRef) { tdRefInput.value = ''; autoTdRef = false; }");
+    T.assertIncludes(html, "if (autoFolioRef) { folioRefInput.value = ''; autoFolioRef = false; }");
+    T.assertIncludes(html, "rutInput.addEventListener('input', syncReferences);");
+    T.assertIncludes(html, "rutRefInput.addEventListener('input', function () { autoRutRef = false; });");
+  });
+
+  T.test('El formulario de documentos calcula el total al digitar y selecciona al enfocar', function () {
+    T.resetStore();
+    const html = window.Views.documentCreate(ctx);
+    T.assertIncludes(html, "amountOf('net') + amountOf('exempt') + amountOf('vat_rec') +");
+    T.assertIncludes(html, "- amountOf('minus_oth_tax')");
+    T.assertIncludes(html, 'Math.round((sum + Number.EPSILON) * 100) / 100');
+    T.assertIncludes(html, "input.addEventListener('input', calculateTotal);");
+    T.assertIncludes(html, "form.querySelectorAll('input, select, textarea')");
+    T.assertIncludes(html, "field.addEventListener('focus', selectContent);");
+    T.assertIncludes(html, "field.addEventListener('click', selectContent);");
+    const totalTag = html.split('name="total" id="total"')[1].split('>')[0];
+    T.assert(totalTag.indexOf('readonly') === -1, 'El total debe seguir editable');
+    const script = html.split('<script>')[1].split('</script>')[0];
+    new Function(script);
+  });
+
   T.test('Los maestros, el sistema y la portada exponen sus accesos', function () {
     T.resetStore();
     T.assertIncludes(window.Views.templatesIndex(ctx), 'data-action="templates.store"');
@@ -183,6 +218,10 @@
     T.assertIncludes(ledger, 'account_code');
     T.assertIncludes(ledger, 'Código o nombre');
     T.assert(ledger.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
+    T.assert(ledger.indexOf('for="account_code"') < ledger.indexOf('id="ledger_month"'), 'La cuenta debe estar arriba del mes');
+    T.assert(ledger.indexOf('id="ledger_month"') < ledger.indexOf('id="ledger_year"'), 'El mes debe estar antes del año');
+    T.assertIncludes(ledger, 'sm:col-span-4', 'La cuenta debe ocupar un bloque completo');
+    T.assertIncludes(ledger, 'bg-amber-50', 'La cuenta debe estar resaltada');
   });
 
   T.test('El acordeón de asientos prefabricados empieza cerrado', function () {
@@ -256,6 +295,41 @@
       T.assertIncludes(html, 'No se permiten montos negativos en Debe ni en Haber.');
       T.assertIncludes(html, 'Number(this.value) < 0');
       T.assertIncludes(html, 'this.value = 0;');
+    });
+  });
+
+  T.test('Los formularios de asientos impiden Debe y Haber en la misma fila', function () {
+    const year = Store.workingYear();
+    resetWithStart(1, year);
+    const create = window.Views.manualJournalCreate(ctx);
+    const manualId = Store.registerManualJournal(year, 1, year + '-01-05', 'Asiento de prueba', [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ]);
+    const manual = window.Views.editManualJournal({ params: { id: manualId }, query: {} });
+    const doc = Store.createDocument({
+      month_register: 1,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 9003,
+      date: year + '-01-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    const vcId = Store.registerDocumentJournal(doc.id, '4010101');
+    const vc = window.Views.editJournal({ params: { id: vcId }, query: {} });
+    [create, manual, vc].forEach(function (html) {
+      T.assertIncludes(html, 'Cada fila del asiento debe registrar solo Debe o solo Haber.');
+      T.assertIncludes(html, 'function enforceSingleSide(input) {');
+      T.assertIncludes(html, 'enforceSingleSide(this);');
+      T.assertIncludes(html, "input.classList.contains('debit-input') ? '.credit-input' : '.debit-input'");
+      T.assertIncludes(html, 'opposite.value = 0;');
+      T.assertIncludes(html, "input.closest('tr')");
     });
   });
 

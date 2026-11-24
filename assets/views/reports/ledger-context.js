@@ -32,11 +32,13 @@
         <div class="p-6 bg-slate-50 border border-slate-200 rounded-2xl">
             <form data-action="accounting.ledger" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <input type="hidden" name="owner_id" value="${UI.h(owner ? owner.id : '')}">
-                <div>
-                    <label for="account_code" class="block text-xs font-semibold text-slate-600 mb-1">Cuenta Contable</label>
+                <div class="sm:col-span-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <label for="account_code" class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-2">Cuenta Contable</label>
                     ${accountSearchField('account_code', accountCode, {
                       id: 'account_code',
                       accounts: accounts,
+                      wrapperClass: 'account-search-wrap flex items-center gap-3',
+                      labelClass: 'account-name-label truncate text-xs text-slate-600 font-semibold',
                       inputClass: 'w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border',
                       placeholder: 'Código o nombre'
                     })}
@@ -51,7 +53,7 @@
                     <label for="ledger_year" class="block text-xs font-semibold text-slate-600 mb-1">Año</label>
                     <input type="number" name="year" id="ledger_year" value="${UI.h(year)}" min="${UI.h(start.year)}" class="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border" required>
                 </div>
-                <div class="flex items-end">
+                <div class="flex items-end sm:col-span-2">
                     <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg shadow-sm transition">
                         Generar Mayor &rarr;
                     </button>

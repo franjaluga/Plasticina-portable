@@ -24,6 +24,12 @@
     }
   }
 
+  function assertSingleSideEntry(entry) {
+    if (num(entry && entry.debit) > 0 && num(entry && entry.credit) > 0) {
+      throw new Error('Cada fila del asiento debe registrar solo Debe o solo Haber.');
+    }
+  }
+
   function normalizeEntries(entries) {
     const formatted = [];
     let debitTotal = 0;
@@ -33,6 +39,7 @@
       const credit = num(entry && entry.credit);
       assertNonNegativeAmount(debit);
       assertNonNegativeAmount(credit);
+      assertSingleSideEntry(entry);
       if (debit <= 0 && credit <= 0) return;
       debitTotal += debit;
       creditTotal += credit;
@@ -70,6 +77,7 @@
     (Array.isArray(entries) ? entries : []).forEach(function (entry) {
       assertNonNegativeAmount(entry && entry.debit);
       assertNonNegativeAmount(entry && entry.credit);
+      assertSingleSideEntry(entry);
     });
     return db.repositories.journalEntries.insertMany(journalId, entries);
   }

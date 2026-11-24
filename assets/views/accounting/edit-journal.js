@@ -196,6 +196,16 @@
         calculateTotals();
       });
 
+      function enforceSingleSide(input) {
+        if (!(Number(input.value) > 0)) return;
+        var row = input.closest('tr');
+        if (!row) return;
+        var opposite = row.querySelector(input.classList.contains('debit-input') ? '.credit-input' : '.debit-input');
+        if (!opposite || Number(opposite.value) === 0) return;
+        opposite.value = 0;
+        UI.notify('Cada fila del asiento debe registrar solo Debe o solo Haber.', 'error');
+      }
+
       function attachEvents() {
         Array.prototype.forEach.call(document.querySelectorAll('.remove-row-btn'), function (btn) {
           btn.onclick = function () {
@@ -212,6 +222,7 @@
               this.value = 0;
               UI.notify('No se permiten montos negativos en Debe ni en Haber.', 'error');
             }
+            enforceSingleSide(this);
             calculateTotals();
           };
         });

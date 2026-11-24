@@ -159,6 +159,16 @@
         return value === undefined || value === null ? '' : String(value);
       }
 
+      function enforceSingleSide(input) {
+        if (!(Number(input.value) > 0)) return;
+        var row = input.closest('tr');
+        if (!row) return;
+        var opposite = row.querySelector(input.classList.contains('debit-input') ? '.credit-input' : '.debit-input');
+        if (!opposite || Number(opposite.value) === 0) return;
+        opposite.value = 0;
+        UI.notify('Cada fila del asiento debe registrar solo Debe o solo Haber.', 'error');
+      }
+
       function bindAmountInputs(row) {
         Array.prototype.forEach.call(row.querySelectorAll('.debit-input, .credit-input'), function (input) {
           input.oninput = function () {
@@ -166,6 +176,7 @@
               this.value = 0;
               UI.notify('No se permiten montos negativos en Debe ni en Haber.', 'error');
             }
+            enforceSingleSide(this);
             calculateTotals();
           };
           input.onfocus = function () { this.select(); };
