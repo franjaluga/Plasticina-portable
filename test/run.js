@@ -7,7 +7,7 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 const APP_HTML = path.join(ROOT, 'index.html');
 const TEST_DIR = path.join(ROOT, 'assets', 'tests');
-const SPECIFIC_SUITES = ['specific-test/owners/owners.test.js'];
+const SPECIFIC_SUITES = ['specific-test/owners/owners.test.js', 'specific-test/period/period.test.js'];
 
 function scriptSources() {
   const html = fs.readFileSync(APP_HTML, 'utf8');

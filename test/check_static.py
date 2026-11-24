@@ -125,7 +125,8 @@ def main():
         ok = fail('tests/index.html no carga los mismos scripts que index.html')
 
     suites = ['harness.js', 'suites/core.test.js', 'suites/store.test.js', 'suites/views.test.js',
-              'suites/app.test.js', 'suites/actions.test.js', 'specific-test/owners/owners.test.js']
+              'suites/app.test.js', 'suites/actions.test.js', 'specific-test/owners/owners.test.js',
+              'specific-test/period/period.test.js']
     for suite in suites:
         if ('"tests/' + suite + '"' not in tests_html and suite not in tests_html):
             ok = fail('tests/index.html no carga ' + suite)
