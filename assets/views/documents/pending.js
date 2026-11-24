@@ -3,6 +3,8 @@
 
   window.Views = window.Views || {};
 
+  const { accountSearchField } = window.Plasticina.views.helpers;
+
   window.Views.documentPending = function (ctx) {
     const owner = Store.activeOwner();
     const query = ctx.query || {};
@@ -14,7 +16,11 @@
     if (query.date !== undefined && query.date !== '') filters.date = query.date;
     if (query.folio !== undefined && query.folio !== '') filters.folio = query.folio;
     const documents = Store.pendingDocuments(filters);
-    const glosa = UI.old('glosa', 'Contabilización de documentos V/C');
+    const oldValues = UI.old() || {};
+    const glosa = oldValues.glosa === undefined || oldValues.glosa === null || oldValues.glosa === ''
+      ? 'Contabilización de documentos V/C'
+      : oldValues.glosa;
+    const accountCode = oldValues.custom_net_account || '';
 
     const rows = documents.length
       ? documents.map(function (doc) {
@@ -103,15 +109,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="custom_net_account" class="block text-xs font-bold uppercase text-gray-700 mb-1">
-                            Cuenta Contable para el Neto <span class="font-normal text-gray-400">(Seleccione o escriba el código)</span>
+                            Cuenta Contable para el Neto <span class="font-normal text-gray-400">(Escriba código o nombre)</span>
                         </label>
-                        <div class="relative">
-                            <input type="text" name="custom_net_account" id="custom_net_account" class="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" list="accounts_list" placeholder="Ej: Seleccione o escriba código" autocomplete="off" required>
-
-                            <datalist id="accounts_list">
-                                ${accounts.map(function (acc) { return `<option value="${UI.h(acc.code)}">${UI.h(acc.code)} - ${UI.h(acc.name)}</option>`; }).join('')}
-                            </datalist>
-                        </div>
+                        ${accountSearchField('custom_net_account', accountCode, {
+                          id: 'custom_net_account',
+                          accounts: accounts,
+                          inputClass: 'w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white',
+                          placeholder: 'Código o nombre'
+                        })}
                     </div>
 
                     <div>
@@ -155,6 +160,11 @@
 
     <script>
     (function () {
+      var viewHelpers = window.Plasticina.views.helpers;
+      var accountsData = ${UI.json(accounts)};
+      var form = document.querySelector('form[data-action="documents.batch"]');
+      if (form) viewHelpers.bindAccountSearchForm(form, accountsData, {});
+
       var selectAll = document.getElementById('select-all');
       if (!selectAll) { return; }
       selectAll.addEventListener('change', function () {

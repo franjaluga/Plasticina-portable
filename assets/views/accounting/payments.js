@@ -3,13 +3,13 @@
 
   window.Views = window.Views || {};
 
+  const { accountSearchField } = window.Plasticina.views.helpers;
+
   window.Views.paymentsIndex = function (ctx) {
     const owner = Store.activeOwner();
     const pendingDocuments = Store.pendingBalanceDocuments() || [];
     const accounts = Store.activeOwnerAccounts();
-    const accountOptionsHtml = accounts.map(function (acc) {
-      return `<option value="${UI.h(acc.code)}">${UI.h(acc.code)} - ${UI.h(acc.name)}</option>`;
-    }).join('');
+    const defaultAccountCode = accounts.length ? accounts[0].code : '';
 
     const rows = pendingDocuments.length
       ? pendingDocuments.map(function (doc) {
@@ -29,7 +29,12 @@
                                     <input type="hidden" name="document_id" value="${UI.h(doc.id)}">
                                     <input type="date" name="date" value="${UI.h(UI.today())}" class="text-xs border border-slate-300 rounded px-2 py-1">
                                     <input type="number" name="amount" step="0.01" max="${UI.h(doc.calculated_balance)}" value="${UI.h(doc.calculated_balance)}" placeholder="Monto" class="w-24 text-xs border border-slate-300 rounded px-2 py-1 font-mono">
-                                    <select name="bank_account_code" class="text-xs border border-slate-300 rounded px-2 py-1 bg-white">${accountOptionsHtml}</select>
+                                    ${accountSearchField('bank_account_code', defaultAccountCode, {
+                                      accounts: accounts,
+                                      inputClass: 'w-32 text-xs border border-slate-300 rounded px-2 py-1 bg-white',
+                                      placeholder: 'Código o nombre',
+                                      showLabel: false
+                                    })}
                                     <button type="submit" class="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">${UI.h(isSale ? 'Cobrar' : 'Pagar')}</button>
                                 </form>
                             </td>
@@ -73,6 +78,16 @@
         </div>
 
     </div>
+
+    <script>
+    (function () {
+      var viewHelpers = window.Plasticina.views.helpers;
+      var accountsData = ${UI.json(accounts)};
+      Array.prototype.forEach.call(document.querySelectorAll('form[data-action="payments.store"]'), function (form) {
+        viewHelpers.bindAccountSearchForm(form, accountsData, {});
+      });
+    })();
+    </script>
     `;
   };
 })();

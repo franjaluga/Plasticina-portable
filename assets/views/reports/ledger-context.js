@@ -3,6 +3,8 @@
 
   window.Views = window.Views || {};
 
+  const { accountSearchField } = window.Plasticina.views.helpers;
+
   window.Views.ledgerContext = function (ctx) {
     const owner = Store.activeOwner();
     const accounts = owner ? Store.accounts(owner.id) : Store.activeOwnerAccounts();
@@ -31,11 +33,13 @@
             <form data-action="accounting.ledger" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <input type="hidden" name="owner_id" value="${UI.h(owner ? owner.id : '')}">
                 <div>
-                    <label for="account_code" class="block text-xs font-semibold text-slate-600 mb-1">N° de Cuenta</label>
-                    <input type="text" name="account_code" id="account_code" value="${UI.h(accountCode)}" list="accounts_list" placeholder="Código" autocomplete="off" class="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border" required>
-                    <datalist id="accounts_list">
-                        ${accounts.map(function (acc) { return `<option value="${UI.h(acc.code)}">${UI.h(acc.name)}</option>`; }).join('')}
-                    </datalist>
+                    <label for="account_code" class="block text-xs font-semibold text-slate-600 mb-1">Cuenta Contable</label>
+                    ${accountSearchField('account_code', accountCode, {
+                      id: 'account_code',
+                      accounts: accounts,
+                      inputClass: 'w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border',
+                      placeholder: 'Código o nombre'
+                    })}
                 </div>
                 <div>
                     <label for="ledger_month" class="block text-xs font-semibold text-slate-600 mb-1">Mes</label>
@@ -55,6 +59,15 @@
             </form>
         </div>
     </div>
+
+    <script>
+    (function () {
+      var viewHelpers = window.Plasticina.views.helpers;
+      var accountsData = ${UI.json(accounts)};
+      var form = document.querySelector('form[data-action="accounting.ledger"]');
+      if (form) viewHelpers.bindAccountSearchForm(form, accountsData, {});
+    })();
+    </script>
     `;
   };
 })();

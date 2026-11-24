@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { accountOptions, docTypeName, num, oldValue } = window.Plasticina.views.helpers;
+  const { accountSearchField, docTypeName, num, oldValue } = window.Plasticina.views.helpers;
 
   window.Views.editJournal = function (ctx) {
     const journal = Store.journal(ctx.params.id) || {};
@@ -30,9 +30,11 @@
                             <tr class="entry-row bg-white">
                                 <td class="py-3 px-4">
                                     <input type="hidden" name="entries[${UI.h(index)}][component_name]" value="${UI.h(componentName)}">
-                                    <select name="entries[${UI.h(index)}][account_code]" class="w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                        ${accountOptions(accounts, accountCode)}
-                                    </select>
+                                    ${accountSearchField(`entries[${UI.h(index)}][account_code]`, accountCode, {
+                                      accounts: accounts,
+                                      inputClass: 'w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                                      placeholder: 'Código o nombre'
+                                    })}
                                 </td>
                                 <td class="py-3 px-4 text-right">
                                     <input type="number" step="any" name="entries[${UI.h(index)}][debit]" value="${UI.h(entryValue(entry, index, 'debit'))}" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
@@ -162,17 +164,13 @@
 
     </div>
 
-    <select id="masterAccountSelect" class="hidden">
-        <option value="">-- Seleccione una cuenta --</option>
-        ${accountOptions(accounts, '')}
-    </select>
-
     <script>
     (function () {
+      var viewHelpers = window.Plasticina.views.helpers;
+      var accountsData = ${UI.json(accounts)};
       var addRowBtn = document.getElementById('addRowBtn');
       var tbody = document.getElementById('entriesTableBody');
-      var masterSelect = document.getElementById('masterAccountSelect');
-      if (!addRowBtn || !tbody || !masterSelect) { return; }
+      if (!addRowBtn || !tbody) { return; }
 
       addRowBtn.addEventListener('click', function () {
         var fixedRow = tbody.querySelector('tr[data-fixed="true"]');
@@ -182,14 +180,18 @@
         newTr.innerHTML = [
           '<td class="py-3 px-4">',
           '<input type="hidden" name="entries[' + newIndex + '][component_name]" value="custom">',
-          '<select name="entries[' + newIndex + '][account_code]" class="w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 new-account-select" required></select>',
+          viewHelpers.accountSearchField('entries[' + newIndex + '][account_code]', '', {
+            accounts: accountsData,
+            inputClass: 'w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+            placeholder: 'Código o nombre'
+          }),
           '</td>',
           '<td class="py-3 px-4 text-right"><input type="number" step="any" name="entries[' + newIndex + '][debit]" value="0" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
           '<td class="py-3 px-4 text-right"><input type="number" step="any" name="entries[' + newIndex + '][credit]" value="0" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
           '<td class="py-3 px-4 text-center"><button type="button" class="remove-row-btn text-red-500 hover:text-red-700 font-bold text-sm px-2" title="Eliminar fila">&times;</button></td>'
         ].join('');
         tbody.insertBefore(newTr, fixedRow || null);
-        newTr.querySelector('.new-account-select').innerHTML = masterSelect.innerHTML;
+        viewHelpers.bindAccountSearch(newTr.querySelector('[data-account-search]'), accountsData, {});
         attachEvents();
         calculateTotals();
       });
@@ -229,6 +231,7 @@
         }
       }
 
+      viewHelpers.bindAccountSearchForm(document.querySelector('form[data-action="journals.update"]'), accountsData, {});
       attachEvents();
       calculateTotals();
     })();

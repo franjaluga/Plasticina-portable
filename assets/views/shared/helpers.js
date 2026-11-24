@@ -23,6 +23,230 @@
     return Number(value || 0);
   }
 
+  function normalizeAccountText(value) {
+    const text = value === undefined || value === null ? '' : String(value);
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function accountLabel(account) {
+    if (!account) return '';
+    return String(account.code || '') + ' - ' + String(account.name || '');
+  }
+
+  function accountSource(accounts) {
+    const seen = Object.create(null);
+    return (Array.isArray(accounts) ? accounts : []).filter(function (account) {
+      if (!account || account.code === undefined || account.code === null || seen[account.code]) return false;
+      seen[account.code] = true;
+      return true;
+    });
+  }
+
+  function searchAccounts(accounts, term, limit) {
+    const needle = normalizeAccountText(term);
+    const max = limit === undefined ? 8 : Math.max(0, Number(limit) || 0);
+    const source = accountSource(accounts);
+    const matches = source.filter(function (account) {
+      if (!needle) return true;
+      return normalizeAccountText(account.code).indexOf(needle) !== -1 ||
+        normalizeAccountText(account.name).indexOf(needle) !== -1;
+    });
+    return max ? matches.slice(0, max) : matches;
+  }
+
+  function resolveAccount(accounts, value) {
+    const source = accountSource(accounts);
+    const term = normalizeAccountText(value);
+    if (!term) return { account: null, ambiguous: false, matches: [] };
+
+    let account = source.find(function (item) { return normalizeAccountText(item.code) === term; });
+    if (account) return { account: account, ambiguous: false, matches: [account] };
+
+    const exactNames = source.filter(function (item) { return normalizeAccountText(item.name) === term; });
+    if (exactNames.length === 1) return { account: exactNames[0], ambiguous: false, matches: exactNames };
+    if (exactNames.length > 1) return { account: null, ambiguous: true, matches: exactNames };
+
+    const matches = searchAccounts(source, term, 0);
+    if (matches.length === 1) return { account: matches[0], ambiguous: false, matches: matches };
+    return { account: null, ambiguous: matches.length > 1, matches: matches };
+  }
+
+  function accountDisplayName(accounts, value) {
+    const result = resolveAccount(accounts, value);
+    return result.account ? accountLabel(result.account) : '';
+  }
+
+  function accountSearchField(name, value, options) {
+    const opts = options || {};
+    const id = opts.id ? ' id="' + UI.h(opts.id) + '"' : '';
+    const required = opts.required === false ? '' : ' required';
+    const showLabel = opts.showLabel !== false;
+    const label = showLabel
+      ? '<span class="' + UI.h(opts.labelClass || 'account-name-label block text-[10px] text-slate-500 mt-1') + '">' +
+        UI.h(opts.label === undefined ? accountDisplayName(opts.accounts, value) : opts.label) + '</span>'
+      : '';
+    return '<div class="' + UI.h(opts.wrapperClass || 'relative') + '">' +
+      '<input type="text"' + id + ' name="' + UI.h(name) + '" value="' + UI.h(value || '') +
+      '" placeholder="' + UI.h(opts.placeholder || 'Código o nombre') +
+      '" class="' + UI.h(opts.inputClass || 'w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white') +
+      '" data-account-search autocomplete="off"' + required + '>' + label + '</div>';
+  }
+
+  let accountSearchSequence = 0;
+
+  function bindAccountSearch(input, accounts, options) {
+    if (!input) return null;
+    if (input.__plasticinaAccountSearch) return input.__plasticinaAccountSearch;
+
+    const opts = options || {};
+    const source = accountSource(accounts);
+    const listId = 'account-suggestions-' + (++accountSearchSequence);
+    const panel = document.createElement('div');
+    panel.id = listId;
+    panel.className = 'account-suggestions hidden';
+    panel.setAttribute('role', 'listbox');
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-controls', listId);
+    input.parentElement.appendChild(panel);
+
+    let matches = [];
+    let active = -1;
+
+    function hide() {
+      panel.classList.add('hidden');
+      input.setAttribute('aria-expanded', 'false');
+      active = -1;
+    }
+
+    function show() {
+      panel.classList.remove('hidden');
+      input.setAttribute('aria-expanded', 'true');
+    }
+
+    function markActive() {
+      Array.prototype.forEach.call(panel.querySelectorAll('[role="option"]'), function (option, index) {
+        const selected = index === active;
+        option.classList.toggle('account-suggestion-active', selected);
+        option.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+    }
+
+    function select(index) {
+      const account = matches[index];
+      if (!account) return;
+      input.value = String(account.code);
+      input.setCustomValidity('');
+      hide();
+      if (typeof opts.onSelect === 'function') opts.onSelect(account, input);
+    }
+
+    function render() {
+      matches = searchAccounts(source, input.value, opts.limit === undefined ? 8 : opts.limit);
+      if (!matches.length) {
+        panel.innerHTML = '<div class="account-suggestion-empty">Sin coincidencias</div>';
+        show();
+        return;
+      }
+      panel.innerHTML = matches.map(function (account, index) {
+        return '<button type="button" role="option" aria-selected="false" data-index="' + index +
+          '" class="account-suggestion" data-code="' + UI.h(account.code) + '">' +
+          '<span class="font-mono font-semibold text-slate-800">' + UI.h(account.code) + '</span>' +
+          '<span class="text-slate-400"> - </span>' +
+          '<span class="text-slate-600">' + UI.h(account.name) + '</span>' +
+          '</button>';
+      }).join('');
+      Array.prototype.forEach.call(panel.querySelectorAll('[data-index]'), function (option) {
+        option.addEventListener('mousedown', function (event) {
+          event.preventDefault();
+          select(Number(option.getAttribute('data-index')));
+        });
+      });
+      active = -1;
+      show();
+    }
+
+    input.addEventListener('focus', render);
+    input.addEventListener('input', function () {
+      input.setCustomValidity('');
+      render();
+      if (typeof opts.onInput === 'function') opts.onInput(input);
+    });
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!matches.length) render();
+        if (!matches.length) return;
+        active = event.key === 'ArrowDown'
+          ? Math.min(active + 1, matches.length - 1)
+          : Math.max(active - 1, 0);
+        markActive();
+        return;
+      }
+      if (event.key === 'Enter' && active >= 0 && matches[active]) {
+        event.preventDefault();
+        select(active);
+        return;
+      }
+      if (event.key === 'Escape') hide();
+    });
+    input.addEventListener('blur', function () { window.setTimeout(hide, 120); });
+
+    const binding = { input: input, panel: panel, render: render, hide: hide, select: select };
+    input.__plasticinaAccountSearch = binding;
+    return binding;
+  }
+
+  function bindAccountSearchForm(form, accounts, options) {
+    if (!form) return null;
+    if (form.__plasticinaAccountSearchForm) return form.__plasticinaAccountSearchForm;
+
+    const opts = options || {};
+    const selector = opts.selector || '[data-account-search]';
+    const source = accountSource(accounts);
+
+    function fields() {
+      return Array.prototype.slice.call(form.querySelectorAll(selector));
+    }
+
+    fields().forEach(function (input) { bindAccountSearch(input, source, opts); });
+
+    form.addEventListener('submit', function (event) {
+      let valid = true;
+      fields().forEach(function (input) {
+        const value = String(input.value || '').trim();
+        if (!value) {
+          input.setCustomValidity('');
+          return;
+        }
+        const result = resolveAccount(source, value);
+        if (result.account) {
+          input.value = String(result.account.code);
+          input.setCustomValidity('');
+          if (typeof opts.onResolve === 'function') opts.onResolve(result.account, input);
+          return;
+        }
+        valid = false;
+        const message = result.ambiguous
+          ? 'La cuenta "' + value + '" es ambigua; seleccione una coincidencia de la lista.'
+          : 'No existe una cuenta contable que coincida con "' + value + '".';
+        input.setCustomValidity(message);
+        if (typeof UI !== 'undefined' && UI.notify) UI.notify(message, 'error');
+      });
+      if (!valid) event.preventDefault();
+    });
+
+    const binding = { form: form, fields: fields };
+    form.__plasticinaAccountSearchForm = binding;
+    return binding;
+  }
+
   function accountOptions(accounts, selectedCode) {
     return (accounts || []).map(function (acc) {
       return `<option value="${UI.h(acc.code)}"${String(selectedCode) === String(acc.code) ? ' selected' : ''}>${UI.h(acc.code)} - ${UI.h(acc.name)}</option>`;
@@ -130,5 +354,11 @@
     `;
   }
 
-  Object.assign(helpers, { oldValue, pad, capitalize, num, accountOptions, format0, format0OrDash, queryYear, queryMonth, reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload });
+  Object.assign(helpers, {
+    oldValue, pad, capitalize, num,
+    normalizeAccountText, accountLabel, searchAccounts, resolveAccount, accountDisplayName,
+    accountSearchField, bindAccountSearch, bindAccountSearchForm,
+    accountOptions, format0, format0OrDash, queryYear, queryMonth,
+    reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload
+  });
 })();

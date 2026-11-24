@@ -129,4 +129,98 @@
     const html = window.Views.taxBalance({ params: {}, query: {} });
     T.assertIncludes(html, 'href="javascript:history.back()"');
   });
+
+  T.test('El buscador de cuentas reconoce códigos, nombres y tildes', function () {
+    const helpers = window.Plasticina.views.helpers;
+    const accounts = [
+      { code: '1010101', name: 'Caja' },
+      { code: '1010102', name: 'Banco Cuenta Corriente' },
+      { code: '4010101', name: 'Ventas' }
+    ];
+
+    T.assertEqual(helpers.normalizeAccountText('  BÁNCO   cuenta '), 'banco cuenta');
+    T.assertEqual(helpers.searchAccounts(accounts, '101010', 8).length, 2);
+    T.assertEqual(helpers.searchAccounts(accounts, 'banco', 8)[0].code, '1010102');
+    T.assertEqual(helpers.resolveAccount(accounts, '1010102').account.name, 'Banco Cuenta Corriente');
+    T.assertEqual(helpers.resolveAccount(accounts, 'caja').account.code, '1010101');
+    T.assertEqual(helpers.resolveAccount(accounts, 'corriente').account.code, '1010102');
+    T.assertEqual(helpers.resolveAccount(accounts, '999').account, null);
+
+    const repeated = [{ code: '1010101', name: 'Caja' }, { code: '1010102', name: 'Caja' }];
+    const ambiguous = helpers.resolveAccount(repeated, 'caja');
+    T.assertEqual(ambiguous.account, null);
+    T.assertEqual(ambiguous.ambiguous, true);
+
+    const field = helpers.accountSearchField('account_code', '', { accounts: accounts, showLabel: false });
+    T.assertIncludes(field, 'data-account-search');
+    T.assertIncludes(field, 'placeholder="Código o nombre"');
+  });
+
+  T.test('Los formularios de contabilización buscan cuentas por código o nombre', function () {
+    T.resetStore();
+    const create = window.Views.manualJournalCreate(ctx);
+    T.assertIncludes(create, 'accountSearchField(');
+    T.assertIncludes(create, 'Código o nombre');
+    T.assert(create.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
+
+    const pending = window.Views.documentPending(ctx);
+    T.assertIncludes(pending, 'accountSearchField(');
+    T.assertIncludes(pending, 'custom_net_account');
+    T.assertIncludes(pending, 'Código o nombre');
+    T.assert(pending.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
+
+    const ledger = window.Views.ledgerContext({ params: {}, query: {} });
+    T.assertIncludes(ledger, 'accountSearchField(');
+    T.assertIncludes(ledger, 'account_code');
+    T.assertIncludes(ledger, 'Código o nombre');
+    T.assert(ledger.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
+  });
+
+  T.test('La edición de asientos permite buscar cuentas por código o nombre', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const id = Store.registerManualJournal(year, 1, year + '-01-05', 'Asiento de prueba', [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ]);
+
+    const manual = window.Views.editManualJournal({ params: { id: id }, query: {} });
+    T.assertIncludes(manual, 'accountSearchField(');
+    T.assertIncludes(manual, 'Código o nombre');
+    T.assert(manual.indexOf('<select name="entries[') === -1, 'La edición manual aún usa select de cuentas');
+    T.assertIncludes(manual, 'bindAccountSearchForm');
+
+    const journal = window.Views.editJournal({ params: { id: id }, query: {} });
+    T.assertIncludes(journal, 'accountSearchField(');
+    T.assert(journal.indexOf('<select name="entries[') === -1, 'La edición V/C aún usa select de cuentas');
+    T.assertIncludes(journal, 'bindAccountSearchForm');
+    T.assertIncludes(journal, 'entries[devengo][account_code]');
+  });
+
+  T.test('Cobros y pagos permite buscar la cuenta bancaria por código o nombre', function () {
+    const year = Store.workingYear();
+    resetWithStart(1, year);
+    const document = Store.createDocument({
+      month_register: 1,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 9001,
+      date: year + '-01-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    Store.registerDocumentJournal(document.id, '4010101');
+
+    const html = window.Views.paymentsIndex(ctx);
+    T.assertIncludes(html, 'accountSearchField(');
+    T.assertIncludes(html, 'bank_account_code');
+    T.assertIncludes(html, 'Código o nombre');
+    T.assert(html.indexOf('<select name="bank_account_code"') === -1, 'Cobros y pagos aún usa select de cuenta');
+    T.assertIncludes(html, 'bindAccountSearchForm');
+  });
 })();
