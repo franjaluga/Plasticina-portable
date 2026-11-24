@@ -60,13 +60,6 @@
         </div>
     </div>
 
-    <div class="mb-6 p-4 bg-indigo-50/50 border border-indigo-100 rounded">
-        <h2 class="text-xs font-bold uppercase text-indigo-900 mb-2">Asientos Prefabricados (Plantillas Rápidas)</h2>
-        <div class="flex flex-wrap gap-2">
-            ${templateButtons}
-        </div>
-    </div>
-
     <form data-action="manualJournal.store">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 border border-gray-200 rounded">
             <div>
@@ -116,6 +109,17 @@
 
     </form>
 
+    <div class="mt-6 border border-indigo-100 rounded">
+        <button type="button" id="templates-toggle" aria-expanded="false" aria-controls="templates-panel" class="w-full flex items-center justify-between p-4 text-left bg-indigo-50/50 hover:bg-indigo-50 transition">
+            <span id="templates-toggle-label" class="text-xs font-bold uppercase tracking-wider text-indigo-900">[+] ver asientos prefabricados</span>
+        </button>
+        <div id="templates-panel" class="hidden p-4 bg-indigo-50/50 border-t border-indigo-100">
+            <div class="flex flex-wrap gap-2">
+                ${templateButtons}
+            </div>
+        </div>
+    </div>
+
     <script>
     (function () {
       var viewHelpers = window.Plasticina.views.helpers;
@@ -124,6 +128,19 @@
       var oldEntries = ${UI.json(oldEntries)};
       var rowIndex = 0;
       var tbody = document.getElementById('entries-body');
+      var templatesToggle = document.getElementById('templates-toggle');
+      var templatesPanel = document.getElementById('templates-panel');
+      var templatesToggleLabel = document.getElementById('templates-toggle-label');
+
+      if (templatesToggle && templatesPanel && templatesToggleLabel) {
+        templatesToggle.addEventListener('click', function () {
+          var opened = templatesPanel.classList.toggle('hidden') === false;
+          templatesToggle.setAttribute('aria-expanded', opened ? 'true' : 'false');
+          templatesToggleLabel.textContent = opened
+            ? '[−] ocultar asientos prefabricados'
+            : '[+] ver asientos prefabricados';
+        });
+      }
 
       function textOf(value) {
         return value === undefined || value === null ? '' : String(value);

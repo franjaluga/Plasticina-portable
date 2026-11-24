@@ -185,6 +185,18 @@
     T.assert(ledger.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
   });
 
+  T.test('El acordeón de asientos prefabricados empieza cerrado', function () {
+    T.resetStore();
+    const html = window.Views.manualJournalCreate(ctx);
+    T.assertIncludes(html, 'id="templates-toggle"');
+    T.assert(html.indexOf('</form>') < html.indexOf('id="templates-toggle"'), 'El acordeón debe estar después del formulario');
+    T.assertIncludes(html, 'aria-expanded="false"');
+    T.assertIncludes(html, 'aria-controls="templates-panel"');
+    T.assertIncludes(html, '[+] ver asientos prefabricados');
+    T.assertIncludes(html, 'id="templates-panel" class="hidden"');
+    T.assertIncludes(html, "[−] ocultar asientos prefabricados");
+  });
+
   T.test('La edición de asientos permite buscar cuentas por código o nombre', function () {
     T.resetStore();
     const year = Store.workingYear();
