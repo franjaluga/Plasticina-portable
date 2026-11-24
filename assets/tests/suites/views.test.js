@@ -39,6 +39,16 @@
     T.assertIncludes(html, 'Test');
   });
 
+  T.test('La confirmación de asiento manual ofrece solo dos opciones', function () {
+    const html = window.Views.manualJournalCreated(ctx);
+    T.assertIncludes(html, UI.route('accounting.manual_journals.create'));
+    T.assertIncludes(html, 'Crear otro asiento');
+    T.assertIncludes(html, UI.route('welcome'));
+    T.assertIncludes(html, 'Volver al inicio');
+    T.assert(html.indexOf('accounting/reports') === -1, 'La confirmación no debe enlazar a reportes contables');
+    T.assert(html.indexOf('Reportes Contables') === -1, 'La confirmación no debe mostrar el hub duplicado');
+  });
+
   T.test('El formulario de documentos expone las acciones esperadas', function () {
     T.resetStore();
     const html = window.Views.documentCreate(ctx);

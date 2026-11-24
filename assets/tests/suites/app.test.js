@@ -25,6 +25,39 @@
     });
   });
 
+  T.test('La confirmación de asiento manual tiene ruta y vista propias', function () {
+    T.assertEqual(UI.route('accounting.manual_journals.created'), '#/accounting/manual-journals/created');
+    const match = app.router.matchRoute('/accounting/manual-journals/created');
+    T.assert(match, 'Falta la ruta de confirmación del asiento manual');
+    T.assertEqual(match.view, 'manualJournalCreated');
+  });
+
+  T.test('La ruta heredada de reportes contables redirige al hub analítico', function () {
+    T.resetStore();
+    T.assertEqual(UI.route('accounting.reports.index'), '#/reports/analytics');
+    T.assertEqual(app.router.matchRoute('/accounting/reports'), null);
+    T.assertEqual(app.router.matchRoute('/reports/analytics').view, 'analyticsHub');
+    T.assertEqual(app.router.matchRoute('/accounting/reports/audit').view, 'auditIndex');
+    window.location.hash = '#/accounting/reports';
+    app.router.render();
+    T.assertEqual(window.location.hash, '#/reports/analytics');
+    app.router.render();
+    T.assertIncludes(document.getElementById('app').innerHTML, 'Reportes y Análisis');
+    window.location.hash = '#/';
+  });
+
+  T.test('La confirmación muestra el mensaje de éxito y sus dos opciones', function () {
+    T.resetStore();
+    UI.flash('success', 'Asiento contable manual creado exitosamente.');
+    window.location.hash = UI.route('accounting.manual_journals.created');
+    app.router.render();
+    const html = document.getElementById('app').innerHTML;
+    T.assertIncludes(html, 'Asiento contable manual creado exitosamente.');
+    T.assertIncludes(html, 'Crear otro asiento');
+    T.assertIncludes(html, 'Volver al inicio');
+    window.location.hash = '#/';
+  });
+
   T.test('El router renderiza la portada en el contenedor', function () {
     T.resetStore();
     window.location.hash = '#/';

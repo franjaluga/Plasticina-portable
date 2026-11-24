@@ -122,6 +122,10 @@
       window.Plasticina.app.exportJournalCsv(parsed.query);
       return;
     }
+    if (parsed.path === '/accounting/reports') {
+      navigate(UI.route('reports.analytics'));
+      return;
+    }
 
     const match = matchRoute(parsed.path);
     const flash = UI.takeFlash();

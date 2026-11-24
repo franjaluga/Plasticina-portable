@@ -64,6 +64,33 @@
     T.resetStore();
   });
 
+  T.test('manualJournal.store guarda el asiento y abre la confirmación propia', function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    const year = Store.workingYear();
+    const before = Store.journals({ year: year }).length;
+    window.location.hash = UI.route('accounting.manual_journals.create');
+    window.Actions['manualJournal.store'](form({
+      year: year,
+      month: 3,
+      date: year + '-03-05',
+      glosa: 'Asiento de prueba',
+      'entries[0][account_code]': '1010101',
+      'entries[0][debit]': 100,
+      'entries[0][credit]': 0,
+      'entries[1][account_code]': '4010101',
+      'entries[1][debit]': 0,
+      'entries[1][credit]': 100
+    }, 'manualJournal.store'));
+    T.assertEqual(Store.journals({ year: year }).length, before + 1);
+    T.assertIncludes(UI.takeFlash(), 'Asiento contable manual creado exitosamente.');
+    T.assertEqual(window.location.hash, UI.route('accounting.manual_journals.created'));
+    T.assert(window.location.hash.indexOf('accounting/reports') === -1,
+      'La confirmación no debe llevar a reportes contables');
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
   T.test('Una acción inexistente no se ejecuta silenciosamente', function () {
     T.assertEqual(typeof window.Actions['no.existe'], 'undefined');
   });
