@@ -51,19 +51,43 @@
     T.assertIncludes(html, 'style="display:none" aria-hidden="true"');
   });
 
-  T.test('El contexto balance pide mes y año y sobrescribe el botón Generar', function () {
+  T.test('El contexto balance permite el primer mes contable y bloquea meses anteriores', function () {
     T.resetStore();
     const year = Store.workingYear();
-    const html = window.Views.balanceContext({ params: {}, query: { month: '9', year: String(year) } });
-    T.assertIncludes(html, '<form data-action="vc_documents.tax_balance"');
-    T.assertIncludes(html, 'name="month"');
-    T.assertIncludes(html, 'name="year"');
-    T.assertIncludes(html, 'type="submit"');
-    T.assertIncludes(html, 'Generar &rarr;');
-    T.assertIncludes(html, 'value="09" selected');
-    T.assertIncludes(html, 'value="' + year + '"');
-    T.assert(html.indexOf('<a href="#/vc-documents/balance-tributario"') === -1,
+    const entries = [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ];
+    Store.registerManualJournal(year, 3, year + '-03-05', 'Marzo', entries);
+
+    const first = window.Views.balanceContext({ params: {}, query: { month: '3', year: String(year) } });
+    T.assertIncludes(first, '<form id="balanceContextForm" data-action="vc_documents.tax_balance"');
+    T.assertIncludes(first, '<option value="03" selected>');
+    T.assertIncludes(first, 'id="balancePeriodHelp"');
+    T.assertIncludes(first, 'Se procesa desde 01/01/' + year + ' hasta el 31/03/' + year + '.');
+    T.assertIncludes(first, 'id="balanceGenerateBtn"');
+    T.assert(first.indexOf('disabled aria-disabled="true"') === -1, 'El primer mes contable debe estar habilitado');
+    T.assert(first.indexOf('No hay contabilidad disponible') === -1, 'No debe simular ausencia de contabilidad');
+
+    const later = window.Views.balanceContext({ params: {}, query: { month: '9', year: String(year) } });
+    T.assertIncludes(later, 'Se procesa desde 01/01/' + year + ' hasta el 30/09/' + year + '.');
+    T.assert(later.indexOf('disabled aria-disabled="true"') === -1, 'No debe bloquear un periodo posterior');
+
+    const before = window.Views.balanceContext({ params: {}, query: { month: '2', year: String(year) } });
+    T.assertIncludes(before, 'La fecha no puede ser anterior a 03/' + year);
+    T.assertIncludes(before, 'No es posible generar el balance');
+    T.assertIncludes(before, 'disabled aria-disabled="true"');
+    T.assert(before.indexOf('<a href="#/vc-documents/balance-tributario"') === -1,
       'La card ya no debe ser un enlace directo');
+    T.resetStore();
+  });
+
+  T.test('El contexto balance bloquea la generación si no hay contabilidad disponible', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const html = window.Views.balanceContext({ params: {}, query: { month: '1', year: String(year) } });
+    T.assertIncludes(html, 'No hay contabilidad disponible para este negocio');
+    T.assertIncludes(html, 'disabled aria-disabled="true"');
   });
 
   T.test('El balance tributario muestra el rango hasta el mes solicitado y vuelve al contexto anterior', function () {

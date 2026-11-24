@@ -54,6 +54,8 @@
     ledger: s.ledger,
     taxBalance: s.taxBalance,
     pendingBalanceDocuments: s.pendingBalanceDocuments,
+    earliestAccountingDate: s.earliestAccountingDate,
+    balancePeriodStatus: s.balancePeriodStatus,
     validateDocument: s.validateDocument,
     isDocumentBalanced: s.isDocumentBalanced,
     createDocument: s.createDocument,

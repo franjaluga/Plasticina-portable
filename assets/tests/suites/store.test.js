@@ -139,6 +139,59 @@
     T.resetStore();
   });
 
+  T.test('Store.earliestAccountingDate devuelve la primera fecha contable del owner activo', function () {
+    T.resetStore();
+    T.assertEqual(Store.earliestAccountingDate(), null);
+    const entries = [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ];
+    Store.registerManualJournal(year, 2, year + '-03-15', 'Marzo', entries);
+    Store.registerManualJournal(year, 1, year + '-02-01', 'Febrero', entries);
+    T.assertEqual(Store.earliestAccountingDate(), year + '-02-01');
+    T.resetStore();
+  });
+
+  T.test('Store.balancePeriodStatus permite el primer mes contable y bloquea solo meses anteriores', function () {
+    T.resetStore();
+    const entries = [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ];
+    Store.registerManualJournal(year, 3, year + '-03-05', 'Marzo', entries);
+    const first = Store.balancePeriodStatus(year, 3);
+    T.assertEqual(first.allowed, true);
+    T.assertEqual(first.reason, 'valid');
+    T.assertEqual(first.earliest, year + '-03-05');
+    const before = Store.balancePeriodStatus(year, 2);
+    T.assertEqual(before.allowed, false);
+    T.assertEqual(before.reason, 'before-start');
+    const later = Store.balancePeriodStatus(year, 4);
+    T.assertEqual(later.allowed, true);
+    T.resetStore();
+  });
+
+  T.test('Store.balancePeriodStatus normaliza fechas contables no ISO', function () {
+    T.resetStore();
+    const entries = [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ];
+    Store.registerManualJournal(year, 3, '05-03-' + year, 'Marzo', entries);
+    T.assertEqual(Store.earliestAccountingDate(), year + '-03-05');
+    const status = Store.balancePeriodStatus(year, 3);
+    T.assertEqual(status.allowed, true);
+    T.assertEqual(status.earliest, year + '-03-05');
+    T.resetStore();
+  });
+
+  T.test('Store.balancePeriodStatus bloquea cuando no hay contabilidad', function () {
+    T.resetStore();
+    const status = Store.balancePeriodStatus(year, 1);
+    T.assertEqual(status.allowed, false);
+    T.assertEqual(status.reason, 'no-data');
+  });
+
   T.test('Store importa documentos por CSV a SQLite', function () {
     T.resetStore();
     const source = sampleDocument(60, 1190);

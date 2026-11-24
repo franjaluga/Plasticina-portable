@@ -45,6 +45,37 @@
     return query && query.month !== undefined && query.month !== '' ? Number(query.month) : Number(UI.today().slice(5, 7));
   }
 
+  function balancePeriodHelp(status) {
+    if (status.reason === 'no-data') {
+      return {
+        valid: false,
+        text: 'No hay contabilidad disponible para este negocio. No es posible generar el balance.',
+        className: 'text-[11px] text-rose-600 mt-2'
+      };
+    }
+    if (status.reason === 'before-start') {
+      return {
+        valid: false,
+        text: 'La fecha no puede ser anterior a ' + pad(status.earliestMonth) + '/' + status.earliestYear +
+          ', primer mes con contabilidad disponible para este negocio. No es posible generar el balance.',
+        className: 'text-[11px] text-rose-600 mt-2'
+      };
+    }
+    if (status.reason === 'invalid') {
+      return {
+        valid: false,
+        text: 'Selecciona un mes y año válidos.',
+        className: 'text-[11px] text-rose-600 mt-2'
+      };
+    }
+    const lastDay = new Date(Number(status.year), Number(status.month), 0).getDate();
+    return {
+      valid: true,
+      text: 'Se procesa desde 01/01/' + status.year + ' hasta el ' + pad(lastDay) + '/' + pad(status.month) + '/' + status.year + '.',
+      className: 'text-[11px] text-slate-400 mt-2'
+    };
+  }
+
   function docTypeName(doc) {
     return doc && doc.documentType ? (doc.documentType.name || 'Doc') : 'Doc';
   }
@@ -87,5 +118,5 @@
     `;
   }
 
-  Object.assign(helpers, { oldValue, pad, capitalize, num, accountOptions, format0, format0OrDash, queryYear, queryMonth, docTypeName, renderUpload });
+  Object.assign(helpers, { oldValue, pad, capitalize, num, accountOptions, format0, format0OrDash, queryYear, queryMonth, balancePeriodHelp, docTypeName, renderUpload });
 })();

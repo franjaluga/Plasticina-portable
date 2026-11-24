@@ -8,6 +8,7 @@
     hydrateDocument,
     isSaleDocument,
     num,
+    parseDate,
     rawAccountByCode,
     round2,
     typeOf,
@@ -91,6 +92,45 @@
     return rows;
   }
 
+  function earliestAccountingDate(ownerId) {
+    const ownerRecord = ownerId === undefined || ownerId === null ? activeOwnerRaw() : (s.rawOwner ? s.rawOwner(ownerId) : null);
+    const targetOwnerId = ownerRecord ? Number(ownerRecord.id) : Number(ownerId);
+    if (!Number.isFinite(targetOwnerId)) return null;
+    let earliest = null;
+    s.state.journals.forEach(function (journal) {
+      if (Number(journal.owner_id) !== targetOwnerId) return;
+      const date = parseDate(journal.date);
+      if (!date) return;
+      if (!earliest || date < earliest) earliest = date;
+    });
+    return earliest;
+  }
+
+  function balancePeriodStatus(year, month, ownerId) {
+    const numericYear = Number(year);
+    const numericMonth = Number(month);
+    if (!Number.isInteger(numericYear) || numericYear < 2000 ||
+      !Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) {
+      return { allowed: false, reason: 'invalid', earliest: null, year: numericYear, month: numericMonth };
+    }
+    const earliest = earliestAccountingDate(ownerId);
+    if (!earliest) {
+      return { allowed: false, reason: 'no-data', earliest: null, year: numericYear, month: numericMonth };
+    }
+    const earliestYear = Number(earliest.slice(0, 4));
+    const earliestMonth = Number(earliest.slice(5, 7));
+    const allowed = (numericYear * 100) + numericMonth >= (earliestYear * 100) + earliestMonth;
+    return {
+      allowed: allowed,
+      reason: allowed ? 'valid' : 'before-start',
+      earliest: earliest,
+      earliestYear: earliestYear,
+      earliestMonth: earliestMonth,
+      year: numericYear,
+      month: numericMonth
+    };
+  }
+
   function paymentAccount(document) {
     const sale = isSaleDocument(document) && typeOf(document) === 'V';
     return { account: sale ? '1010401' : '2010201', column: sale ? 'credit' : 'debit' };
@@ -125,5 +165,7 @@
   Object.assign(s, {
     taxBalance,
     pendingBalanceDocuments,
+    earliestAccountingDate,
+    balancePeriodStatus,
   });
 })();

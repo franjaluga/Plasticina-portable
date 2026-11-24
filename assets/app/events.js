@@ -32,6 +32,15 @@
     const getRoute = Object.prototype.hasOwnProperty.call(getActions, action) ? getActions[action] : null;
 
     if (getRoute) {
+      if (action === 'vc_documents.tax_balance') {
+        const status = Store.balancePeriodStatus(values.year, values.month);
+        if (!status.allowed) {
+          const statusHelp = window.Plasticina.views.helpers.balancePeriodHelp(status);
+          UI.flash('error', statusHelp.text);
+          router.render();
+          return;
+        }
+      }
       UI.remember(values);
       router.navigate(UI.route(getRoute, values));
       return;
