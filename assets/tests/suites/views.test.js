@@ -66,10 +66,18 @@
       'La card ya no debe ser un enlace directo');
   });
 
-  T.test('El balance tributario muestra el rango hasta el mes solicitado', function () {
+  T.test('El balance tributario muestra el rango hasta el mes solicitado y vuelve al contexto anterior', function () {
     T.resetStore();
     const year = Store.workingYear();
     const html = window.Views.taxBalance({ params: {}, query: { month: '9', year: String(year) } });
     T.assertIncludes(html, '01/01/' + year + ' al 30/09/' + year);
+    T.assertIncludes(html, 'href="javascript:history.back()"');
+    T.assert(html.indexOf(UI.route('welcome')) === -1, 'El balance no debe volver al inicio');
+  });
+
+  T.test('El balance tributario sin query mantiene el volver contextual', function () {
+    T.resetStore();
+    const html = window.Views.taxBalance({ params: {}, query: {} });
+    T.assertIncludes(html, 'href="javascript:history.back()"');
   });
 })();

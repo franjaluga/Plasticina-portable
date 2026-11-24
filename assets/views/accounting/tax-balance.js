@@ -133,7 +133,7 @@
             </div>
         </div>
         <div class="text-sm">
-            <a href="${UI.h(UI.route('welcome'))}" class="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition">
+            <a href="javascript:history.back()" class="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition">
                 &larr; Volver
             </a>
         </div>
