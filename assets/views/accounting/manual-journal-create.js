@@ -94,7 +94,15 @@
             <tbody id="entries-body" class="font-mono text-[11px] divide-y divide-gray-200"></tbody>
             <tfoot>
                 <tr class="border-t-2 border-black font-bold font-mono text-[11px]">
-                    <td class="py-2 px-2 text-right uppercase font-sans">TOTALES:</td>
+                    <td class="py-2 px-2 text-right uppercase font-sans">
+                        <div class="flex items-center justify-end gap-2">
+                            <span>TOTALES:</span>
+                            <span class="text-[11px] font-bold uppercase text-gray-700">Diferencia:</span>
+                            <span id="journal-difference" class="w-24 text-right font-mono font-bold text-amber-600">0</span>
+                            <span id="balance-indicator-dot" class="h-3 w-3 rounded-full inline-block bg-amber-500"></span>
+                            <span id="balance-indicator-text" class="text-[11px] font-bold uppercase text-amber-600">Por ingresar</span>
+                        </div>
+                    </td>
                     <td class="py-2 px-2 text-right" id="total-debit">0</td>
                     <td class="py-2 px-2 text-right" id="total-credit">0</td>
                     <td></td>
@@ -104,7 +112,7 @@
 
         <div class="flex justify-between items-center mb-6">
             <button type="button" onclick="addRow()" class="text-xs bg-gray-100 border border-gray-300 px-3 py-1.5 font-semibold text-black hover:bg-gray-200">+ Agregar línea</button>
-            <button type="submit" class="text-xs bg-black text-white px-4 py-2 font-bold uppercase tracking-wider">Guardar Asiento</button>
+            <button type="submit" id="save-journal-btn" class="text-xs bg-black text-white px-4 py-2 font-bold uppercase tracking-wider">Guardar Asiento</button>
         </div>
 
     </form>
@@ -128,6 +136,11 @@
       var oldEntries = ${UI.json(oldEntries)};
       var rowIndex = 0;
       var tbody = document.getElementById('entries-body');
+      var form = document.querySelector('form[data-action="manualJournal.store"]');
+      var differenceInput = document.getElementById('journal-difference');
+      var balanceDot = document.getElementById('balance-indicator-dot');
+      var balanceText = document.getElementById('balance-indicator-text');
+      var saveButton = document.getElementById('save-journal-btn');
       var templatesToggle = document.getElementById('templates-toggle');
       var templatesPanel = document.getElementById('templates-panel');
       var templatesToggleLabel = document.getElementById('templates-toggle-label');
@@ -146,6 +159,14 @@
         return value === undefined || value === null ? '' : String(value);
       }
 
+      function bindAmountInputs(row) {
+        Array.prototype.forEach.call(row.querySelectorAll('.debit-input, .credit-input'), function (input) {
+          input.oninput = calculateTotals;
+          input.onfocus = function () { this.select(); };
+          input.onclick = function () { this.select(); };
+        });
+      }
+
       function addRow(account, debit, credit) {
         var code = textOf(account);
         var row = document.createElement('tr');
@@ -157,12 +178,13 @@
             placeholder: 'Código o nombre'
           }),
           '</td>',
-          '<td class="py-2 px-2 text-right"><input type="number" step="any" name="entries[' + rowIndex + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input" oninput="calculateTotals()" required></td>',
-          '<td class="py-2 px-2 text-right"><input type="number" step="any" name="entries[' + rowIndex + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input" oninput="calculateTotals()" required></td>',
+          '<td class="py-2 px-2 text-right"><input type="number" step="1" name="entries[' + rowIndex + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input" required></td>',
+          '<td class="py-2 px-2 text-right"><input type="number" step="1" name="entries[' + rowIndex + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input" required></td>',
           '<td class="py-2 px-2 text-center"><button type="button" onclick="removeRow(this)" class="text-red-600 font-bold px-2 py-1">&times;</button></td>'
         ].join('');
         tbody.appendChild(row);
         viewHelpers.bindAccountSearch(row.querySelector('.account-input'), accountsData, {});
+        bindAmountInputs(row);
         rowIndex++;
         calculateTotals();
       }
@@ -182,8 +204,40 @@
         var totalCredit = 0;
         Array.prototype.forEach.call(document.querySelectorAll('.debit-input'), function (input) { totalDebit += parseFloat(input.value) || 0; });
         Array.prototype.forEach.call(document.querySelectorAll('.credit-input'), function (input) { totalCredit += parseFloat(input.value) || 0; });
+        var roundedDebit = Math.round(totalDebit);
+        var roundedCredit = Math.round(totalCredit);
+        var difference = roundedDebit - roundedCredit;
+        var empty = roundedDebit === 0 && roundedCredit === 0;
+        var balanced = !empty && difference === 0;
+        var tone = empty ? 'amber' : balanced ? 'green' : 'red';
+        var colorClass = tone === 'amber' ? 'text-amber-600' : tone === 'green' ? 'text-green-600' : 'text-red-600';
         document.getElementById('total-debit').innerText = totalDebit.toLocaleString('es-CL');
         document.getElementById('total-credit').innerText = totalCredit.toLocaleString('es-CL');
+        if (differenceInput) {
+          differenceInput.textContent = difference.toLocaleString('es-CL');
+          differenceInput.className = 'w-24 text-right font-mono font-bold ' + colorClass;
+        }
+        if (balanceDot) {
+          balanceDot.className = 'h-3 w-3 rounded-full inline-block ' +
+            (tone === 'amber' ? 'bg-amber-500' : tone === 'green' ? 'bg-green-500' : 'bg-red-500');
+        }
+        if (balanceText) {
+          balanceText.className = 'text-[11px] font-bold uppercase ' + colorClass;
+          balanceText.textContent = empty ? 'Por ingresar' : balanced ? 'Cuadrado' : 'Descuadrado';
+        }
+        if (saveButton) { saveButton.disabled = empty; }
+      }
+
+      if (form) {
+        form.addEventListener('submit', function (event) {
+          var hasAmount = Array.prototype.some.call(document.querySelectorAll('.debit-input, .credit-input'), function (input) {
+            return Math.round(parseFloat(input.value) || 0) !== 0;
+          });
+          if (!hasAmount) {
+            event.preventDefault();
+            UI.notify('El asiento está por ingresar; ingrese montos antes de guardar.', 'error');
+          }
+        });
       }
 
       function loadTemplate(templateKey) {
@@ -192,8 +246,8 @@
         var amountInput = window.prompt('Ingrese el monto para la transacción (' + (template.name || templateKey) + '):');
         if (amountInput === null) { return; }
         var amount = parseFloat(amountInput);
-        if (isNaN(amount) || amount <= 0) {
-          UI.notify('Por favor, ingrese un monto válido mayor a 0.', 'error');
+        if (isNaN(amount) || amount <= 0 || Math.round(amount) !== amount) {
+          UI.notify('Por favor, ingrese un monto entero mayor a 0.', 'error');
           return;
         }
         document.getElementById('glosa-input').value = template.glosa || '';
@@ -218,7 +272,7 @@
         addRow('', 0, 0);
         addRow('', 0, 0);
       }
-      viewHelpers.bindAccountSearchForm(document.querySelector('form[data-action="manualJournal.store"]'), accountsData, {});
+      viewHelpers.bindAccountSearchForm(form, accountsData, {});
       calculateTotals();
     })();
     </script>

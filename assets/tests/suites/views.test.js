@@ -197,6 +197,33 @@
     T.assertIncludes(html, "[−] ocultar asientos prefabricados");
   });
 
+  T.test('El asiento manual recalcula totales y muestra el cuadre en la fila de totales', function () {
+    T.resetStore();
+    const html = window.Views.manualJournalCreate(ctx);
+    const tfootStart = html.indexOf('<tfoot>');
+    const tfootEnd = html.indexOf('</tfoot>');
+    ['id="journal-difference"', 'id="balance-indicator-dot"', 'id="balance-indicator-text"'].forEach(function (id) {
+      T.assert(html.indexOf(id) > tfootStart && html.indexOf(id) < tfootEnd, id + ' debe estar en la fila de totales');
+    });
+    T.assert(html.indexOf('id="save-journal-btn"') > tfootEnd, 'El botón de guardar sigue fuera de la tabla');
+    T.assert(html.indexOf('oninput="calculateTotals()"') === -1, 'El recálculo ya no depende de un handler en línea');
+    T.assertIncludes(html, 'input.oninput = calculateTotals;');
+    T.assertIncludes(html, 'input.onfocus = function () { this.select(); };');
+    T.assertIncludes(html, 'input.onclick = function () { this.select(); };');
+    T.assertEqual(html.split('step="1"').length - 1, 2, 'Los montos del asiento son enteros');
+    T.assertIncludes(html, 'Por ingresar');
+    T.assertIncludes(html, "'Cuadrado'");
+    T.assertIncludes(html, "'Descuadrado'");
+    T.assertIncludes(html, 'bg-amber-500');
+    T.assertIncludes(html, 'bg-green-500');
+    T.assertIncludes(html, 'bg-red-500');
+    T.assertIncludes(html, 'saveButton.disabled = empty;');
+    T.assertIncludes(html, "El asiento está por ingresar; ingrese montos antes de guardar.");
+    T.assertIncludes(html, 'monto entero mayor a 0');
+    T.assert(html.indexOf('class="w-24 text-xs p-1.5 border border-gray-300 bg-gray-50 text-right font-mono font-bold text-gray-500"') === -1,
+      'Ya no debe existir el campo antiguo de diferencia');
+  });
+
   T.test('La edición de asientos permite buscar cuentas por código o nombre', function () {
     T.resetStore();
     const year = Store.workingYear();
