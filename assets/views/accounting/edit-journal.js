@@ -37,10 +37,10 @@
                                     })}
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <input type="number" step="any" name="entries[${UI.h(index)}][debit]" value="${UI.h(entryValue(entry, index, 'debit'))}" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
+                                    <input type="number" step="any" min="0" name="entries[${UI.h(index)}][debit]" value="${UI.h(entryValue(entry, index, 'debit'))}" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <input type="number" step="any" name="entries[${UI.h(index)}][credit]" value="${UI.h(entryValue(entry, index, 'credit'))}" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
+                                    <input type="number" step="any" min="0" name="entries[${UI.h(index)}][credit]" value="${UI.h(entryValue(entry, index, 'credit'))}" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
                                 </td>
                                 <td class="py-3 px-4 text-center">
                                     <button type="button" class="remove-row-btn text-red-500 hover:text-red-700 font-bold text-sm px-2" title="Eliminar fila">&times;</button>
@@ -58,10 +58,10 @@
                                     <span class="text-[10px] text-amber-600 font-semibold">(Devengo - Fijo y no modificable)</span>
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <input type="number" step="any" name="entries[devengo][debit]" value="${UI.h(devengoEntry.debit)}" class="debit-input w-full text-right text-xs bg-gray-100 text-gray-500 border-gray-300 rounded-md shadow-sm cursor-not-allowed" readonly required>
+                                    <input type="number" step="any" min="0" name="entries[devengo][debit]" value="${UI.h(devengoEntry.debit)}" class="debit-input w-full text-right text-xs bg-gray-100 text-gray-500 border-gray-300 rounded-md shadow-sm cursor-not-allowed" readonly required>
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <input type="number" step="any" name="entries[devengo][credit]" value="${UI.h(devengoEntry.credit)}" class="credit-input w-full text-right text-xs bg-gray-100 text-gray-500 border-gray-300 rounded-md shadow-sm cursor-not-allowed" readonly required>
+                                    <input type="number" step="any" min="0" name="entries[devengo][credit]" value="${UI.h(devengoEntry.credit)}" class="credit-input w-full text-right text-xs bg-gray-100 text-gray-500 border-gray-300 rounded-md shadow-sm cursor-not-allowed" readonly required>
                                 </td>
                                 <td class="py-3 px-4 text-center">
                                     <span class="text-gray-400 text-xs">—</span>
@@ -186,8 +186,8 @@
             placeholder: 'Código o nombre'
           }),
           '</td>',
-          '<td class="py-3 px-4 text-right"><input type="number" step="any" name="entries[' + newIndex + '][debit]" value="0" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
-          '<td class="py-3 px-4 text-right"><input type="number" step="any" name="entries[' + newIndex + '][credit]" value="0" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
+          '<td class="py-3 px-4 text-right"><input type="number" step="any" min="0" name="entries[' + newIndex + '][debit]" value="0" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
+          '<td class="py-3 px-4 text-right"><input type="number" step="any" min="0" name="entries[' + newIndex + '][credit]" value="0" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
           '<td class="py-3 px-4 text-center"><button type="button" class="remove-row-btn text-red-500 hover:text-red-700 font-bold text-sm px-2" title="Eliminar fila">&times;</button></td>'
         ].join('');
         tbody.insertBefore(newTr, fixedRow || null);
@@ -207,7 +207,13 @@
           };
         });
         Array.prototype.forEach.call(document.querySelectorAll('.debit-input, .credit-input'), function (input) {
-          input.oninput = calculateTotals;
+          input.oninput = function () {
+            if (Number(this.value) < 0) {
+              this.value = 0;
+              UI.notify('No se permiten montos negativos en Debe ni en Haber.', 'error');
+            }
+            calculateTotals();
+          };
         });
       }
 

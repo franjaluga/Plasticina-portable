@@ -207,7 +207,7 @@
     });
     T.assert(html.indexOf('id="save-journal-btn"') > tfootEnd, 'El botón de guardar sigue fuera de la tabla');
     T.assert(html.indexOf('oninput="calculateTotals()"') === -1, 'El recálculo ya no depende de un handler en línea');
-    T.assertIncludes(html, 'input.oninput = calculateTotals;');
+    T.assertIncludes(html, 'input.oninput = function () {');
     T.assertIncludes(html, 'input.onfocus = function () { this.select(); };');
     T.assertIncludes(html, 'input.onclick = function () { this.select(); };');
     T.assertEqual(html.split('step="1"').length - 1, 2, 'Los montos del asiento son enteros');
@@ -222,6 +222,41 @@
     T.assertIncludes(html, 'monto entero mayor a 0');
     T.assert(html.indexOf('class="w-24 text-xs p-1.5 border border-gray-300 bg-gray-50 text-right font-mono font-bold text-gray-500"') === -1,
       'Ya no debe existir el campo antiguo de diferencia');
+  });
+
+  T.test('Los formularios de asientos corrigen de inmediato los montos negativos', function () {
+    const year = Store.workingYear();
+    resetWithStart(1, year);
+    const create = window.Views.manualJournalCreate(ctx);
+    const manualId = Store.registerManualJournal(year, 1, year + '-01-05', 'Asiento de prueba', [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ]);
+    const manual = window.Views.editManualJournal({ params: { id: manualId }, query: {} });
+    const doc = Store.createDocument({
+      month_register: 1,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 9002,
+      date: year + '-01-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    const vcId = Store.registerDocumentJournal(doc.id, '4010101');
+    const vc = window.Views.editJournal({ params: { id: vcId }, query: {} });
+    T.assertEqual(create.split('min="0"').length - 1, 2, 'El formulario de creación debe limitar Debe y Haber');
+    T.assertEqual(manual.split('min="0"').length - 1, 6, 'La edición manual debe limitar todas sus filas');
+    T.assertEqual(vc.split('min="0"').length - 1, 8, 'La edición V/C debe limitar todas sus filas');
+    [create, manual, vc].forEach(function (html) {
+      T.assertIncludes(html, 'No se permiten montos negativos en Debe ni en Haber.');
+      T.assertIncludes(html, 'Number(this.value) < 0');
+      T.assertIncludes(html, 'this.value = 0;');
+    });
   });
 
   T.test('La edición de asientos permite buscar cuentas por código o nombre', function () {

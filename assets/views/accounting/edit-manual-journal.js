@@ -34,10 +34,10 @@
                                     })}
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <input type="number" step="any" name="entries[${UI.h(index)}][debit]" value="${UI.h(entryValue(entry, index, 'debit'))}" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
+                                    <input type="number" step="any" min="0" name="entries[${UI.h(index)}][debit]" value="${UI.h(entryValue(entry, index, 'debit'))}" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
                                 </td>
                                 <td class="py-3 px-4 text-right">
-                                    <input type="number" step="any" name="entries[${UI.h(index)}][credit]" value="${UI.h(entryValue(entry, index, 'credit'))}" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
+                                    <input type="number" step="any" min="0" name="entries[${UI.h(index)}][credit]" value="${UI.h(entryValue(entry, index, 'credit'))}" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
                                 </td>
                                 <td class="py-3 px-4 text-center">
                                     <button type="button" class="remove-row-btn text-red-500 hover:text-red-700 font-bold text-sm px-2" title="Eliminar fila">&times;</button>
@@ -152,8 +152,8 @@
             placeholder: 'Código o nombre'
           }),
           '</td>',
-          '<td class="py-3 px-4 text-right"><input type="number" step="any" name="entries[' + newIndex + '][debit]" value="0" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
-          '<td class="py-3 px-4 text-right"><input type="number" step="any" name="entries[' + newIndex + '][credit]" value="0" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
+          '<td class="py-3 px-4 text-right"><input type="number" step="any" min="0" name="entries[' + newIndex + '][debit]" value="0" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
+          '<td class="py-3 px-4 text-right"><input type="number" step="any" min="0" name="entries[' + newIndex + '][credit]" value="0" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required></td>',
           '<td class="py-3 px-4 text-center"><button type="button" class="remove-row-btn text-red-500 hover:text-red-700 font-bold text-sm px-2" title="Eliminar fila">&times;</button></td>'
         ].join('');
         tbody.appendChild(newTr);
@@ -175,7 +175,13 @@
           };
         });
         Array.prototype.forEach.call(document.querySelectorAll('.debit-input, .credit-input'), function (input) {
-          input.oninput = calculateTotals;
+          input.oninput = function () {
+            if (Number(this.value) < 0) {
+              this.value = 0;
+              UI.notify('No se permiten montos negativos en Debe ni en Haber.', 'error');
+            }
+            calculateTotals();
+          };
         });
       }
 

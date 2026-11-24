@@ -161,7 +161,13 @@
 
       function bindAmountInputs(row) {
         Array.prototype.forEach.call(row.querySelectorAll('.debit-input, .credit-input'), function (input) {
-          input.oninput = calculateTotals;
+          input.oninput = function () {
+            if (Number(this.value) < 0) {
+              this.value = 0;
+              UI.notify('No se permiten montos negativos en Debe ni en Haber.', 'error');
+            }
+            calculateTotals();
+          };
           input.onfocus = function () { this.select(); };
           input.onclick = function () { this.select(); };
         });
@@ -178,8 +184,8 @@
             placeholder: 'Código o nombre'
           }),
           '</td>',
-          '<td class="py-2 px-2 text-right"><input type="number" step="1" name="entries[' + rowIndex + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input" required></td>',
-          '<td class="py-2 px-2 text-right"><input type="number" step="1" name="entries[' + rowIndex + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input" required></td>',
+          '<td class="py-2 px-2 text-right"><input type="number" step="1" min="0" name="entries[' + rowIndex + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input" required></td>',
+          '<td class="py-2 px-2 text-right"><input type="number" step="1" min="0" name="entries[' + rowIndex + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input" required></td>',
           '<td class="py-2 px-2 text-center"><button type="button" onclick="removeRow(this)" class="text-red-600 font-bold px-2 py-1">&times;</button></td>'
         ].join('');
         tbody.appendChild(row);

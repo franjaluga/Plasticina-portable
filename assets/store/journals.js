@@ -18,6 +18,12 @@
     typeOf,
   } = s;
 
+  function assertNonNegativeAmount(value) {
+    if (num(value) < 0) {
+      throw new Error('No se permiten montos negativos en Debe ni en Haber.');
+    }
+  }
+
   function normalizeEntries(entries) {
     const formatted = [];
     let debitTotal = 0;
@@ -25,6 +31,8 @@
     (Array.isArray(entries) ? entries : []).forEach(function (entry) {
       const debit = num(entry && entry.debit);
       const credit = num(entry && entry.credit);
+      assertNonNegativeAmount(debit);
+      assertNonNegativeAmount(credit);
       if (debit <= 0 && credit <= 0) return;
       debitTotal += debit;
       creditTotal += credit;
@@ -42,6 +50,8 @@
   }
 
   function insertJournal(data) {
+    assertNonNegativeAmount(data.total_debit);
+    assertNonNegativeAmount(data.total_credit);
     return db.repositories.journals.create({
       vc_document_id: data.vc_document_id,
       ref_doc_payed: data.ref_doc_payed,
@@ -57,6 +67,10 @@
   }
 
   function insertEntries(journalId, entries) {
+    (Array.isArray(entries) ? entries : []).forEach(function (entry) {
+      assertNonNegativeAmount(entry && entry.debit);
+      assertNonNegativeAmount(entry && entry.credit);
+    });
     return db.repositories.journalEntries.insertMany(journalId, entries);
   }
 

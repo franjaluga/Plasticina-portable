@@ -133,6 +133,30 @@
     T.assertEqual(Store.journal(id), null);
   });
 
+  T.test('Store rechaza asientos y pagos con montos negativos', function () {
+    resetWithStart(1, year);
+    const negative = [
+      { account_code: '1010101', debit: -100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ];
+    const valid = [
+      { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ];
+    T.assertThrows(function () {
+      Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento negativo', negative);
+    }, /negativos/);
+    const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento manual', valid);
+    T.assertThrows(function () {
+      Store.updateManualJournal(id, year, 3, year + '-03-06', 'Asiento negativo', negative);
+    }, /negativos/);
+    const doc = Store.createDocument(sampleDocument(60, 1190));
+    T.assertThrows(function () {
+      Store.processPayment(doc.id, -50, year + '-03-20', '1010101');
+    }, /negativos/);
+    T.assertEqual(Store.journal(id).entries.every(function (entry) { return entry.debit >= 0 && entry.credit >= 0; }), true);
+  });
+
   T.test('Store.taxBalance filtra desde inicio de año hasta el mes indicado', function () {
     resetWithStart(1, year);
     const filters = { date_from: year + '-01-01', date_to: year + '-09-30' };
