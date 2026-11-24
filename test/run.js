@@ -7,6 +7,7 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 const APP_HTML = path.join(ROOT, 'index.html');
 const TEST_DIR = path.join(ROOT, 'assets', 'tests');
+const SPECIFIC_SUITES = ['specific-test/owners/owners.test.js'];
 
 function scriptSources() {
   const html = fs.readFileSync(APP_HTML, 'utf8');
@@ -18,7 +19,9 @@ function testSources() {
   return ['harness.js', 'suites/core.test.js', 'suites/store.test.js', 'suites/views.test.js',
     'suites/app.test.js', 'suites/actions.test.js'].map(function (name) {
     return path.join(TEST_DIR, name);
-  });
+  }).concat(SPECIFIC_SUITES.map(function (name) {
+    return path.join(ROOT, name);
+  }));
 }
 
 function createStorage() {

@@ -119,20 +119,21 @@ def main():
 
     tests_html = (ASSETS / 'tests' / 'index.html').read_text(encoding='utf-8')
     test_scripts = [src[3:] for src in re.findall(r'<script\s+src="(\.\./[^"]+\.js)"></script>', tests_html)
-                    if src.startswith('../') and 'tests/' not in src]
+                    if src.startswith('../') and 'tests/' not in src and 'specific-test/' not in src]
     test_scripts = [src[len('assets/'):] if src.startswith('assets/') else src for src in test_scripts]
     if test_scripts != scripts:
         ok = fail('tests/index.html no carga los mismos scripts que index.html')
 
     suites = ['harness.js', 'suites/core.test.js', 'suites/store.test.js', 'suites/views.test.js',
-              'suites/app.test.js', 'suites/actions.test.js']
+              'suites/app.test.js', 'suites/actions.test.js', 'specific-test/owners/owners.test.js']
     for suite in suites:
         if ('"tests/' + suite + '"' not in tests_html and suite not in tests_html):
             ok = fail('tests/index.html no carga ' + suite)
         if suite not in (ROOT / 'test' / 'run.js').read_text(encoding='utf-8'):
             ok = fail('test/run.js no carga ' + suite)
 
-    for path in sorted(ASSETS.rglob('*.js')):
+    js_paths = list(ASSETS.rglob('*.js')) + list((ROOT / 'specific-test').rglob('*.js'))
+    for path in sorted(js_paths):
         source = path.read_text(encoding='utf-8')
         problem = strip_and_balance(source)
         if problem:

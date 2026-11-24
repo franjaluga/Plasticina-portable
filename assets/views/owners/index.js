@@ -115,7 +115,7 @@
 
         <div class="mb-6 flex justify-between items-center">
             <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Gestión de Owners</h1>
-            <a href="${UI.h(UI.route('reports.analytics'))}" class="inline-flex items-center text-xs font-semibold bg-white border border-slate-300 text-slate-700 px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+            <a href="${UI.h(UI.route('welcome'))}" class="inline-flex items-center text-xs font-semibold bg-white border border-slate-300 text-slate-700 px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
                 &larr; Volver
             </a>
         </div>
