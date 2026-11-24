@@ -10,6 +10,7 @@
     const accountCode = query.account_code === undefined ? '' : query.account_code;
     const month = query.month === undefined || query.month === '' ? Number(UI.today().slice(5, 7)) : Number(query.month);
     const year = query.year === undefined || query.year === '' ? Store.workingYear() : query.year;
+    const start = Store.ownerStartPeriod();
     const monthOptions = [];
     for (let value = 1; value <= 12; value++) {
       monthOptions.push(`<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)}</option>`);
@@ -23,6 +24,7 @@
         <div class="text-center mb-8">
             <h1 class="text-2xl font-extrabold text-slate-800">Contexto: Libro Mayor</h1>
             <p class="text-sm text-slate-500 mt-1">Consulta de movimientos por cuenta contable</p>
+            <p class="text-xs text-slate-400 mt-1">Inicio de actividades: ${UI.h(String(start.month).padStart(2, '0'))}/${UI.h(start.year)}</p>
         </div>
 
         <div class="p-6 bg-slate-50 border border-slate-200 rounded-2xl">
@@ -43,7 +45,7 @@
                 </div>
                 <div>
                     <label for="ledger_year" class="block text-xs font-semibold text-slate-600 mb-1">Año</label>
-                    <input type="number" name="year" id="ledger_year" value="${UI.h(year)}" class="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border" required>
+                    <input type="number" name="year" id="ledger_year" value="${UI.h(year)}" min="${UI.h(start.year)}" class="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border" required>
                 </div>
                 <div class="flex items-end">
                     <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg shadow-sm transition">

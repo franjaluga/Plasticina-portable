@@ -1,6 +1,7 @@
 (function () {
   'use strict';
 
+  const config = window.Plasticina.app.config;
   const router = window.Plasticina.app.router;
   const helpers = window.Plasticina.actions.helpers;
 
@@ -32,10 +33,19 @@
     const getRoute = Object.prototype.hasOwnProperty.call(getActions, action) ? getActions[action] : null;
 
     if (getRoute) {
+      const rule = config.reportPeriodRoutes[getRoute];
       if (action === 'vc_documents.tax_balance') {
         const status = Store.balancePeriodStatus(values.year, values.month);
         if (!status.allowed) {
           const statusHelp = window.Plasticina.views.helpers.balancePeriodHelp(status);
+          UI.flash('error', statusHelp.text);
+          router.render();
+          return;
+        }
+      } else if (rule) {
+        const status = router.validateReportPeriod(rule.kind, values);
+        if (!status.allowed) {
+          const statusHelp = window.Plasticina.views.helpers.reportPeriodHelp(status);
           UI.flash('error', statusHelp.text);
           router.render();
           return;

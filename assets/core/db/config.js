@@ -3,6 +3,6 @@
 
   window.Plasticina.db.config = {
     fileName: 'plasticina.sqlite',
-    schemaVersion: 1
+    schemaVersion: 2
   };
 })();

@@ -46,4 +46,26 @@
     T.assertDeepEqual(parsed.query, { month: '9', year: '2026' });
     T.assertEqual(app.router.matchRoute(parsed.path).view, 'taxBalance');
   });
+
+  T.test('El router bloquea reportes directos anteriores al inicio de actividades', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const owner = Store.createOwner({
+      rut: '88888888-8',
+      name: 'Empresa con inicio en junio',
+      account_plan_type: 'standard_pyme',
+      start_month: 6,
+      start_year: year
+    });
+    Store.setActiveOwner(owner.id);
+    const before = app.router.validateReportPeriod('month-year', { month: 5, year: year });
+    T.assertEqual(before.allowed, false);
+    T.assertEqual(before.reason, 'before-start');
+    window.location.hash = '#/accounting/ledger?month=5&year=' + year;
+    app.router.render();
+    T.assertIncludes(document.getElementById('app').innerHTML, 'No es posible generar el reporte');
+    T.assertIncludes(document.getElementById('app').innerHTML, '06/' + year);
+    window.location.hash = '#/';
+    T.resetStore();
+  });
 })();

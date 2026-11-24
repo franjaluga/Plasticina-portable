@@ -10,6 +10,7 @@
     entityRut,
     isIntegerValue,
     isNumericValue,
+    isPeriodBeforeStart,
     like,
     nextId,
     nullable,
@@ -20,6 +21,7 @@
     rawDocumentType,
     rawJournal,
     rawOwner,
+    reportStartIso,
     round2,
     transaction,
     typeOf,
@@ -118,7 +120,14 @@
   }
 
   function journals(options) {
-    const opts = options || {};
+    const opts = Object.assign({}, options || {});
+    const startDate = reportStartIso(opts.owner_id);
+    const requestedFrom = String(opts.date_from || '');
+    if (requestedFrom && requestedFrom < startDate) {
+      opts.date_from = startDate;
+    } else if (!requestedFrom && (opts.year === undefined || Number(opts.year) <= Number(startDate.slice(0, 4)))) {
+      opts.date_from = startDate;
+    }
     return db.repositories.journals.list(opts)
       .map(function (item) { return hydrateJournal(item, opts.withDocument !== false); });
   }
@@ -137,6 +146,7 @@
   function queryDocuments(typeVc, month, year) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
+    if (isPeriodBeforeStart(year, month, ownerRecord.id)) return [];
     const target = String(typeVc === null || typeVc === undefined ? '' : typeVc).trim().toUpperCase();
     return db.repositories.vcDocuments.query(target, month, year, ownerRecord.id)
       .map(function (item) { return hydrateDocument(item, true); });
@@ -153,13 +163,18 @@
   function systemJournals(year, filters) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
-    return db.repositories.journals.system(ownerRecord.id, year, filters || {})
+    const source = Object.assign({}, filters || {});
+    const startDate = reportStartIso(ownerRecord.id);
+    const requestedFrom = String(source.date_from || '');
+    source.date_from = requestedFrom && requestedFrom > startDate ? requestedFrom : startDate;
+    return db.repositories.journals.system(ownerRecord.id, year, source)
       .map(function (item) { return hydrateJournal(item, true); });
   }
 
   function ledger(accountCode, month, year) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
+    if (isPeriodBeforeStart(year, month, ownerRecord.id)) return [];
     const target = String(accountCode === null || accountCode === undefined ? '' : accountCode).trim();
     return db.repositories.journals.ledger(ownerRecord.id, year, month, target)
       .map(function (item) { return hydrateJournal(item, true); });

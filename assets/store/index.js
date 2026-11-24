@@ -21,6 +21,8 @@
     owners: s.owners,
     owner: s.owner,
     activeOwner: s.activeOwner,
+    ownerStartPeriod: s.ownerStartPeriod,
+    reportPeriodStatus: s.reportPeriodStatus,
     setActiveOwner: s.setActiveOwner,
     createOwner: s.createOwner,
     updateOwner: s.updateOwner,

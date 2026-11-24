@@ -19,6 +19,20 @@
     return new Date().getFullYear();
   }
 
+  function currentMonth() {
+    return new Date().getMonth() + 1;
+  }
+
+  function ownerStart(owner) {
+    const source = owner || {};
+    const year = Number(source.start_year);
+    const month = Number(source.start_month);
+    return {
+      year: Number.isInteger(year) && year >= 2000 ? year : currentYear(),
+      month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : currentMonth()
+    };
+  }
+
   function templateItems() {
     return db.all(q.system.templateItems).map(function (row) {
       return {
@@ -61,7 +75,8 @@
       let owner = db.repositories.owners.find(1);
       if (!owner) {
         owner = db.repositories.owners.create({
-          rut: '55555555-5', name: 'Test', is_active: true, account_plan_type: 'standard_pyme'
+          rut: '55555555-5', name: 'Test', is_active: true, account_plan_type: 'standard_pyme',
+          start_month: currentMonth(), start_year: currentYear()
         });
       }
       if (!db.repositories.accounts.byOwner(owner.id).length) seedAccounts(owner.id);
@@ -82,7 +97,11 @@
       q.system.clear.forEach(function (statement) { db.run(statement); });
 
       state.owners.forEach(function (row) {
-        db.run(q.system.insertOwner, [row.id, row.rut, row.name, row.is_active ? 1 : 0, row.account_plan_type || 'standard_pyme']);
+        const start = ownerStart(row);
+        db.run(q.system.insertOwner, [
+          row.id, row.rut, row.name, row.is_active ? 1 : 0,
+          row.account_plan_type || 'standard_pyme', start.month, start.year
+        ]);
       });
       state.entities.forEach(function (row) {
         db.run(q.system.insertEntity, [row.id, row.rut, row.name]);

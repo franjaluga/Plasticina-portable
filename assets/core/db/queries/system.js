@@ -37,7 +37,7 @@
       'DELETE FROM settings'
     ],
     seedAccount: 'INSERT INTO accounts (owner_id, code, name, category) VALUES (?, ?, ?, ?)',
-    insertOwner: 'INSERT INTO owners (id, rut, name, is_active, account_plan_type) VALUES (?, ?, ?, ?, ?)',
+    insertOwner: 'INSERT INTO owners (id, rut, name, is_active, account_plan_type, start_month, start_year) VALUES (?, ?, ?, ?, ?, ?, ?)',
     insertEntity: 'INSERT INTO entities (id, rut, name) VALUES (?, ?, ?)',
     insertDocumentType: 'INSERT INTO document_types (id, doctype, name) VALUES (?, ?, ?)',
     insertAccount: 'INSERT INTO accounts (id, owner_id, code, name, category) VALUES (?, ?, ?, ?, ?)',

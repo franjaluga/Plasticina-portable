@@ -4,6 +4,18 @@
   const T = window.PlasticinaTest;
   const ctx = { params: { id: 1, owner: 1, accountTemplate: 1 }, query: {} };
 
+  function resetWithStart(month, startYear) {
+    T.resetStore();
+    const owner = Store.createOwner({
+      rut: '88888888-8',
+      name: 'Empresa Histórica',
+      account_plan_type: 'standard_pyme',
+      start_month: month,
+      start_year: startYear
+    });
+    Store.setActiveOwner(owner.id);
+  }
+
   T.test('Todas las vistas registradas renderizan sin lanzar', function () {
     T.resetStore();
     const names = Object.keys(window.Views);
@@ -48,12 +60,15 @@
     T.assert(!tbody.includes('data-action="owners.destroy"'), 'El formulario de eliminación quedó dentro de tbody');
     T.assertIncludes(html, 'data-action="owners.update"');
     T.assertIncludes(html, 'data-action="owners.destroy"');
+    T.assertIncludes(html, 'name="start_month"');
+    T.assertIncludes(html, 'name="start_year"');
+    T.assertIncludes(html, 'Inicio de Actividades (Inalterable)');
     T.assertIncludes(html, 'style="display:none" aria-hidden="true"');
   });
 
-  T.test('El contexto balance permite el primer mes contable y bloquea meses anteriores', function () {
-    T.resetStore();
+  T.test('El contexto balance permite el mes de inicio y bloquea meses anteriores', function () {
     const year = Store.workingYear();
+    resetWithStart(3, year);
     const entries = [
       { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
       { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
@@ -83,8 +98,8 @@
   });
 
   T.test('El contexto balance bloquea la generación si no hay contabilidad disponible', function () {
-    T.resetStore();
     const year = Store.workingYear();
+    resetWithStart(1, year);
     const html = window.Views.balanceContext({ params: {}, query: { month: '1', year: String(year) } });
     T.assertIncludes(html, 'No hay contabilidad disponible para este negocio');
     T.assertIncludes(html, 'disabled aria-disabled="true"');

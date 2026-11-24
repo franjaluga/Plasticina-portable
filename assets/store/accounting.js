@@ -7,8 +7,11 @@
     activeOwnerRaw,
     hydrateDocument,
     isSaleDocument,
+    isPeriodBeforeStart,
     num,
     parseDate,
+    reportPeriodStatus,
+    reportStartIso,
     rawAccountByCode,
     round2,
     typeOf,
@@ -86,7 +89,16 @@
   function taxBalance(year, filters) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
-    const grouped = collectAccountTotals(ownerRecord.id, year, filters);
+    const source = filters || {};
+    const dateTo = String(source.date_to || '');
+    const match = /^(\d{4})-(\d{1,2})/.exec(dateTo);
+    const month = match ? Number(match[2]) : 12;
+    if (isPeriodBeforeStart(year, month, ownerRecord.id)) return [];
+    const startDate = reportStartIso(ownerRecord.id);
+    const requestedFrom = String(source.date_from || '');
+    const dateFrom = requestedFrom && requestedFrom > startDate ? requestedFrom : startDate;
+    const grouped = collectAccountTotals(ownerRecord.id, year,
+      Object.assign({}, source, { date_from: dateFrom }));
     const rows = Object.keys(grouped).map(function (code) { return buildTaxBalanceRow(grouped[code]); });
     rows.sort(function (a, b) { return a.code < b.code ? -1 : (a.code > b.code ? 1 : 0); });
     return rows;
@@ -107,28 +119,15 @@
   }
 
   function balancePeriodStatus(year, month, ownerId) {
-    const numericYear = Number(year);
-    const numericMonth = Number(month);
-    if (!Number.isInteger(numericYear) || numericYear < 2000 ||
-      !Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) {
-      return { allowed: false, reason: 'invalid', earliest: null, year: numericYear, month: numericMonth };
+    const status = reportPeriodStatus(year, month, ownerId);
+    if (!status.allowed) {
+      return Object.assign({ earliest: null }, status);
     }
     const earliest = earliestAccountingDate(ownerId);
     if (!earliest) {
-      return { allowed: false, reason: 'no-data', earliest: null, year: numericYear, month: numericMonth };
+      return Object.assign({ earliest: null }, status, { allowed: false, reason: 'no-data' });
     }
-    const earliestYear = Number(earliest.slice(0, 4));
-    const earliestMonth = Number(earliest.slice(5, 7));
-    const allowed = (numericYear * 100) + numericMonth >= (earliestYear * 100) + earliestMonth;
-    return {
-      allowed: allowed,
-      reason: allowed ? 'valid' : 'before-start',
-      earliest: earliest,
-      earliestYear: earliestYear,
-      earliestMonth: earliestMonth,
-      year: numericYear,
-      month: numericMonth
-    };
+    return Object.assign({ earliest: earliest }, status);
   }
 
   function paymentAccount(document) {

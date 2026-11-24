@@ -11,6 +11,8 @@
       rut: String(row.rut),
       name: String(row.name),
       account_plan_type: String(row.account_plan_type || 'standard_pyme'),
+      start_month: Number(row.start_month || 1),
+      start_year: Number(row.start_year || 2000),
       is_active: Boolean(row.is_active)
     };
   }
@@ -32,7 +34,11 @@
   }
 
   function create(data) {
-    const result = db.run(q.insert, [data.rut, data.name, data.is_active ? 1 : 0, data.account_plan_type || 'standard_pyme']);
+    const result = db.run(q.insert, [
+      data.rut, data.name, data.is_active ? 1 : 0,
+      data.account_plan_type || 'standard_pyme',
+      Number(data.start_month || 1), Number(data.start_year || 2000)
+    ]);
     return find(result.lastInsertRowid);
   }
 

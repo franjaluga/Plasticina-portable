@@ -4,6 +4,19 @@
   const T = window.PlasticinaTest;
   const year = new Date().getFullYear();
 
+  function resetWithStart(month, startYear) {
+    T.resetStore();
+    const owner = Store.createOwner({
+      rut: '88888888-8',
+      name: 'Empresa Histórica',
+      account_plan_type: 'standard_pyme',
+      start_month: month,
+      start_year: startYear
+    });
+    Store.setActiveOwner(owner.id);
+    return owner;
+  }
+
   function sampleDocument(folio, total) {
     return {
       month_register: 3,
@@ -28,6 +41,8 @@
     T.assertEqual(Store.activeOwner().name, 'Test');
     T.assertEqual(Store.accounts().length, 161);
     T.assertEqual(Store.workingYear(), year);
+    T.assertEqual(Store.activeOwner().start_month, new Date().getMonth() + 1);
+    T.assertEqual(Store.activeOwner().start_year, year);
   });
 
   T.test('Store valida documentos incompletos y descuadrados', function () {
@@ -59,7 +74,7 @@
   });
 
   T.test('Store calcula balance tributario y saldo por pagar', function () {
-    T.resetStore();
+    resetWithStart(1, year);
     const document = Store.createDocument(sampleDocument(30, 1190));
     Store.registerDocumentJournal(document.id, '4010101');
     const balance = Store.taxBalance(year);
@@ -73,7 +88,10 @@
 
   T.test('Store administra owners, cuentas y plantillas en SQLite', function () {
     T.resetStore();
-    const owner = Store.createOwner({ rut: '99999999-9', name: 'Otra Empresa', account_plan_type: 'standard_pyme' });
+    const owner = Store.createOwner({
+      rut: '99999999-9', name: 'Otra Empresa', account_plan_type: 'standard_pyme',
+      start_month: 1, start_year: year
+    });
     T.assertEqual(Store.owners().length, 2);
     T.assertEqual(Store.accounts(owner.id).length, 161);
     Store.updateOwner(owner.id, { rut: '99999999-9', name: 'Otra Empresa SA' });
@@ -97,7 +115,7 @@
   });
 
   T.test('Store administra asientos manuales y reportes en SQLite', function () {
-    T.resetStore();
+    resetWithStart(1, year);
     const entries = [
       { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
       { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
@@ -116,7 +134,7 @@
   });
 
   T.test('Store.taxBalance filtra desde inicio de año hasta el mes indicado', function () {
-    T.resetStore();
+    resetWithStart(1, year);
     const filters = { date_from: year + '-01-01', date_to: year + '-09-30' };
     const entries = [
       { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
@@ -140,7 +158,7 @@
   });
 
   T.test('Store.earliestAccountingDate devuelve la primera fecha contable del owner activo', function () {
-    T.resetStore();
+    resetWithStart(1, year);
     T.assertEqual(Store.earliestAccountingDate(), null);
     const entries = [
       { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
@@ -152,8 +170,8 @@
     T.resetStore();
   });
 
-  T.test('Store.balancePeriodStatus permite el primer mes contable y bloquea solo meses anteriores', function () {
-    T.resetStore();
+  T.test('Store.balancePeriodStatus permite el mes de inicio y bloquea meses anteriores', function () {
+    resetWithStart(3, year);
     const entries = [
       { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
       { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
@@ -172,7 +190,7 @@
   });
 
   T.test('Store.balancePeriodStatus normaliza fechas contables no ISO', function () {
-    T.resetStore();
+    resetWithStart(3, year);
     const entries = [
       { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
       { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
@@ -186,10 +204,45 @@
   });
 
   T.test('Store.balancePeriodStatus bloquea cuando no hay contabilidad', function () {
-    T.resetStore();
+    resetWithStart(1, year);
     const status = Store.balancePeriodStatus(year, 1);
     T.assertEqual(status.allowed, false);
     T.assertEqual(status.reason, 'no-data');
+  });
+
+  T.test('Store.reportPeriodStatus usa el inicio de actividades de cada owner', function () {
+    const owner = resetWithStart(6, year);
+    T.assertEqual(owner.start_month, 6);
+    const before = Store.reportPeriodStatus(year, 5);
+    T.assertEqual(before.allowed, false);
+    T.assertEqual(before.reason, 'before-start');
+    T.assertEqual(before.startMonth, 6);
+    T.assertEqual(before.startYear, year);
+    const first = Store.reportPeriodStatus(year, 6);
+    T.assertEqual(first.allowed, true);
+    T.assertEqual(first.reason, 'valid');
+    const previousYear = Store.reportPeriodStatus(year - 1, 12);
+    T.assertEqual(previousYear.reason, 'before-start');
+    T.resetStore();
+  });
+
+  T.test('Los reportes no muestran resultados anteriores al inicio de actividades', function () {
+    resetWithStart(6, year);
+    const entries = [
+      { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ];
+    Store.registerManualJournal(year, 3, year + '-03-05', 'Marzo', entries);
+    const document = Store.createDocument(sampleDocument(70, 1190));
+    Store.registerDocumentJournal(document.id, '4010101');
+    T.assertEqual(Store.ledger('1010101', 3, year).length, 0);
+    T.assertEqual(Store.queryDocuments('V', 3, year).length, 0);
+    T.assertEqual(Store.systemJournals(year, { date_from: year + '-01-01' }).length, 0);
+    T.assertEqual(Store.taxBalance(year, { date_to: year + '-03-31' }).length, 0);
+    T.assertEqual(Store.journals({ year: year, date_from: year + '-01-01' }).length, 0);
+    Store.registerManualJournal(year, 6, year + '-06-05', 'Junio', entries);
+    T.assertEqual(Store.ledger('1010101', 6, year).length, 1);
+    T.resetStore();
   });
 
   T.test('Store importa documentos por CSV a SQLite', function () {

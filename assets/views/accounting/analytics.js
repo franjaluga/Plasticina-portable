@@ -10,6 +10,7 @@
     const month = queryMonth(query);
     const year = queryYear(query);
     const typeVc = query.type_vc === 'C' ? 'C' : 'V';
+    const start = Store.ownerStartPeriod();
     let monthOptions = '';
     for (let value = 1; value <= 12; value++) {
       monthOptions += `<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)} - ${UI.h(capitalize(UI.monthName(value)))}</option>`;
@@ -23,6 +24,7 @@
                 <h1 class="text-xl font-extrabold text-slate-800 tracking-tight">Analíticos (V/C)</h1>
                 <p class="text-xs text-slate-500 mt-0.5">
                     Periodo tributario año: <span class="font-bold text-blue-600">${UI.h(Store.workingYear())}</span>
+                    <br>Inicio de actividades: <span class="font-bold text-blue-600">${UI.h(String(start.month).padStart(2, '0'))}/${UI.h(start.year)}</span>
                 </p>
             </div>
             <div>
@@ -61,7 +63,7 @@
                     </div>
                     <div>
                         <label for="year" class="block text-xs font-semibold text-slate-600 mb-1">Año</label>
-                        <input type="number" name="year" id="year" value="${UI.h(year)}" class="w-full text-xs rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 bg-white border" required>
+                        <input type="number" name="year" id="year" value="${UI.h(year)}" min="${UI.h(start.year)}" class="w-full text-xs rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 bg-white border" required>
                     </div>
                     <div class="flex items-end">
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg shadow-sm transition flex items-center justify-center">

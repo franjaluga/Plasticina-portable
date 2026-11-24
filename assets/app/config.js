@@ -84,4 +84,15 @@
     'accounting.system_journals': 'accounting.system_journals',
     'accounting.ledger': 'accounting.ledger'
   };
+
+  config.reportPeriodRoutes = {
+    '/vc-documents/balance-tributario': { kind: 'month-year', context: '/reports/balance-context' },
+    '/accounting/ledger': { kind: 'month-year', context: '/reports/ledger-context' },
+    '/accounting/documents/query': { kind: 'month-year', context: '/accounting/analytics' },
+    '/vc-documents/libro-diario': { kind: 'date-from', context: '/vc-documents/libro-diario/rango' },
+    '/vc-documents/libro-diario/generar': { kind: 'date-from', context: '/vc-documents/libro-diario/rango' },
+    '/vc-documents/libro-diario/export-csv': { kind: 'date-from', context: '/vc-documents/libro-diario/rango' },
+    '/accounting/system-journals': { kind: 'date-from-or-year', context: '/accounting/system-journals' },
+    '/accounting/audit': { kind: 'year', context: '/accounting/reports/audit' }
+  };
 })();

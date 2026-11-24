@@ -9,6 +9,20 @@
     const activeOwner = Store.activeOwner();
     const oldValues = UI.old() || {};
     const selectedPlan = oldValues.account_plan_type === undefined ? 'standard_pyme' : oldValues.account_plan_type;
+    const currentDate = new Date();
+    const selectedStartMonth = String(oldValues.start_month === undefined ? currentDate.getMonth() + 1 : oldValues.start_month).padStart(2, '0');
+    const selectedStartYear = String(oldValues.start_year === undefined ? currentDate.getFullYear() : oldValues.start_year);
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const startMonthOptions = monthNames.map(function (name, index) {
+      const value = String(index + 1).padStart(2, '0');
+      return '<option value="' + value + '"' + (selectedStartMonth === value ? ' selected' : '') + '>' +
+        value + ' - ' + name + '</option>';
+    }).join('');
+
+    function startLabel(owner) {
+      return String(owner.start_month || 1).padStart(2, '0') + '/' + String(owner.start_year || currentDate.getFullYear());
+    }
 
     function planName(type) {
       if (String(type) === 'standard_pyme') {
@@ -49,6 +63,7 @@
                                     ${UI.h(label)}
                                 </span>
                             </td>
+                            <td class="py-3 px-4">${UI.h(startLabel(owner))}</td>
                             <td class="py-3 px-4 text-center">
                                 ${owner.is_active
                                   ? '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[11px] font-semibold border border-emerald-200">Activo</span>'
@@ -84,6 +99,10 @@
                                             <input type="text" value="${UI.h(label)}" class="w-full text-xs border-slate-200 bg-slate-100 text-slate-500 rounded-lg shadow-sm cursor-not-allowed" disabled>
                                             <p class="text-[11px] text-slate-400 mt-1">El plan de cuentas no se puede modificar una vez creado el owner para proteger la compatibilidad contable.</p>
                                         </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 mb-1">Inicio de Actividades (Inalterable)</label>
+                                            <input type="text" value="${UI.h(startLabel(owner))}" class="w-full text-xs border-slate-200 bg-slate-100 text-slate-500 rounded-lg shadow-sm cursor-not-allowed" disabled>
+                                        </div>
                                     </div>
                                     <div class="flex justify-end gap-2">
                                         <button type="button" onclick="${UI.h(toggle)}" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">Cancelar</button>
@@ -102,7 +121,7 @@
       : [{
           row: `
                         <tr>
-                            <td colspan="6" class="p-6 text-center text-slate-400">No hay empresas registradas.</td>
+                            <td colspan="7" class="p-6 text-center text-slate-400">No hay empresas registradas.</td>
                         </tr>`,
           modal: ''
         }];
@@ -131,21 +150,31 @@
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Agregar Nuevo Owner y Plan de Cuentas Inicial</h2>
             <form data-action="owners.store">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div class="md:col-span-3">
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 mb-1">RUT</label>
                         <input type="text" name="rut" value="${UI.h(oldValues.rut || '')}" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required maxlength="10" placeholder="Ej: 12345678-9">
                     </div>
-                    <div class="md:col-span-4">
+                    <div class="md:col-span-3">
                         <label class="block text-xs font-bold text-slate-700 mb-1">Nombre / Empresa</label>
                         <input type="text" name="name" value="${UI.h(oldValues.name || '')}" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required maxlength="100">
                     </div>
-                    <div class="md:col-span-3">
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 mb-1">Plan de Cuentas Inicial</label>
                         <select name="account_plan_type" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             ${planOptions}
                         </select>
                     </div>
                     <div class="md:col-span-2">
+                        <label for="owner_start_month" class="block text-xs font-bold text-slate-700 mb-1">Mes de Inicio</label>
+                        <select name="start_month" id="owner_start_month" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            ${startMonthOptions}
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="owner_start_year" class="block text-xs font-bold text-slate-700 mb-1">Año de Inicio</label>
+                        <input type="number" name="start_year" id="owner_start_year" value="${UI.h(selectedStartYear)}" min="2000" step="1" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="md:col-span-1">
                         <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow-sm hover:bg-indigo-700 transition">
                             Guardar
                         </button>
@@ -166,6 +195,7 @@
                             <th class="py-2.5 px-4">RUT</th>
                             <th class="py-2.5 px-4">Nombre</th>
                             <th class="py-2.5 px-4">Plan Asignado</th>
+                            <th class="py-2.5 px-4">Inicio</th>
                             <th class="py-2.5 px-4 text-center">Estado</th>
                             <th class="py-2.5 px-4 text-center">Acciones</th>
                         </tr>

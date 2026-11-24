@@ -38,6 +38,11 @@
     internals.schemaStatements().forEach(function (statement) { database.run(statement); });
     const applied = database.exec('SELECT version FROM schema_migrations');
     const versions = applied.length ? applied[0].values.map(function (row) { return Number(row[0]); }) : [];
+    (internals.migrations || []).forEach(function (migration) {
+      if (versions.indexOf(migration.version) !== -1) return;
+      migration.run();
+      versions.push(migration.version);
+    });
     if (versions.indexOf(db.config.schemaVersion) === -1) {
       database.run('INSERT INTO schema_migrations (version) VALUES (?)', [db.config.schemaVersion]);
     }

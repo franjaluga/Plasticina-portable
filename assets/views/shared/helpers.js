@@ -45,6 +45,25 @@
     return query && query.month !== undefined && query.month !== '' ? Number(query.month) : Number(UI.today().slice(5, 7));
   }
 
+  function reportPeriodHelp(status) {
+    if (status.reason === 'before-start') {
+      return {
+        valid: false,
+        text: 'La fecha no puede ser anterior a ' + pad(status.startMonth) + '/' + status.startYear +
+          ', mes/año de inicio de actividades de esta empresa.',
+        className: 'text-[11px] text-rose-600 mt-2'
+      };
+    }
+    if (status.reason === 'invalid') {
+      return {
+        valid: false,
+        text: 'Selecciona un mes y año válidos.',
+        className: 'text-[11px] text-rose-600 mt-2'
+      };
+    }
+    return { valid: true, text: '', className: 'text-[11px] text-slate-400 mt-2' };
+  }
+
   function balancePeriodHelp(status) {
     if (status.reason === 'no-data') {
       return {
@@ -53,18 +72,11 @@
         className: 'text-[11px] text-rose-600 mt-2'
       };
     }
-    if (status.reason === 'before-start') {
+    const help = reportPeriodHelp(status);
+    if (!help.valid) {
       return {
         valid: false,
-        text: 'La fecha no puede ser anterior a ' + pad(status.earliestMonth) + '/' + status.earliestYear +
-          ', primer mes con contabilidad disponible para este negocio. No es posible generar el balance.',
-        className: 'text-[11px] text-rose-600 mt-2'
-      };
-    }
-    if (status.reason === 'invalid') {
-      return {
-        valid: false,
-        text: 'Selecciona un mes y año válidos.',
+        text: help.text + ' No es posible generar el balance.',
         className: 'text-[11px] text-rose-600 mt-2'
       };
     }
@@ -118,5 +130,5 @@
     `;
   }
 
-  Object.assign(helpers, { oldValue, pad, capitalize, num, accountOptions, format0, format0OrDash, queryYear, queryMonth, balancePeriodHelp, docTypeName, renderUpload });
+  Object.assign(helpers, { oldValue, pad, capitalize, num, accountOptions, format0, format0OrDash, queryYear, queryMonth, reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload });
 })();

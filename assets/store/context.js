@@ -21,6 +21,10 @@
     return new Date().getFullYear();
   }
 
+  function currentMonth() {
+    return new Date().getMonth() + 1;
+  }
+
   function todayIso() {
     if (window.UI && typeof window.UI.today === 'function') {
       return window.UI.today();
@@ -42,7 +46,10 @@
 
   function freshState() {
     return {
-      owners: [{ id: 1, rut: '55555555-5', name: 'Test', account_plan_type: 'standard_pyme', is_active: true }],
+      owners: [{
+        id: 1, rut: '55555555-5', name: 'Test', account_plan_type: 'standard_pyme', is_active: true,
+        start_month: currentMonth(), start_year: currentYear()
+      }],
       accounts: seedAccounts(),
       entities: [],
       documentTypes: [],
@@ -65,6 +72,12 @@
       result[key] = Array.isArray(raw[key]) ? clone(raw[key]) : [];
     });
     if (result.owners.length === 0) result.owners = fresh.owners;
+    result.owners.forEach(function (owner) {
+      const month = Number(owner.start_month);
+      const year = Number(owner.start_year);
+      owner.start_month = Number.isInteger(month) && month >= 1 && month <= 12 ? month : currentMonth();
+      owner.start_year = Number.isInteger(year) && year >= 2000 ? year : currentYear();
+    });
     if (result.accounts.length === 0) result.accounts = fresh.accounts;
     const rawSettings = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
     result.settings = {
@@ -217,6 +230,7 @@
     AMOUNT_FIELDS,
     clone,
     currentYear,
+    currentMonth,
     todayIso,
     seedAccounts,
     freshState,

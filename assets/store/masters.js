@@ -51,6 +51,46 @@
     return s.state.owners.find(function (item) { return item.is_active === true || Number(item.is_active) === 1; }) || null;
   }
 
+  function ownerStartPeriod(ownerId) {
+    const ownerRecord = ownerId === undefined || ownerId === null ? activeOwnerRaw() : rawOwner(ownerId);
+    const month = Number(ownerRecord && ownerRecord.start_month);
+    const year = Number(ownerRecord && ownerRecord.start_year);
+    return {
+      month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : s.currentMonth(),
+      year: Number.isInteger(year) && year >= 2000 ? year : s.currentYear()
+    };
+  }
+
+  function reportStartIso(ownerId) {
+    const start = ownerStartPeriod(ownerId);
+    return s.makeIso(start.year, start.month, 1);
+  }
+
+  function reportPeriodStatus(year, month, ownerId) {
+    const start = ownerStartPeriod(ownerId);
+    const numericYear = Number(year);
+    const numericMonth = Number(month);
+    const result = {
+      year: numericYear,
+      month: numericMonth,
+      startYear: start.year,
+      startMonth: start.month
+    };
+    if (!Number.isInteger(numericYear) || numericYear < 2000 ||
+      !Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) {
+      return Object.assign(result, { allowed: false, reason: 'invalid' });
+    }
+    if ((numericYear * 12) + numericMonth < (start.year * 12) + start.month) {
+      return Object.assign(result, { allowed: false, reason: 'before-start' });
+    }
+    return Object.assign(result, { allowed: true, reason: 'valid' });
+  }
+
+  function isPeriodBeforeStart(year, month, ownerId) {
+    const status = reportPeriodStatus(year, month, ownerId);
+    return !status.allowed;
+  }
+
   function nextEntryNumber(ownerId, year) {
     return db.repositories.journals.nextEntryNumber(ownerId, year);
   }
@@ -186,6 +226,14 @@
 
   function createOwner(data) {
     if (!data.rut || !data.name || !data.account_plan_type) throw new Error('Complete todos los campos obligatorios.');
+    const startMonth = Number(data.start_month);
+    const startYear = Number(data.start_year);
+    if (!Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12) {
+      throw new Error('El mes de inicio de actividades no es válido.');
+    }
+    if (!Number.isInteger(startYear) || startYear < 2000) {
+      throw new Error('El año de inicio de actividades no es válido.');
+    }
     if (owners().some(function (owner) { return owner.rut === data.rut; })) throw new Error('Ya existe una empresa con ese RUT.');
     const plan = accountPlan(data.account_plan_type);
     return transaction(function () {
@@ -193,6 +241,8 @@
         rut: data.rut,
         name: data.name,
         account_plan_type: data.account_plan_type,
+        start_month: startMonth,
+        start_year: startYear,
         is_active: false
       });
       plan.forEach(function (account) {
@@ -346,6 +396,10 @@
     rawJournal,
     rawDocumentType,
     activeOwnerRaw,
+    ownerStartPeriod,
+    reportStartIso,
+    reportPeriodStatus,
+    isPeriodBeforeStart,
     nextEntryNumber,
     owners,
     owner,

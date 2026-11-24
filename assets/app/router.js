@@ -52,6 +52,41 @@
       message + '</div></div></div>';
   }
 
+  function reportPeriodValues(kind, values) {
+    const source = values || {};
+    const today = UI.today();
+    if (kind === 'month-year') {
+      return {
+        year: source.year === undefined || source.year === '' ? Store.workingYear() : source.year,
+        month: source.month === undefined || source.month === '' ? today.slice(5, 7) : source.month
+      };
+    }
+    if (kind === 'date-from' || kind === 'date-from-or-year') {
+      const match = /^(\d{4})-(\d{1,2})/.exec(String(source.date_from || ''));
+      if (match) return { year: match[1], month: match[2] };
+      if (kind === 'date-from-or-year') {
+        return { year: source.year === undefined || source.year === '' ? Store.workingYear() : source.year, month: 12 };
+      }
+      return { year: today.slice(0, 4), month: today.slice(5, 7) };
+    }
+    return { year: source.year === undefined || source.year === '' ? Store.workingYear() : source.year, month: 12 };
+  }
+
+  function validateReportPeriod(kind, values) {
+    const period = reportPeriodValues(kind, values);
+    return Store.reportPeriodStatus(period.year, period.month);
+  }
+
+  function renderPeriodBlocked(flash, status, context) {
+    const help = window.Plasticina.views.helpers.reportPeriodHelp(status);
+    return '<div class="w-full">' + flash +
+      '<div class="max-w-xl mx-auto p-8">' +
+      '<div class="bg-rose-50 border-l-4 border-rose-500 p-4 text-xs text-rose-700">' +
+      'No es posible generar el reporte. ' + UI.h(help.text) + '</div>' +
+      '<a href="' + UI.h('#' + context) + '" class="inline-block mt-4 text-xs font-semibold text-indigo-600">' +
+      '&larr; Volver al reporte</a></div></div>';
+  }
+
   function renderView(viewName, match, flash, query) {
     document.body.className = config.bodyClasses[viewName] || config.bodyClasses.welcome;
     if (!match || typeof window.Views[viewName] !== 'function') {
@@ -69,6 +104,16 @@
 
   function render() {
     const parsed = UI.parseHash(window.location.hash);
+    const rule = config.reportPeriodRoutes[parsed.path] || null;
+    if (rule) {
+      const periodStatus = validateReportPeriod(rule.kind, parsed.query);
+      if (!periodStatus.allowed) {
+        app.innerHTML = renderPeriodBlocked(UI.takeFlash(), periodStatus, rule.context);
+        sessionStorage.removeItem('plasticina_old');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
     if (parsed.path === '/system/database/export') {
       if (window.Actions['system.sqlite-export']) window.Actions['system.sqlite-export']();
       return;
@@ -90,5 +135,11 @@
     window.location.hash = path;
   }
 
-  window.Plasticina.app.router = { matchRoute: matchRoute, runScripts: runScripts, render: render, navigate: navigate };
+  window.Plasticina.app.router = {
+    matchRoute: matchRoute,
+    validateReportPeriod: validateReportPeriod,
+    runScripts: runScripts,
+    render: render,
+    navigate: navigate
+  };
 })();

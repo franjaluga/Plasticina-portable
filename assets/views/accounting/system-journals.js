@@ -15,6 +15,8 @@
     });
     const journals = Store.systemJournals(year, filters) || [];
     const documentTypes = Store.documentTypes();
+    const start = Store.ownerStartPeriod();
+    const startIso = start.year + '-' + String(start.month).padStart(2, '0') + '-01';
 
     const documentTypeOptions = documentTypes.map(function (dtype) {
       const selected = filters.document_type_id !== undefined && String(filters.document_type_id) === String(dtype.doctype) ? ' selected' : '';
@@ -113,7 +115,7 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Fecha Centralización (Desde - Hasta)</label>
                         <div class="flex space-x-2">
-                            <input type="date" name="date_from" class="w-1/2 text-xs border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" value="${UI.h(query.date_from || '')}">
+                            <input type="date" name="date_from" class="w-1/2 text-xs border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" value="${UI.h(query.date_from || '')}" min="${UI.h(startIso)}">
                             <input type="date" name="date_to" class="w-1/2 text-xs border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" value="${UI.h(query.date_to || '')}">
                         </div>
                     </div>
