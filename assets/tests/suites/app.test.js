@@ -38,4 +38,12 @@
     T.assertIncludes(document.getElementById('app').innerHTML, '404');
     window.location.hash = '#/';
   });
+
+  T.test('El balance genera la ruta con el mes y el año elegidos', function () {
+    const hash = UI.route('vc_documents.tax_balance', { month: 9, year: 2026 });
+    const parsed = UI.parseHash(hash);
+    T.assertEqual(parsed.path, '/vc-documents/balance-tributario');
+    T.assertDeepEqual(parsed.query, { month: '9', year: '2026' });
+    T.assertEqual(app.router.matchRoute(parsed.path).view, 'taxBalance');
+  });
 })();

@@ -15,9 +15,9 @@
   } = s;
   const CATEGORY_BY_FIRST_DIGIT = { '1': 'activo', '2': 'pasivo', '3': 'patrimonio', '4': 'ganancia' };
 
-  function collectAccountTotals(ownerId, year) {
+  function collectAccountTotals(ownerId, year, filters) {
     const grouped = {};
-    db.repositories.journals.taxTotals(ownerId, year).forEach(function (row) {
+    db.repositories.journals.taxTotals(ownerId, year, filters).forEach(function (row) {
       grouped[row.code] = row;
     });
     return grouped;
@@ -82,10 +82,10 @@
     };
   }
 
-  function taxBalance(year) {
+  function taxBalance(year, filters) {
     const ownerRecord = activeOwnerRaw();
     if (!ownerRecord) return [];
-    const grouped = collectAccountTotals(ownerRecord.id, year);
+    const grouped = collectAccountTotals(ownerRecord.id, year, filters);
     const rows = Object.keys(grouped).map(function (code) { return buildTaxBalanceRow(grouped[code]); });
     rows.sort(function (a, b) { return a.code < b.code ? -1 : (a.code > b.code ? 1 : 0); });
     return rows;

@@ -45,8 +45,9 @@
     return db.all(q.ledger, params).map(map);
   }
 
-  function taxTotals(ownerId, year) {
-    return db.all(q.taxTotals, [ownerId, year]).map(function (row) {
+  function taxTotals(ownerId, year, filters) {
+    const built = q.taxTotals(filters || {});
+    return db.all(built.sql, [ownerId, year].concat(built.params)).map(function (row) {
       return {
         code: String(row.code),
         name: String(row.name),

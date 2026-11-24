@@ -50,4 +50,26 @@
     T.assertIncludes(html, 'data-action="owners.destroy"');
     T.assertIncludes(html, 'style="display:none" aria-hidden="true"');
   });
+
+  T.test('El contexto balance pide mes y año y sobrescribe el botón Generar', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const html = window.Views.balanceContext({ params: {}, query: { month: '9', year: String(year) } });
+    T.assertIncludes(html, '<form data-action="vc_documents.tax_balance"');
+    T.assertIncludes(html, 'name="month"');
+    T.assertIncludes(html, 'name="year"');
+    T.assertIncludes(html, 'type="submit"');
+    T.assertIncludes(html, 'Generar &rarr;');
+    T.assertIncludes(html, 'value="09" selected');
+    T.assertIncludes(html, 'value="' + year + '"');
+    T.assert(html.indexOf('<a href="#/vc-documents/balance-tributario"') === -1,
+      'La card ya no debe ser un enlace directo');
+  });
+
+  T.test('El balance tributario muestra el rango hasta el mes solicitado', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const html = window.Views.taxBalance({ params: {}, query: { month: '9', year: String(year) } });
+    T.assertIncludes(html, '01/01/' + year + ' al 30/09/' + year);
+  });
 })();

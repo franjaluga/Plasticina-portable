@@ -115,6 +115,30 @@
     T.assertEqual(Store.journal(id), null);
   });
 
+  T.test('Store.taxBalance filtra desde inicio de año hasta el mes indicado', function () {
+    T.resetStore();
+    const filters = { date_from: year + '-01-01', date_to: year + '-09-30' };
+    const entries = [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ];
+
+    function debitFor(rows) {
+      const row = rows.find(function (item) { return item.code === '1010101'; });
+      return row ? row.sum_debit : 0;
+    }
+
+    const fullBefore = debitFor(Store.taxBalance(year));
+    const filteredBefore = debitFor(Store.taxBalance(year, filters));
+    Store.registerManualJournal(year, 1, year + '-01-15', 'Enero', entries);
+    Store.registerManualJournal(year, 9, year + '-09-30', 'Septiembre', entries);
+    Store.registerManualJournal(year, 10, year + '-10-01', 'Octubre', entries);
+
+    T.assertEqual(debitFor(Store.taxBalance(year)) - fullBefore, 30);
+    T.assertEqual(debitFor(Store.taxBalance(year, filters)) - filteredBefore, 20);
+    T.resetStore();
+  });
+
   T.test('Store importa documentos por CSV a SQLite', function () {
     T.resetStore();
     const source = sampleDocument(60, 1190);

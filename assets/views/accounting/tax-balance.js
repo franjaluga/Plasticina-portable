@@ -3,13 +3,20 @@
 
   window.Views = window.Views || {};
 
-  const { format0, format0OrDash, num, queryYear } = window.Plasticina.views.helpers;
+  const { format0, format0OrDash, num, pad, queryMonth, queryYear } = window.Plasticina.views.helpers;
 
   window.Views.taxBalance = function (ctx) {
     const query = ctx.query || {};
-    const year = queryYear(query);
+    const rawMonth = Number(queryMonth(query));
+    const month = Number.isInteger(rawMonth) && rawMonth >= 1 && rawMonth <= 12
+      ? rawMonth : Number(UI.today().slice(5, 7));
+    const rawYear = Number(queryYear(query));
+    const year = Number.isInteger(rawYear) && rawYear >= 2000 ? rawYear : Store.workingYear();
+    const lastDay = new Date(year, month, 0).getDate();
+    const dateFrom = year + '-01-01';
+    const dateTo = year + '-' + pad(month) + '-' + pad(lastDay);
     const activeOwner = Store.activeOwner();
-    const balanceRows = Store.taxBalance(year) || [];
+    const balanceRows = Store.taxBalance(year, { date_from: dateFrom, date_to: dateTo }) || [];
     let sumSd = 0;
     let sumSc = 0;
     let sumBd = 0;
@@ -70,7 +77,7 @@
         }).join('')
       : `
                     <tr>
-                        <td colspan="10" class="text-center py-10 text-slate-400 font-sans">No hay registros contables en los asientos para generar el balance de este año.</td>
+                        <td colspan="10" class="text-center py-10 text-slate-400 font-sans">No hay registros contables en los asientos para generar el balance de este periodo.</td>
                     </tr>`;
 
     const footer = balanceRows.length
@@ -122,7 +129,7 @@
             <div class="text-xs text-slate-600 mt-1 space-y-0.5">
                 <p><span class="font-bold text-slate-900">Empresa:</span> ${UI.h(activeOwner ? activeOwner.name : 'Sin Empresa')}</p>
                 <p><span class="font-bold text-slate-900">RUT:</span> ${UI.h(activeOwner ? activeOwner.rut : 'N/A')}</p>
-                <p><span class="font-bold text-slate-900">Periodo Comercial:</span> ${UI.h(year)}</p>
+                <p><span class="font-bold text-slate-900">Periodo Comercial:</span> 01/01/${UI.h(year)} al ${UI.h(pad(lastDay))}/${UI.h(pad(month))}/${UI.h(year)}</p>
             </div>
         </div>
         <div class="text-sm">

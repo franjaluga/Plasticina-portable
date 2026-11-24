@@ -86,11 +86,26 @@
     ledger: 'SELECT DISTINCT j.* FROM journals j JOIN journal_entries e ON e.journal_id = j.id ' +
       'WHERE j.owner_id = ? AND substr(j.date, 1, 4) = ? AND substr(j.date, 6, 2) = ? AND e.account_code = ? ' +
       'ORDER BY j.date ASC, j.entry_number ASC, j.id ASC',
-    taxTotals: 'SELECT e.account_code AS code, COALESCE(a.name, \'Cuenta Sin Nombre\') AS name, ' +
-      'COALESCE(a.category, \'\') AS category, SUM(e.debit) AS sum_debit, SUM(e.credit) AS sum_credit ' +
-      'FROM journal_entries e JOIN journals j ON j.id = e.journal_id ' +
-      'LEFT JOIN accounts a ON a.code = e.account_code AND a.owner_id = j.owner_id ' +
-      'WHERE j.owner_id = ? AND j.year = ? GROUP BY e.account_code ORDER BY e.account_code ASC',
+    taxTotals: function (filters) {
+      const clauses = ['j.owner_id = ?', 'j.year = ?'];
+      const params = [];
+      if (filters.date_from !== undefined && filters.date_from !== null) {
+        clauses.push('j.date >= ?');
+        params.push(String(filters.date_from));
+      }
+      if (filters.date_to !== undefined && filters.date_to !== null) {
+        clauses.push('j.date <= ?');
+        params.push(String(filters.date_to));
+      }
+      return {
+        sql: 'SELECT e.account_code AS code, COALESCE(a.name, \'Cuenta Sin Nombre\') AS name, ' +
+          'COALESCE(a.category, \'\') AS category, SUM(e.debit) AS sum_debit, SUM(e.credit) AS sum_credit ' +
+          'FROM journal_entries e JOIN journals j ON j.id = e.journal_id ' +
+          'LEFT JOIN accounts a ON a.code = e.account_code AND a.owner_id = j.owner_id ' +
+          'WHERE ' + clauses.join(' AND ') + ' GROUP BY e.account_code ORDER BY e.account_code ASC',
+        params: params
+      };
+    },
     paidAmount: function (column) {
       const safeColumn = column === 'debit' ? 'debit' : 'credit';
       return 'SELECT COALESCE(SUM(e.' + safeColumn + '), 0) AS paid FROM journal_entries e ' +

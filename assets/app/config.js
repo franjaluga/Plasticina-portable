@@ -77,6 +77,7 @@
   };
 
   config.getActions = {
+    'vc_documents.tax_balance': 'vc_documents.tax_balance',
     'vc_documents.pending': 'vc_documents.pending',
     'vc_documents.journal_book.generate': 'vc_documents.journal_book.generate',
     'vc_documents.query': 'vc_documents.query',
