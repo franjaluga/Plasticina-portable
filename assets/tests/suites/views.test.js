@@ -316,6 +316,27 @@
       'Ya no debe existir el campo antiguo de diferencia');
   });
 
+  T.test('El asiento manual muestra el correlativo propuesto antes del detalle', function () {
+    T.resetStore();
+    const empty = window.Views.manualJournalCreate(ctx);
+    const previewStart = empty.indexOf('id="entry-number-preview"');
+    const detailStart = empty.indexOf('Detalle de Cuentas');
+    T.assert(previewStart > -1 && detailStart > previewStart, 'El bloque propuesto debe ir antes del detalle');
+    T.assertIncludes(empty, 'Asiento propuesto</span>\n            <strong class="font-mono font-bold text-slate-800">1</strong>');
+    T.assertIncludes(empty, '[?]</button>');
+    T.assertIncludes(empty, 'title="Sin asientos registrados · Próximo N° 1\nEl número definitivo se asigna al guardar; si otro asiento se registra primero, se recalculará automáticamente."');
+    T.assert(empty.indexOf('name="entry_number"') === -1, 'El número propuesto no debe enviarse como campo');
+
+    const year = Store.workingYear();
+    Store.registerManualJournal(year, 1, year + '-01-05', 'Asiento previo', [
+      { account_code: '1010101', debit: 10, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 10, component_name: 'manual' }
+    ]);
+    const next = window.Views.manualJournalCreate(ctx);
+    T.assertIncludes(next, 'Asiento propuesto</span>\n            <strong class="font-mono font-bold text-slate-800">2</strong>');
+    T.assertIncludes(next, 'title="Último asiento N° 1 · Próximo N° 2\nEl número definitivo se asigna al guardar; si otro asiento se registra primero, se recalculará automáticamente."');
+  });
+
   T.test('El asiento manual convierte montos vacíos en cero y descarta filas sin datos', function () {
     T.resetStore();
     const html = window.Views.manualJournalCreate(ctx);

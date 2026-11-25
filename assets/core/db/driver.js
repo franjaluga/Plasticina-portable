@@ -8,6 +8,7 @@
   let adapter = null;
   let depth = 0;
   let pendingWrite = Promise.resolve();
+  let deferPersist = false;
 
   function pickAdapter() {
     const candidates = [internals.adapters.memory, internals.adapters.electron, internals.adapters.browser];
@@ -55,6 +56,15 @@
     migrate();
   }
 
+  function watchChanges() {
+    if (!adapter || adapter.name === 'memory' || typeof adapter.onChanged !== 'function') return;
+    adapter.onChanged(function () {
+      adapter.read().then(function (bytes) {
+        if (depth === 0) openFromBytes(bytes);
+      }).catch(function () {});
+    });
+  }
+
   function persist() {
     if (!database || !adapter) return Promise.resolve();
     const bytes = database.export();
@@ -70,8 +80,9 @@
     return adapter.read().then(function (bytes) {
       return loadEngine().then(function () {
         openFromBytes(bytes);
-        if (!bytes) return persist();
-        return undefined;
+        return (bytes ? Promise.resolve() : persist()).then(function () {
+          watchChanges();
+        });
       });
     });
   }
@@ -108,8 +119,7 @@
     return row ? Number(row.id) : 0;
   }
 
-  function transaction(fn) {
-    if (typeof fn !== 'function') throw new Error('Transacción inválida.');
+  function runTransactionLocal(fn) {
     requireDatabase();
     depth += 1;
     const savepoint = 'plasticina_' + depth;
@@ -118,7 +128,7 @@
       const result = fn();
       if (depth === 1) {
         database.run('COMMIT');
-        persist();
+        if (!deferPersist) persist();
       } else {
         database.run('RELEASE ' + savepoint);
       }
@@ -136,6 +146,28 @@
     }
   }
 
+  function serialized(work) {
+    if (!adapter || adapter.name === 'memory' || typeof adapter.withLock !== 'function') return work();
+    return adapter.withLock(function () {
+      return adapter.read().then(function (bytes) {
+        openFromBytes(bytes);
+        deferPersist = true;
+        try {
+          return work();
+        } finally {
+          deferPersist = false;
+        }
+      }).then(function (result) {
+        return adapter.write(database.export()).then(function () { return result; });
+      });
+    });
+  }
+
+  function transaction(fn) {
+    if (typeof fn !== 'function') throw new Error('Transacción inválida.');
+    return serialized(function () { return runTransactionLocal(fn); });
+  }
+
   function exportBytes() {
     return requireDatabase().export();
   }
@@ -143,13 +175,11 @@
   function replaceBytes(bytes) {
     const source = new Uint8Array(bytes || []);
     if (!source.length) throw new Error('Archivo SQLite inválido.');
-    openFromBytes(source);
-    return persist();
+    return serialized(function () { openFromBytes(source); });
   }
 
   function reset() {
-    openFromBytes(null);
-    return persist();
+    return serialized(function () { openFromBytes(null); });
   }
 
   internals.initialize = initialize;

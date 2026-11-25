@@ -16,6 +16,20 @@
     const month = Number(oldValue(oldValues, 'month', Number(UI.today().slice(5, 7))));
     const year = oldValue(oldValues, 'year', workingYear);
     const glosa = oldValue(oldValues, 'glosa', '');
+    const previewOwnerId = owner ? Number(owner.id) : 0;
+    const previewYear = Number(year);
+    const proposedEntryNumber = previewOwnerId && Number.isInteger(previewYear)
+      ? Store.nextEntryNumber(previewOwnerId, previewYear)
+      : 0;
+    const lastEntryNumber = proposedEntryNumber > 0 ? proposedEntryNumber - 1 : 0;
+    const entryNumberLabel = proposedEntryNumber > 0
+      ? UI.h(proposedEntryNumber)
+      : '<span class="text-amber-600">—</span>';
+    const entryNumberHelp = proposedEntryNumber > 0
+      ? (lastEntryNumber > 0 ? 'Último asiento N° ' + lastEntryNumber + ' · ' : 'Sin asientos registrados · ') +
+        'Próximo N° ' + proposedEntryNumber + '\n' +
+        'El número definitivo se asigna al guardar; si otro asiento se registra primero, se recalculará automáticamente.'
+      : 'Seleccione un owner activo para ver el número propuesto.';
 
     let monthOptions = '';
     for (let value = 1; value <= 12; value++) {
@@ -57,6 +71,14 @@
         </div>
         <div>
             <a href="${UI.h(UI.route('owners.index'))}" class="text-xs font-medium bg-white text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg hover:bg-indigo-50 transition shadow-sm">Cambiar</a>
+        </div>
+    </div>
+
+    <div id="entry-number-preview" class="mb-6 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+        <div class="flex items-center gap-2">
+            <span class="font-semibold uppercase tracking-wider text-slate-500">Asiento propuesto</span>
+            <strong class="font-mono font-bold text-slate-800">${entryNumberLabel}</strong>
+            <button type="button" title="${UI.h(entryNumberHelp)}" aria-label="Información sobre el número del asiento" class="font-mono font-bold text-slate-500 hover:text-slate-800">[?]</button>
         </div>
     </div>
 

@@ -20,9 +20,9 @@
       return;
     }
     const reader = new FileReader();
-    reader.onload = function () {
+    reader.onload = async function () {
       try {
-        Store.importSqlite(new Uint8Array(reader.result || []));
+        await Store.importSqlite(new Uint8Array(reader.result || []));
         afterSuccess('Base de datos SQLite importada correctamente.', 'welcome');
       } catch (error) {
         fail(error, readForm(form));
@@ -46,9 +46,9 @@
       return;
     }
     const reader = new FileReader();
-    reader.onload = function () {
+    reader.onload = async function () {
       try {
-        Store.importJson(String(reader.result || ''));
+        await Store.importJson(String(reader.result || ''));
         afterSuccess('Respaldo importado correctamente.', 'welcome');
       } catch (error) {
         fail(error, readForm(form));
@@ -58,8 +58,8 @@
     reader.readAsText(file, 'UTF-8');
   };
 
-  window.Actions['system.reset'] = function () {
-    Store.reset();
+  window.Actions['system.reset'] = async function () {
+    await Store.reset();
     afterSuccess('Base de datos reiniciada correctamente.', 'welcome');
   };
 

@@ -54,18 +54,18 @@
       ['row_10', 'row_2']);
   });
 
-  T.test('period.update cambia el año de trabajo', function () {
+  T.test('period.update cambia el año de trabajo', async function () {
     T.resetStore();
     const target = new Date().getFullYear() + 1;
-    window.Actions['period.update'](form({ working_year: target }, 'period.update'));
+    await window.Actions['period.update'](form({ working_year: target }, 'period.update'));
     T.assertEqual(Store.workingYear(), target);
     T.resetStore();
   });
 
-  T.test('accounts.store agrega una cuenta al owner activo', function () {
+  T.test('accounts.store agrega una cuenta al owner activo', async function () {
     T.resetStore();
     const before = Store.accounts().length;
-    window.Actions['accounts.store'](form({
+    await window.Actions['accounts.store'](form({
       owner_id: 1, code: '9999999', name: 'Cuenta de prueba', category: 'activo'
     }, 'accounts.store'));
     T.assertEqual(Store.accounts().length, before + 1);
@@ -73,13 +73,13 @@
     T.resetStore();
   });
 
-  T.test('manualJournal.store guarda el asiento y abre la confirmación propia', function () {
+  T.test('manualJournal.store guarda el asiento y abre la confirmación propia', async function () {
     T.resetStore();
     sessionStorage.removeItem('plasticina_flash');
     const year = Store.workingYear();
     const before = Store.journals({ year: year }).length;
     window.location.hash = UI.route('accounting.manual_journals.create');
-    window.Actions['manualJournal.store'](form({
+    await window.Actions['manualJournal.store'](form({
       year: year,
       month: 3,
       date: year + '-03-05',
@@ -104,7 +104,7 @@
     T.assertEqual(typeof window.Actions['no.existe'], 'undefined');
   });
 
-  T.test('system.reset deja la base como en el primer uso', function () {
+  T.test('system.reset deja la base como en el primer uso', async function () {
     T.resetStore();
     const currentYear = new Date().getFullYear();
     const owner = Store.createOwner({
@@ -123,7 +123,7 @@
 
     sessionStorage.removeItem('plasticina_flash');
     window.location.hash = UI.route('system.config');
-    window.Actions['system.reset']();
+    await window.Actions['system.reset']();
 
     T.assertEqual(Store.owners().length, 1);
     T.assertEqual(Store.owners()[0].id, 1);

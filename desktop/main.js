@@ -11,11 +11,67 @@ function readDatabase() {
 
 function writeDatabase(bytes) {
   fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
-  fs.writeFileSync(DB_FILE, Buffer.from(bytes));
+  const temporary = DB_FILE + '.tmp-' + process.pid + '-' + Date.now();
+  fs.writeFileSync(temporary, Buffer.from(bytes));
+  fs.renameSync(temporary, DB_FILE);
+}
+
+const lockWaiters = [];
+const lockOwners = new Map();
+let lockHeld = false;
+let lockSequence = 0;
+
+function acquireLock(event) {
+  if (!lockHeld) {
+    lockHeld = true;
+    const token = ++lockSequence;
+    lockOwners.set(token, event.sender.id);
+    return token;
+  }
+  return new Promise(function (resolve) {
+    lockWaiters.push({ senderId: event.sender.id, resolve: resolve });
+  });
+}
+
+function releaseLock(token) {
+  if (!lockOwners.has(token)) return;
+  lockOwners.delete(token);
+  const next = lockWaiters.shift();
+  if (!next) {
+    lockHeld = false;
+    return;
+  }
+  const nextToken = ++lockSequence;
+  lockOwners.set(nextToken, next.senderId);
+  next.resolve(nextToken);
+}
+
+function releaseLocksFor(senderId) {
+  lockOwners.forEach(function (owner, token) {
+    if (owner === senderId) releaseLock(token);
+  });
+  for (let index = lockWaiters.length - 1; index >= 0; index--) {
+    if (lockWaiters[index].senderId === senderId) lockWaiters.splice(index, 1);
+  }
+}
+
+function notifyDatabaseChanged() {
+  BrowserWindow.getAllWindows().forEach(function (window) {
+    if (!window.isDestroyed()) window.webContents.send('sqlite:changed');
+  });
 }
 
 ipcMain.handle('sqlite:read', function () { return readDatabase(); });
-ipcMain.handle('sqlite:write', function (_event, bytes) { writeDatabase(bytes); });
+ipcMain.handle('sqlite:write', function (_event, bytes) {
+  writeDatabase(bytes);
+  notifyDatabaseChanged();
+});
+ipcMain.handle('sqlite:acquire-lock', function (event) { return acquireLock(event); });
+ipcMain.handle('sqlite:release-lock', function (_event, token) { releaseLock(token); });
+
+app.on('web-contents-created', function (_event, contents) {
+  contents.on('destroyed', function () { releaseLocksFor(contents.id); });
+});
 
 let mainWindow = null;
 

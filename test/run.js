@@ -110,7 +110,7 @@ async function main() {
 
   await context.window.Plasticina.db.ready;
   context.window.Store.load();
-  const results = context.window.PlasticinaTest.run();
+  const results = await context.window.PlasticinaTest.run();
   results.forEach(function (result) {
     process.stdout.write((result.ok ? 'ok   ' : 'FAIL ') + result.name + '\n');
     if (!result.ok) process.stdout.write('     ' + result.error + '\n');

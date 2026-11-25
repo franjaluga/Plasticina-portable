@@ -15,6 +15,7 @@
     importSqlite: s.importSqlite,
     transaction: s.transaction,
     nextId: s.nextId,
+    nextEntryNumber: s.nextEntryNumber,
     clone: s.clone,
     workingYear: s.workingYear,
     setWorkingYear: s.setWorkingYear,

@@ -19,65 +19,78 @@
     if (!form || event.defaultPrevented) return;
     event.preventDefault();
     if (!confirmSubmission(form, event.submitter)) return;
-
-    const action = form.dataset.action;
-    let values;
+    if (form.dataset.submitting === '1') return;
+    form.dataset.submitting = '1';
     try {
-      values = helpers.readForm(form);
-    } catch (error) {
-      UI.flash('error', error.message || String(error));
-      router.render();
-      return;
-    }
-    const getActions = window.Plasticina.app.config.getActions;
-    const getRoute = Object.prototype.hasOwnProperty.call(getActions, action) ? getActions[action] : null;
-
-    if (getRoute) {
-      const rule = config.reportPeriodRoutes[getRoute];
-      if (action === 'vc_documents.tax_balance') {
-        const status = Store.balancePeriodStatus(values.year, values.month);
-        if (!status.allowed) {
-          const statusHelp = window.Plasticina.views.helpers.balancePeriodHelp(status);
-          UI.flash('error', statusHelp.text);
-          router.render();
-          return;
-        }
-      } else if (rule) {
-        const status = router.validateReportPeriod(rule.kind, values);
-        if (!status.allowed) {
-          const statusHelp = window.Plasticina.views.helpers.reportPeriodHelp(status);
-          UI.flash('error', statusHelp.text);
-          router.render();
-          return;
-        }
+      const action = form.dataset.action;
+      let values;
+      try {
+        values = helpers.readForm(form);
+      } catch (error) {
+        UI.flash('error', error.message || String(error));
+        router.render();
+        return;
       }
+      const getActions = window.Plasticina.app.config.getActions;
+      const getRoute = Object.prototype.hasOwnProperty.call(getActions, action) ? getActions[action] : null;
+
+      if (getRoute) {
+        const rule = config.reportPeriodRoutes[getRoute];
+        if (action === 'vc_documents.tax_balance') {
+          const status = Store.balancePeriodStatus(values.year, values.month);
+          if (!status.allowed) {
+            const statusHelp = window.Plasticina.views.helpers.balancePeriodHelp(status);
+            UI.flash('error', statusHelp.text);
+            router.render();
+            return;
+          }
+        } else if (rule) {
+          const status = router.validateReportPeriod(rule.kind, values);
+          if (!status.allowed) {
+            const statusHelp = window.Plasticina.views.helpers.reportPeriodHelp(status);
+            UI.flash('error', statusHelp.text);
+            router.render();
+            return;
+          }
+        }
+        UI.remember(values);
+        router.navigate(UI.route(getRoute, values));
+        return;
+      }
+
+      const handler = window.Actions[action];
+      if (!handler) {
+        UI.flash('error', 'Acción no implementada: ' + action);
+        router.render();
+        return;
+      }
+
       UI.remember(values);
-      router.navigate(UI.route(getRoute, values));
-      return;
-    }
-
-    const handler = window.Actions[action];
-    if (!handler) {
-      UI.flash('error', 'Acción no implementada: ' + action);
-      router.render();
-      return;
-    }
-
-    UI.remember(values);
-    try {
       await handler(form);
     } catch (error) {
       UI.flash('error', error.message || String(error));
       router.render();
+    } finally {
+      form.dataset.submitting = '';
     }
   }
 
-  function onClick(event) {
+  async function onClick(event) {
     const element = event.target.closest('[data-link-action]');
     if (!element) return;
     event.preventDefault();
     const action = element.getAttribute('data-link-action');
-    if (window.Actions[action]) window.Actions[action]();
+    if (!window.Actions[action]) return;
+    if (element.dataset.executing === '1') return;
+    element.dataset.executing = '1';
+    try {
+      await window.Actions[action]();
+    } catch (error) {
+      UI.flash('error', error.message || String(error));
+      router.render();
+    } finally {
+      element.dataset.executing = '';
+    }
   }
 
   document.addEventListener('submit', onSubmit);

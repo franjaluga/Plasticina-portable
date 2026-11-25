@@ -133,6 +133,58 @@
     T.assertEqual(Store.journal(id), null);
   });
 
+  T.test('Store expone el correlativo propuesto por owner y año sin reservarlo', function () {
+    resetWithStart(1, year);
+    T.assertEqual(Store.nextEntryNumber(1, year), 1);
+    const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento manual', [
+      { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ]);
+    T.assertEqual(Store.journal(id).entry_number, 1);
+    T.assertEqual(Store.nextEntryNumber(1, year), 2);
+    T.assertEqual(Store.nextEntryNumber(1, year + 1), 1);
+  });
+
+  T.test('Escrituras concurrentes recalculan el correlativo bajo lock', async function () {
+    resetWithStart(1, year);
+    const adapters = window.Plasticina.db.internals.adapters;
+    const original = adapters.memory;
+    let tail = Promise.resolve();
+    adapters.memory = {
+      name: 'memory-lock-test',
+      available: function () { return true; },
+      read: original.read,
+      write: original.write,
+      withLock: function (callback) {
+        const current = tail.then(function () {
+          return new Promise(function (resolve) { setTimeout(resolve, 5); });
+        }).then(callback);
+        tail = current.then(function () {}, function () {});
+        return current;
+      }
+    };
+    try {
+      await window.Plasticina.db.internals.initialize();
+      await Store.load();
+      const build = function (amount) {
+        return [
+          { account_code: '1010101', debit: amount, credit: 0, component_name: 'manual' },
+          { account_code: '4010101', debit: 0, credit: amount, component_name: 'manual' }
+        ];
+      };
+      await Promise.all([
+        Store.registerManualJournal(year, 3, year + '-03-05', 'Concurrente A', build(10)),
+        Store.registerManualJournal(year, 3, year + '-03-06', 'Concurrente B', build(20))
+      ]);
+      const numbers = Store.journals({ year: year }).map(function (journal) { return Number(journal.entry_number); }).sort(function (a, b) { return a - b; });
+      T.assertDeepEqual(numbers, [1, 2]);
+    } finally {
+      adapters.memory = original;
+      await window.Plasticina.db.internals.initialize();
+      await Store.load();
+    }
+  });
+
   T.test('Store rechaza asientos y pagos con montos negativos', function () {
     resetWithStart(1, year);
     const negative = [

@@ -82,9 +82,14 @@
     const values = readForm(form);
     UI.remember(values);
     try {
-      callback(values);
+      const result = callback(values);
+      if (result && typeof result.then === 'function') {
+        return result.catch(function (error) { fail(error, values); });
+      }
+      return result;
     } catch (error) {
       fail(error, values);
+      return undefined;
     }
   }
 

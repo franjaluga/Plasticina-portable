@@ -158,14 +158,20 @@
     return Boolean(refresh());
   }
 
-  function load() {
-    state = db.repositories.system.ensureSeed();
+  function settleState(result) {
+    if (result && typeof result.then === 'function') {
+      return result.then(function (value) { state = value; return clone(state); });
+    }
+    state = result;
     return clone(state);
   }
 
+  function load() {
+    return settleState(db.repositories.system.ensureSeed());
+  }
+
   function reset() {
-    state = db.repositories.system.reset();
-    return clone(state);
+    return settleState(db.repositories.system.reset());
   }
 
   function replaceState(raw) {
@@ -192,7 +198,13 @@
   }
 
   function importSqlite(bytes) {
-    db.replaceBytes(bytes);
+    const result = db.replaceBytes(bytes);
+    if (result && typeof result.then === 'function') {
+      return result.then(function () {
+        state = db.repositories.system.hydrate();
+        return clone(state);
+      });
+    }
     state = db.repositories.system.hydrate();
     return clone(state);
   }
@@ -200,6 +212,9 @@
   function transaction(fn) {
     if (typeof fn !== 'function') throw new Error('Transacción inválida.');
     const result = db.transaction(fn);
+    if (result && typeof result.then === 'function') {
+      return result.then(function (value) { refresh(); return value; }, function (error) { refresh(); throw error; });
+    }
     refresh();
     return result;
   }
@@ -215,7 +230,10 @@
   function setWorkingYear(year) {
     const value = Number(year);
     if (!Number.isInteger(value) || value < 2000) throw new Error('El año de trabajo no es válido.');
-    db.transaction(function () { db.repositories.settings.set('working_year', value); });
+    const result = db.transaction(function () { db.repositories.settings.set('working_year', value); });
+    if (result && typeof result.then === 'function') {
+      return result.then(function () { refresh(); return value; });
+    }
     refresh();
     return value;
   }

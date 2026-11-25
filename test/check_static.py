@@ -142,6 +142,30 @@ def main():
         if NATIVE_ALERT.search(source):
             ok = fail(str(path.relative_to(ROOT)) + ': usa alert() del navegador')
 
+    main_source = (ROOT / 'desktop' / 'main.js').read_text(encoding='utf-8')
+    for token in ('sqlite:acquire-lock', 'sqlite:release-lock', 'notifyDatabaseChanged'):
+        if token not in main_source:
+            ok = fail('desktop/main.js no coordina escrituras concurrentes: ' + token)
+
+    driver_source = (ASSETS / 'core' / 'db' / 'driver.js').read_text(encoding='utf-8')
+    for token in ('adapter.withLock', 'adapter.read()', 'adapter.write('):
+        if token not in driver_source:
+            ok = fail('core/db/driver.js no serializa transacciones: ' + token)
+
+    browser_source = (ASSETS / 'core' / 'db' / 'adapters' / 'browser.js').read_text(encoding='utf-8')
+    for token in ('navigator.locks.request', 'withLeaseLock', 'onChanged'):
+        if token not in browser_source:
+            ok = fail('adaptador browser no coordina pestañas: ' + token)
+
+    styles = (ASSETS / 'styles' / 'app.css').read_text(encoding='utf-8')
+    for token in ('.debit-input[type=number]::-webkit-inner-spin-button',
+                  '.debit-input[type=number]::-webkit-outer-spin-button',
+                  '.credit-input[type=number]::-webkit-inner-spin-button',
+                  '.credit-input[type=number]::-webkit-outer-spin-button',
+                  '-moz-appearance:textfield', 'appearance:textfield'):
+        if token not in styles:
+            ok = fail('app.css no oculta los spinner de Debe/Haber: ' + token)
+
     config = (ASSETS / 'app' / 'config.js').read_text(encoding='utf-8')
     view_names = set(re.findall(r"view: '([^']+)'", config))
     view_sources = ''.join(path.read_text(encoding='utf-8') for path in (ASSETS / 'views').rglob('*.js'))

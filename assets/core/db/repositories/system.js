@@ -88,8 +88,10 @@
   }
 
   function reset() {
-    db.reset();
-    return ensureSeed();
+    return db.transaction(function () {
+      q.system.clear.forEach(function (statement) { db.run(statement); });
+      return ensureSeed();
+    });
   }
 
   function replace(state) {

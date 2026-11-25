@@ -7,10 +7,10 @@
   window.Actions = window.Actions || {};
 
   window.Actions['documents.store'] = function (form) {
-    run(form, function (values) {
+    run(form, async function (values) {
       const data = Object.assign({}, values);
       delete data.owner_id;
-      Store.createDocument(data);
+      await Store.createDocument(data);
       afterSuccess('Documento V/C guardado exitosamente.', 'vc_documents.create');
     });
   };
@@ -24,9 +24,9 @@
       return;
     }
     const reader = new FileReader();
-    reader.onload = function () {
+    reader.onload = async function () {
       try {
-        const count = Store.importCsv(String(reader.result || ''));
+        const count = await Store.importCsv(String(reader.result || ''));
         afterSuccess('¡CSV importado correctamente! Se ingresaron ' + count + ' documentos.', 'vc_documents.create');
       } catch (error) {
         fail(error, values);
@@ -37,10 +37,10 @@
   };
 
   window.Actions['documents.batch'] = function (form) {
-    run(form, function (values) {
+    run(form, async function (values) {
       const ids = Array.isArray(values['document_ids[]']) ? values['document_ids[]'] : [];
       if (ids.length === 0 || !values.custom_net_account || !values.glosa) throw new Error('Debe seleccionar documentos, una cuenta contable para el Neto y una glosa.');
-      const result = Store.batchProcess(ids, values.custom_net_account, values.glosa);
+      const result = await Store.batchProcess(ids, values.custom_net_account, values.glosa);
       if (result.errors && result.errors.length) {
         UI.flash('error', result.errors.join(' | '));
       }

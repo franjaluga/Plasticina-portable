@@ -50,16 +50,16 @@
     Store.reset();
   }
 
-  function run() {
+  async function run() {
     const results = [];
-    tests.forEach(function (item) {
+    for (const item of tests) {
       try {
-        item.callback();
+        await item.callback();
         results.push({ name: item.name, ok: true });
       } catch (error) {
         results.push({ name: item.name, ok: false, error: error && error.message ? error.message : String(error) });
       }
-    });
+    }
 
     const failed = results.filter(function (result) { return !result.ok; });
     const report = document.getElementById('results');

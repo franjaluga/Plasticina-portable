@@ -18,6 +18,8 @@ button,[role=button] { cursor:pointer; }
 :-moz-focusring { outline:auto; }
 :root { -moz-tab-size:4; tab-size:4; }
 ::-webkit-search-cancel-button { -webkit-appearance:none; }
+.debit-input[type=number],.credit-input[type=number] { -moz-appearance:textfield; appearance:textfield }
+.debit-input[type=number]::-webkit-inner-spin-button,.debit-input[type=number]::-webkit-outer-spin-button,.credit-input[type=number]::-webkit-inner-spin-button,.credit-input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0 }
 
 .antialiased { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
 .backdrop-blur-sm { backdrop-filter:blur(4px) }

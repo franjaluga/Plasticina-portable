@@ -3,8 +3,8 @@
 
   const router = window.Plasticina.app.router;
 
-  function bootstrap() {
-    Store.load();
+  async function bootstrap() {
+    await Store.load();
     if (!window.location.hash) {
       window.history.replaceState(null, '', '#/');
     }
