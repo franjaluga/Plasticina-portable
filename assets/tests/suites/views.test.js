@@ -322,6 +322,8 @@
     const previewStart = empty.indexOf('id="entry-number-preview"');
     const detailStart = empty.indexOf('Detalle de Cuentas');
     T.assert(previewStart > -1 && detailStart > previewStart, 'El bloque propuesto debe ir antes del detalle');
+    T.assert(empty.indexOf('Owner Activo') === -1, 'La vista create no debe mostrar el bloque de owner activo');
+    T.assert(empty.indexOf('owners.index') === -1, 'La vista create no debe incluir el enlace Cambiar a owners');
     T.assertIncludes(empty, 'Asiento propuesto</span>\n            <strong class="font-mono font-bold text-slate-800">1</strong>');
     T.assertIncludes(empty, '[?]</button>');
     T.assertIncludes(empty, 'title="Sin asientos registrados · Próximo N° 1\nEl número definitivo se asigna al guardar; si otro asiento se registra primero, se recalculará automáticamente."');
