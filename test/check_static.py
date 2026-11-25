@@ -176,6 +176,15 @@ def main():
         if (ROOT / name).exists():
             ok = fail('queda el archivo aglomerado ' + name)
 
+    create_view = (ASSETS / 'views' / 'documents' / 'create.js').read_text(encoding='utf-8')
+    if 'return `' in create_view:
+        markup = create_view.split('return `', 1)[1].split('<script>', 1)[0]
+        for helper in ('selected', 'value'):
+            used = helper + "('" in markup
+            declared = re.search(r'\bfunction\s+' + helper + r'\s*\(', create_view) is not None
+            if used and not declared:
+                ok = fail('assets/views/documents/create.js usa ' + helper + '() sin declararlo')
+
     print('OK comprobaciones estáticas' if ok else 'Hay errores estáticos')
     return 0 if ok else 1
 

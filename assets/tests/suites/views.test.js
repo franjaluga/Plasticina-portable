@@ -74,20 +74,45 @@
     T.assertIncludes(html, "rutRefInput.addEventListener('input', function () { autoRutRef = false; });");
   });
 
-  T.test('El formulario de documentos calcula el total al digitar y selecciona al enfocar', function () {
+  T.test('El formulario de documentos mantiene funcional el selector V/C', function () {
+    T.resetStore();
+    const html = window.Views.documentCreate(ctx);
+    T.assertIncludes(html, '<option value="V" selected>Venta</option>');
+    T.assertIncludes(html, '<option value="C">Compra</option>');
+  });
+
+  T.test('El formulario de documentos calcula el total al digitar sin seleccionar el contenido', function () {
     T.resetStore();
     const html = window.Views.documentCreate(ctx);
     T.assertIncludes(html, "amountOf('net') + amountOf('exempt') + amountOf('vat_rec') +");
     T.assertIncludes(html, "- amountOf('minus_oth_tax')");
     T.assertIncludes(html, 'Math.round((sum + Number.EPSILON) * 100) / 100');
     T.assertIncludes(html, "input.addEventListener('input', calculateTotal);");
-    T.assertIncludes(html, "form.querySelectorAll('input, select, textarea')");
-    T.assertIncludes(html, "field.addEventListener('focus', selectContent);");
-    T.assertIncludes(html, "field.addEventListener('click', selectContent);");
+    T.assert(html.indexOf('selectContent') === -1, 'No debe seleccionar todo el campo al enfocar o hacer clic');
+    T.assert(html.indexOf("field.addEventListener('focus'") === -1, 'El foco no debe reemplazar la selección del usuario');
+    T.assert(html.indexOf("field.addEventListener('click'") === -1, 'El clic debe permitir colocar el cursor');
     const totalTag = html.split('name="total" id="total"')[1].split('>')[0];
     T.assert(totalTag.indexOf('readonly') === -1, 'El total debe seguir editable');
+    T.assertIncludes(totalTag, 'step="0.01"');
     const script = html.split('<script>')[1].split('</script>')[0];
     new Function(script);
+  });
+
+  T.test('El formulario de documentos muestra campos visibles y totalmente editables', function () {
+    T.resetStore();
+    const html = window.Views.documentCreate(ctx);
+    const rutTag = html.split('name="rut" id="rut"')[1].split('>')[0];
+    [
+      'border border-gray-300', 'bg-white', 'px-3 py-2', 'min-w-0',
+      'outline-none', 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2'
+    ].forEach(function (token) { T.assertIncludes(rutTag, token); });
+    T.assertIncludes(html, 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6');
+    T.assertIncludes(html, 'sm:col-span-2 md:col-span-4');
+    T.assertEqual(html.split('step="0.01"').length - 1, 7, 'Los siete montos deben aceptar decimales');
+    T.assert(html.indexOf("setAttribute('readonly'") === -1, 'El autocompletado no debe bloquear campos');
+    T.assertEqual(html.split('readonly="readonly"').length - 1, 0, 'Ningún campo debe tener readonly en el HTML');
+    T.assertIncludes(html, "nameInput.removeAttribute('readonly')");
+    T.assertIncludes(html, "docNameInput.removeAttribute('readonly')");
   });
 
   T.test('Los maestros, el sistema y la portada exponen sus accesos', function () {
