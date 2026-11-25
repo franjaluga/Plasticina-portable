@@ -80,9 +80,20 @@
     });
     if (result.accounts.length === 0) result.accounts = fresh.accounts;
     const rawSettings = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
+    const activeOwnerId = Number.isFinite(Number(rawSettings.activeOwnerId))
+      ? Number(rawSettings.activeOwnerId) : fresh.settings.activeOwnerId;
+    const selectedOwner = result.owners.find(function (owner) {
+      return Number(owner.id) === activeOwnerId && (owner.is_active === true || Number(owner.is_active) === 1);
+    }) || result.owners.find(function (owner) {
+      return owner.is_active === true || Number(owner.is_active) === 1;
+    });
+    const max = Number(todayIso().slice(0, 4)) + 1;
+    const min = Math.min(selectedOwner ? Number(selectedOwner.start_year) : currentYear(), max);
+    const rawWorkingYear = Number(rawSettings.workingYear);
+    const parsedWorkingYear = Number.isFinite(rawWorkingYear) ? Math.trunc(rawWorkingYear) : fresh.settings.workingYear;
     result.settings = {
-      workingYear: Number.isFinite(Number(rawSettings.workingYear)) ? Number(rawSettings.workingYear) : fresh.settings.workingYear,
-      activeOwnerId: Number.isFinite(Number(rawSettings.activeOwnerId)) ? Number(rawSettings.activeOwnerId) : fresh.settings.activeOwnerId
+      workingYear: Math.min(Math.max(parsedWorkingYear, min), max),
+      activeOwnerId: activeOwnerId
     };
     return result;
   }
@@ -158,12 +169,20 @@
     return Boolean(refresh());
   }
 
+  function syncStateWorkingYear() {
+    const result = typeof s.syncWorkingYear === 'function' ? s.syncWorkingYear() : null;
+    if (result && typeof result.then === 'function') {
+      return result.then(function () { return clone(state); });
+    }
+    return clone(state);
+  }
+
   function settleState(result) {
     if (result && typeof result.then === 'function') {
-      return result.then(function (value) { state = value; return clone(state); });
+      return result.then(function (value) { state = value; return syncStateWorkingYear(); });
     }
     state = result;
-    return clone(state);
+    return syncStateWorkingYear();
   }
 
   function load() {
@@ -202,11 +221,11 @@
     if (result && typeof result.then === 'function') {
       return result.then(function () {
         state = db.repositories.system.hydrate();
-        return clone(state);
+        return syncStateWorkingYear();
       });
     }
     state = db.repositories.system.hydrate();
-    return clone(state);
+    return syncStateWorkingYear();
   }
 
   function transaction(fn) {
@@ -229,7 +248,11 @@
 
   function setWorkingYear(year) {
     const value = Number(year);
-    if (!Number.isInteger(value) || value < 2000) throw new Error('El año de trabajo no es válido.');
+    if (!Number.isInteger(value) || value < 2000) throw new Error('El año de trabajo debe ser mayor o igual a 2000.');
+    const range = s.workingYearRange();
+    if (value < range.min || value > range.max) {
+      throw new Error('El año de trabajo debe estar entre ' + range.min + ' y ' + range.max + '.');
+    }
     const result = db.transaction(function () { db.repositories.settings.set('working_year', value); });
     if (result && typeof result.then === 'function') {
       return result.then(function () { refresh(); return value; });

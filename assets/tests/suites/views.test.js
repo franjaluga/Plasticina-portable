@@ -32,10 +32,10 @@
     });
   });
 
-  T.test('La portada muestra el owner activo y atajo de contabilización', function () {
+  T.test('La portada muestra la empresa activa y atajo de contabilización', function () {
     T.resetStore();
     const html = window.Views.welcome(ctx);
-    T.assertIncludes(html, 'Owner Activo');
+    T.assertIncludes(html, 'Empresa Activa');
     T.assertIncludes(html, 'Test');
   });
 
@@ -385,7 +385,7 @@
     const previewStart = empty.indexOf('id="entry-number-preview"');
     const detailStart = empty.indexOf('Detalle de Cuentas');
     T.assert(previewStart > -1 && detailStart > previewStart, 'El bloque propuesto debe ir antes del detalle');
-    T.assert(empty.indexOf('Owner Activo') === -1, 'La vista create no debe mostrar el bloque de owner activo');
+    T.assert(empty.indexOf('Empresa Activa') === -1, 'La vista create no debe mostrar el bloque de empresa activa');
     T.assert(empty.indexOf('owners.index') === -1, 'La vista create no debe incluir el enlace Cambiar a owners');
     T.assertIncludes(empty, 'Asiento propuesto</span>\n            <strong class="font-mono font-bold text-slate-800">1</strong>');
     T.assertIncludes(empty, '[?]</button>');

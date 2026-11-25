@@ -23,6 +23,8 @@
     T.assertEqual(home, '#/');
     T.assertIncludes(html, 'href="' + home + '"');
     T.assertIncludes(html, '&larr; Volver');
+    T.assertIncludes(html, 'Gestión de Empresas');
+    T.assertIncludes(html, 'Empresa Activa Actual:');
     T.assertDeepEqual(window.Plasticina.app.router.matchRoute(UI.parseHash(home).path),
       { view: 'welcome', params: {} });
   });
@@ -72,6 +74,20 @@
         rut: rut, name: name, account_plan_type: plan, start_month: startMonth, start_year: 1999
       });
     }, /año de inicio/);
+    T.resetStore();
+  });
+
+  T.test('Owners: el año de inicio no puede superar el año actual + 1', function () {
+    T.resetStore();
+    const maxStartYear = Store.maxWorkingYear();
+    const html = window.Views.ownersIndex(ctx);
+    const createForm = html.split('<form data-action="owners.store">')[1].split('</form>')[0];
+    T.assertIncludes(createForm, 'max="' + maxStartYear + '"');
+    T.assertThrows(function () {
+      Store.createOwner({
+        rut: rut, name: name, account_plan_type: plan, start_month: startMonth, start_year: maxStartYear + 1
+      });
+    }, /no puede ser mayor/);
     T.resetStore();
   });
 })();

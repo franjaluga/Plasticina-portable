@@ -61,7 +61,7 @@
                 </div>
             </div>
             <div id="resetStepTwo" class="mt-4 hidden" style="display:none">
-                <p class="text-sm text-red-700 font-semibold">Última confirmación: se borrarán los datos actuales y se restaurará el owner sembrado con sus 161 cuentas.</p>
+                <p class="text-sm text-red-700 font-semibold">Última confirmación: se borrarán los datos actuales y se restaurará la empresa sembrada con sus 161 cuentas.</p>
                 <div class="flex justify-between items-center mt-6 gap-3">
                     <button type="button" data-reset-back class="inline-flex items-center text-xs font-semibold bg-white text-slate-600 border border-slate-200 px-4 py-2 rounded-lg hover:bg-slate-50 transition">Cancelar</button>
                     <button type="button" data-reset-step="2" data-link-action="system.reset" class="inline-flex items-center text-xs font-semibold bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition">Confirmar</button>

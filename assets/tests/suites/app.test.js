@@ -78,7 +78,7 @@
     T.resetStore();
     window.location.hash = '#/';
     app.router.render();
-    T.assertIncludes(document.getElementById('app').innerHTML, 'Owner Activo');
+    T.assertIncludes(document.getElementById('app').innerHTML, 'Empresa Activa');
   });
 
   T.test('El botón HOME con forma de casita aparece salvo en la portada', function () {

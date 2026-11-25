@@ -266,7 +266,7 @@
         throw new Error('El documento con este RUT, Tipo de Documento y Folio ya se encuentra registrado.');
       }
       const ownerRecord = activeOwnerRaw();
-      if (!ownerRecord) throw new Error('No hay un Owner activo seleccionado.');
+      if (!ownerRecord) throw new Error('No hay una empresa activa seleccionada.');
       const created = db.repositories.vcDocuments.create({
         month_register: Number(data.month_register),
         year_register: Number(data.year_register),

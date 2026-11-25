@@ -401,11 +401,11 @@
 
   T.test('Store exporta e importa un respaldo JSON', function () {
     T.resetStore();
-    Store.setWorkingYear(year - 1);
+    Store.setWorkingYear(year + 1);
     const backup = Store.exportJson();
     Store.setWorkingYear(year);
     Store.importJson(backup);
-    T.assertEqual(Store.workingYear(), year - 1);
+    T.assertEqual(Store.workingYear(), year + 1);
     T.assertThrows(function () { Store.importJson('{'); });
   });
 })();

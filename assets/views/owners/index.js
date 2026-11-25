@@ -10,6 +10,7 @@
     const oldValues = UI.old() || {};
     const selectedPlan = oldValues.account_plan_type === undefined ? 'standard_pyme' : oldValues.account_plan_type;
     const currentDate = new Date();
+    const maxStartYear = Store.maxWorkingYear();
     const selectedStartMonth = String(oldValues.start_month === undefined ? currentDate.getMonth() + 1 : oldValues.start_month).padStart(2, '0');
     const selectedStartYear = String(oldValues.start_year === undefined ? currentDate.getFullYear() : oldValues.start_year);
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -79,7 +80,7 @@
                         <div id="${UI.h(modalId)}" class="fixed inset-0 z-50 hidden bg-slate-900/50 flex items-center justify-center p-4" style="display:none" aria-hidden="true">
                             <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
                                 <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                                    <h3 class="text-sm font-bold text-slate-800">Editar Owner</h3>
+                                    <h3 class="text-sm font-bold text-slate-800">Editar Empresa</h3>
                                     <button onclick="${UI.h(toggle)}" class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
                                 </div>
                                 <form data-action="owners.update">
@@ -97,7 +98,7 @@
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 mb-1">Plan de Cuentas (Inalterable)</label>
                                             <input type="text" value="${UI.h(label)}" class="w-full text-xs border-slate-200 bg-slate-100 text-slate-500 rounded-lg shadow-sm cursor-not-allowed" disabled>
-                                            <p class="text-[11px] text-slate-400 mt-1">El plan de cuentas no se puede modificar una vez creado el owner para proteger la compatibilidad contable.</p>
+                                            <p class="text-[11px] text-slate-400 mt-1">El plan de cuentas no se puede modificar una vez creada la empresa para proteger la compatibilidad contable.</p>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 mb-1">Inicio de Actividades (Inalterable)</label>
@@ -133,7 +134,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div class="mb-6 flex justify-between items-center">
-            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Gestión de Owners</h1>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Gestión de Empresas</h1>
             <a href="${UI.h(UI.route('welcome'))}" class="inline-flex items-center text-xs font-semibold bg-white border border-slate-300 text-slate-700 px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
                 &larr; Volver
             </a>
@@ -141,13 +142,13 @@
 
         <div class="mb-6 bg-sky-50 border border-sky-200 text-sky-800 p-4 rounded-xl text-xs font-medium shadow-sm flex items-center justify-between">
             <div>
-                <span class="font-bold uppercase tracking-wider text-sky-900">Owner Activo Actual:</span>
+                <span class="font-bold uppercase tracking-wider text-sky-900">Empresa Activa Actual:</span>
                 <span class="font-semibold text-sky-950 ml-1">${activeOwner ? UI.h(activeOwner.name) + ' (' + UI.h(activeOwner.rut) + ')' : 'Ninguno activo'}</span>
             </div>
         </div>
 
         <div class="bg-white shadow-sm border border-slate-200 rounded-xl p-6 mb-6">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Agregar Nuevo Owner y Plan de Cuentas Inicial</h2>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Agregar Nueva Empresa y Plan de Cuentas Inicial</h2>
             <form data-action="owners.store">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                     <div class="md:col-span-2">
@@ -172,7 +173,7 @@
                     </div>
                     <div class="md:col-span-2">
                         <label for="owner_start_year" class="block text-xs font-bold text-slate-700 mb-1">Año de Inicio</label>
-                        <input type="number" name="start_year" id="owner_start_year" value="${UI.h(selectedStartYear)}" min="2000" step="1" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                        <input type="number" name="start_year" id="owner_start_year" value="${UI.h(selectedStartYear)}" min="2000" max="${UI.h(maxStartYear)}" step="1" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                     </div>
                     <div class="md:col-span-1">
                         <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow-sm hover:bg-indigo-700 transition">
@@ -185,7 +186,7 @@
 
         <div class="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Listado de Owners</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Listado de Empresas</h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">

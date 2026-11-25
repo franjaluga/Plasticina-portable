@@ -173,7 +173,7 @@
 
   function registerManualJournal(year, month, date, description, entries) {
     const ownerRecord = activeOwnerRaw();
-    if (!ownerRecord) throw new Error('No hay un Owner activo seleccionado. No se puede generar el asiento.');
+    if (!ownerRecord) throw new Error('No hay una empresa activa seleccionada. No se puede generar el asiento.');
     const normalized = normalizeEntries(entries);
     return transaction(function () {
       const journalRecord = insertJournal({
@@ -242,7 +242,7 @@
 
   function processPayment(documentId, amount, date, bankAccountCode) {
     const ownerRecord = activeOwnerRaw();
-    if (!ownerRecord) throw new Error('No hay un Owner activo.');
+    if (!ownerRecord) throw new Error('No hay una empresa activa.');
     const source = rawDocument(documentId);
     if (!source) throw new Error('Documento no encontrado.');
     const sale = typeOf(source) === 'V';

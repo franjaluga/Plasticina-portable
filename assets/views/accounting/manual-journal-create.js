@@ -29,7 +29,7 @@
       ? (lastEntryNumber > 0 ? 'Último asiento N° ' + lastEntryNumber + ' · ' : 'Sin asientos registrados · ') +
         'Próximo N° ' + proposedEntryNumber + '\n' +
         'El número definitivo se asigna al guardar; si otro asiento se registra primero, se recalculará automáticamente.'
-      : 'Seleccione un owner activo para ver el número propuesto.';
+      : 'Seleccione una empresa activa para ver el número propuesto.';
 
     let monthOptions = '';
     for (let value = 1; value <= 12; value++) {

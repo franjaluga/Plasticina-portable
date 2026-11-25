@@ -6,15 +6,16 @@
   window.Views.welcome = function (ctx) {
     const owner = Store.activeOwner();
     const workingYear = Store.workingYear();
-    const currentYear = Number(UI.today().slice(0, 4));
+    const range = Store.workingYearRange();
+    const selectedYear = Store.clampWorkingYear(workingYear);
     const pendingCount = Store.pendingDocuments().length;
     const years = [];
-    for (let year = currentYear; year >= 2020; year--) {
+    for (let year = range.max; year >= range.min; year--) {
       years.push(year);
     }
     const ownerLabel = owner
       ? UI.h(owner.name) + ' <span class="text-slate-500 font-normal">(' + UI.h(owner.rut) + ')</span>'
-      : '<span class="text-amber-600 font-medium">Ningún owner seleccionado</span>';
+      : '<span class="text-amber-600 font-medium">Ninguna empresa seleccionada</span>';
     const pendingAlert = pendingCount > 0
       ? `
         <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-amber-900">
@@ -44,7 +45,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     </div>
                     <div>
-                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 block">Owner Activo</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 block">Empresa Activa</span>
                         <span class="text-sm font-bold text-slate-800">
                             ${ownerLabel}
                         </span>
@@ -69,7 +70,7 @@
                     <input type="hidden" name="owner_id" value="${UI.h(owner ? owner.id : '')}">
                     <select name="working_year" id="workingYearSelect" disabled class="w-full text-sm font-bold text-slate-800 bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-not-allowed shadow-sm transition">
                         ${years.map(function (year) {
-                          return `<option value="${UI.h(year)}"${Number(workingYear) === year ? ' selected' : ''}>${UI.h(year)}</option>`;
+                          return `<option value="${UI.h(year)}"${selectedYear === year ? ' selected' : ''}>${UI.h(year)}</option>`;
                         }).join('')}
                     </select>
                     <button type="submit" id="saveYearBtn" class="hidden text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap">
@@ -146,7 +147,7 @@
 
     <script>
     (function () {
-      var config = ${UI.json({ workingYear: workingYear, currentYear: currentYear })};
+      var config = ${UI.json({ workingYear: selectedYear })};
       var selectElement = document.getElementById('workingYearSelect');
       var editBtn = document.getElementById('editYearBtn');
       var saveBtn = document.getElementById('saveYearBtn');

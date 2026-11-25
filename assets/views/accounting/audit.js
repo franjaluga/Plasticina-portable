@@ -67,7 +67,7 @@
         <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
             <div>
                 <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Auditoría de Documentos y Asientos</h1>
-                <p class="text-sm text-slate-500 mt-1">Periodo: <span class="font-bold text-slate-700">${UI.h(workingYear)}</span> | Owner: <span class="font-bold text-slate-700">${UI.h(owner ? owner.name : 'N/A')}</span></p>
+                <p class="text-sm text-slate-500 mt-1">Periodo: <span class="font-bold text-slate-700">${UI.h(workingYear)}</span> | Empresa: <span class="font-bold text-slate-700">${UI.h(owner ? owner.name : 'N/A')}</span></p>
             </div>
             <div>
                 <a href="${UI.h(UI.route('reports.analytics'))}" class="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition">&larr; Volver</a>

@@ -61,6 +61,35 @@
     };
   }
 
+  function maxWorkingYear() {
+    return Number(s.todayIso().slice(0, 4)) + 1;
+  }
+
+  function workingYearRange(ownerId) {
+    const start = ownerStartPeriod(ownerId);
+    const max = maxWorkingYear();
+    return { min: Math.min(start.year, max), max: max };
+  }
+
+  function clampWorkingYear(year, ownerId) {
+    const range = workingYearRange(ownerId);
+    const numeric = Number(year);
+    const value = Number.isFinite(numeric) ? Math.trunc(numeric) : range.min;
+    return Math.min(Math.max(value, range.min), range.max);
+  }
+
+  function syncWorkingYear(ownerId) {
+    const current = Number(s.state.settings.workingYear);
+    const target = clampWorkingYear(current, ownerId);
+    if (target === current) return current;
+    const result = db.transaction(function () { db.repositories.settings.set('working_year', target); });
+    if (result && typeof result.then === 'function') {
+      return result.then(function () { s.state.settings.workingYear = target; return target; });
+    }
+    s.state.settings.workingYear = target;
+    return target;
+  }
+
   function reportStartIso(ownerId) {
     const start = ownerStartPeriod(ownerId);
     return s.makeIso(start.year, start.month, 1);
@@ -111,12 +140,21 @@
 
   function setActiveOwner(id) {
     const item = rawOwner(id);
-    if (!item) throw new Error('Owner no encontrado.');
-    return transaction(function () {
+    if (!item) throw new Error('Empresa no encontrada.');
+    const result = transaction(function () {
       db.repositories.owners.setActive(item.id);
       db.repositories.settings.set('active_owner_id', item.id);
       return clone(item);
     });
+    function finish() {
+      const synced = syncWorkingYear(item.id);
+      if (synced && typeof synced.then === 'function') {
+        return synced.then(function () { return clone(item); });
+      }
+      return clone(item);
+    }
+    if (result && typeof result.then === 'function') return result.then(finish);
+    return finish();
   }
 
   function accounts(ownerId) {
@@ -234,6 +272,9 @@
     if (!Number.isInteger(startYear) || startYear < 2000) {
       throw new Error('El año de inicio de actividades no es válido.');
     }
+    if (startYear > maxWorkingYear()) {
+      throw new Error('El año de inicio de actividades no puede ser mayor al año actual + 1.');
+    }
     if (owners().some(function (owner) { return owner.rut === data.rut; })) throw new Error('Ya existe una empresa con ese RUT.');
     const plan = accountPlan(data.account_plan_type);
     return transaction(function () {
@@ -278,10 +319,12 @@
     if (db.repositories.owners.hasJournals(owner.id)) {
       throw new Error('No se puede eliminar la empresa porque tiene asientos contables registrados.');
     }
-    return transaction(function () {
+    let activeChanged = false;
+    const result = transaction(function () {
       db.repositories.accounts.removeByOwner(owner.id);
       db.repositories.owners.remove(owner.id);
       if (Number(s.state.settings.activeOwnerId) === Number(owner.id)) {
+        activeChanged = true;
         const next = db.repositories.owners.list()[0];
         if (next) {
           db.repositories.owners.setActive(next.id);
@@ -292,6 +335,17 @@
       }
       return true;
     });
+    function finish() {
+      if (!activeChanged) return true;
+      const next = db.repositories.owners.active();
+      const synced = syncWorkingYear(next ? next.id : undefined);
+      if (synced && typeof synced.then === 'function') {
+        return synced.then(function () { return true; });
+      }
+      return true;
+    }
+    if (result && typeof result.then === 'function') return result.then(finish);
+    return finish();
   }
 
   function createAccount(data) {
@@ -397,6 +451,10 @@
     rawDocumentType,
     activeOwnerRaw,
     ownerStartPeriod,
+    maxWorkingYear,
+    workingYearRange,
+    clampWorkingYear,
+    syncWorkingYear,
     reportStartIso,
     reportPeriodStatus,
     isPeriodBeforeStart,
