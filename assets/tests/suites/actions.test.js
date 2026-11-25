@@ -93,7 +93,8 @@
     }, 'manualJournal.store'));
     T.assertEqual(Store.journals({ year: year }).length, before + 1);
     T.assertIncludes(UI.takeFlash(), 'Asiento contable manual creado exitosamente.');
-    T.assertEqual(window.location.hash, UI.route('accounting.manual_journals.created'));
+    T.assert(window.location.hash.indexOf(UI.route('accounting.manual_journals.created') + '?journal_id=') === 0,
+      'La confirmación debe incluir el id del asiento creado');
     T.assert(window.location.hash.indexOf('accounting/reports') === -1,
       'La confirmación no debe llevar a reportes contables');
     window.location.hash = '#/';

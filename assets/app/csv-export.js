@@ -10,6 +10,7 @@
     return [
       journal.id,
       journal.date,
+      journal.description || 'Sin descripción',
       journal.vc_document_id || '',
       journal.is_balanced ? 'Cuadrado' : 'Descuadrado',
       entry.account_code,
@@ -20,11 +21,11 @@
   }
 
   function journalSeparator() {
-    return ['---', '---', '---', '---', '---', '---', '---', '---'];
+    return ['---', '---', '---', '---', '---', '---', '---', '---', '---'];
   }
 
   function buildRows(journals) {
-    const rows = [['Asiento ID', 'Fecha', 'Doc V/C ID', 'Estado', 'Codigo Cuenta', 'Componente', 'Debe', 'Haber']];
+    const rows = [['Asiento ID', 'Fecha', 'Glosa', 'Doc V/C ID', 'Estado', 'Codigo Cuenta', 'Componente', 'Debe', 'Haber']];
     journals.forEach(function (journal, index) {
       journal.entries.forEach(function (entry) {
         rows.push(journalRow(journal, entry));

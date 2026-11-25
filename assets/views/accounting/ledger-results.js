@@ -28,7 +28,7 @@
                         <tr>
                             <td class="py-2 px-3 text-gray-600 font-sans whitespace-nowrap">${UI.h(journal.date)}</td>
                             <td class="py-2 px-3 font-bold">${UI.h(journal.id)}</td>
-                            <td class="py-2 px-3 text-gray-800 font-sans">${UI.h(journal.document && journal.document.entity ? journal.document.entity.name : 'Asiento contable N° ' + journal.id)}</td>
+                            <td class="py-2 px-3 text-gray-800 font-sans">${UI.h(journal.description || 'Sin glosa')}</td>
                             <td class="py-2 px-3 text-right">${debe > 0 ? format0(debe) : '-'}</td>
                             <td class="py-2 px-3 text-right">${haber > 0 ? format0(haber) : '-'}</td>
                             <td class="py-2 px-3 text-right font-bold">${format0(saldo)}</td>
@@ -74,7 +74,7 @@
                 <tr class="border-b-2 border-black text-[11px] font-bold uppercase text-gray-700">
                     <th class="py-2.5 px-3">Fecha</th>
                     <th class="py-2.5 px-3">Asiento ID</th>
-                    <th class="py-2.5 px-3">Glosa / Entidad</th>
+                    <th class="py-2.5 px-3">Glosa</th>
                     <th class="py-2.5 px-3 text-right">Debe</th>
                     <th class="py-2.5 px-3 text-right">Haber</th>
                     <th class="py-2.5 px-3 text-right">Saldo</th>

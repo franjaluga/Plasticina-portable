@@ -46,16 +46,25 @@
     window.location.hash = '#/';
   });
 
-  T.test('La confirmación muestra el mensaje de éxito y sus dos opciones', function () {
+  T.test('La confirmación muestra el mensaje de éxito, el número creado y sus dos opciones', function () {
     T.resetStore();
+    const year = Store.workingYear();
+    const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento creado', [
+      { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ]);
+    const journal = Store.journal(id);
     UI.flash('success', 'Asiento contable manual creado exitosamente.');
-    window.location.hash = UI.route('accounting.manual_journals.created');
+    window.location.hash = UI.route('accounting.manual_journals.created', { journal_id: id });
     app.router.render();
     const html = document.getElementById('app').innerHTML;
     T.assertIncludes(html, 'Asiento contable manual creado exitosamente.');
+    T.assertIncludes(html, 'Asiento N° <span class="font-mono">' + journal.entry_number + '</span>');
+    T.assertIncludes(html, UI.route('accounting.journals.detail', journal.id));
     T.assertIncludes(html, 'Crear otro asiento');
     T.assertIncludes(html, 'Volver al inicio');
     window.location.hash = '#/';
+    T.resetStore();
   });
 
   T.test('El router renderiza la portada en el contenedor', function () {
@@ -92,6 +101,29 @@
     app.router.render();
     T.assertIncludes(document.getElementById('app').innerHTML, '404');
     window.location.hash = '#/';
+  });
+
+  T.test('El CSV del libro diario incluye la glosa de cada asiento', function () {
+    T.resetStore();
+    const originalDownload = UI.download;
+    let downloaded = '';
+    UI.download = function (filename, content) {
+      downloaded = content;
+    };
+    try {
+      const year = Store.workingYear();
+      Store.registerManualJournal(year, 3, year + '-03-05', 'Glosa CSV', [
+        { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+        { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+      ]);
+      app.exportJournalCsv({});
+      T.assertIncludes(downloaded, 'Asiento ID;Fecha;Glosa;Doc V/C ID;Estado;Codigo Cuenta;Componente;Debe;Haber');
+      T.assertIncludes(downloaded, 'Glosa CSV');
+      T.assert(downloaded.indexOf('Sin descripción') === -1, 'El asiento tiene glosa y no debe usar el fallback');
+    } finally {
+      UI.download = originalDownload;
+      window.location.hash = '#/';
+    }
   });
 
   T.test('El balance genera la ruta con el mes y el año elegidos', function () {

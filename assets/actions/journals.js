@@ -15,8 +15,8 @@
           credit: number(entry.credit)
         };
       });
-      await Store.registerManualJournal(integer(values.year), integer(values.month), values.date, values.glosa, entries);
-      afterSuccess('Asiento contable manual creado exitosamente.', 'accounting.manual_journals.created');
+      const journalId = await Store.registerManualJournal(integer(values.year), integer(values.month), values.date, values.glosa, entries);
+      afterSuccess('Asiento contable manual creado exitosamente.', 'accounting.manual_journals.created', { journal_id: journalId });
     });
   };
 

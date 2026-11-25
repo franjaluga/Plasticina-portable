@@ -40,9 +40,10 @@
                                             </a>)
                                         </span>`
             : '';
-          const descriptionBlock = journal.description
-            ? `<span class="text-gray-600 font-normal ml-2">— ${UI.h(journal.description)}</span>`
-            : '';
+          const descriptionBlock = `
+                                        <span class="ml-2 font-semibold text-indigo-700">
+                                            Glosa: <span class="font-normal text-gray-700">${UI.h(journal.description || 'Sin glosa')}</span>
+                                        </span>`;
           const entries = (journal.entries || []).map(function (entry) {
             const accountName = entry.account && entry.account.name ? entry.account.name : 'Sin nombre';
             return `

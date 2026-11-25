@@ -49,6 +49,68 @@
     T.assert(html.indexOf('Reportes Contables') === -1, 'La confirmación no debe mostrar el hub duplicado');
   });
 
+  T.test('La confirmación de asiento manual muestra el número creado y enlace al detalle', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento creado', [
+      { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
+    ]);
+    const journal = Store.journal(id);
+    const html = window.Views.manualJournalCreated({ params: {}, query: { journal_id: String(id) } });
+    T.assertIncludes(html, 'Asiento contable manual creado exitosamente.');
+    T.assertIncludes(html, 'Asiento N° <span class="font-mono">' + journal.entry_number + '</span>');
+    T.assertIncludes(html, UI.route('accounting.journals.detail', journal.id));
+    T.assertIncludes(html, 'Ver asiento');
+    T.resetStore();
+  });
+
+  T.test('Los reportes muestran la glosa del asiento y no la entidad como glosa', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    Store.registerManualJournal(year, 3, year + '-03-05', 'Glosa manual de prueba', [
+      { account_code: '1010401', debit: 1190, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 1190, component_name: 'manual' }
+    ]);
+    const document = Store.createDocument({
+      month_register: 3,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 77,
+      date: year + '-03-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    Store.registerDocumentJournal(document.id, '4010101', 'Glosa del documento');
+
+    const ledger = window.Views.ledgerResults({
+      params: {},
+      query: { account_code: '1010401', month: 3, year: year }
+    });
+    T.assertIncludes(ledger, 'Glosa manual de prueba');
+    T.assertIncludes(ledger, 'Glosa del documento');
+    T.assert(ledger.indexOf('Cliente Prueba') === -1, 'El libro mayor no debe usar la entidad como glosa');
+    T.assert(ledger.indexOf('Asiento contable N°') === -1, 'El libro mayor no debe usar un fallback de asiento');
+    T.assertIncludes(ledger, '<th class="py-2.5 px-3">Glosa</th>');
+    T.assert(ledger.indexOf('Glosa / Entidad') === -1, 'El encabezado del libro mayor no debe mencionar entidad');
+
+    const book = window.Views.journalBook({
+      params: {},
+      query: { date_from: year + '-03-01', date_to: year + '-03-31' }
+    });
+    T.assertIncludes(book, 'Glosa:');
+    T.assertIncludes(book, 'Glosa manual de prueba');
+    T.assertIncludes(book, 'Glosa del documento');
+    T.assertIncludes(book, 'Asiento N°');
+    T.assertIncludes(book, 'Doc:');
+    T.assertIncludes(book, '11111111-1');
+  });
+
   T.test('El formulario de documentos expone las acciones esperadas', function () {
     T.resetStore();
     const html = window.Views.documentCreate(ctx);
