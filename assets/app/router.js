@@ -87,18 +87,33 @@
       '&larr; Volver al reporte</a></div></div>';
   }
 
+  function homeButton() {
+    return '<a href="' + UI.h(UI.route('welcome')) + '" aria-label="Ir al inicio" title="Inicio" ' +
+      'style="position:fixed;top:16px;right:16px;z-index:9998;display:inline-flex;align-items:center;' +
+      'justify-content:center;width:40px;height:40px;background:#4f46e5;color:#fff;' +
+      'border-radius:9999px;box-shadow:0 4px 6px -1px rgba(0,0,0,.2);">' +
+      '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+      'd="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>' +
+      '</svg></a>';
+  }
+
+  function withHomeButton(html, viewName) {
+    return (viewName === 'welcome' ? '' : homeButton()) + html;
+  }
+
   function renderView(viewName, match, flash, query) {
     document.body.className = config.bodyClasses[viewName] || config.bodyClasses.welcome;
     if (!match || typeof window.Views[viewName] !== 'function') {
-      app.innerHTML = renderNotFound(flash);
+      app.innerHTML = withHomeButton(renderNotFound(flash), viewName);
       return;
     }
     try {
-      app.innerHTML = '<div class="w-full">' + flash +
-        window.Views[viewName]({ params: match.params, query: query }) + '</div>';
+      app.innerHTML = withHomeButton('<div class="w-full">' + flash +
+        window.Views[viewName]({ params: match.params, query: query }) + '</div>', viewName);
       runScripts(app);
     } catch (error) {
-      app.innerHTML = renderError(flash, error);
+      app.innerHTML = withHomeButton(renderError(flash, error), viewName);
     }
   }
 
@@ -108,7 +123,7 @@
     if (rule) {
       const periodStatus = validateReportPeriod(rule.kind, parsed.query);
       if (!periodStatus.allowed) {
-        app.innerHTML = renderPeriodBlocked(UI.takeFlash(), periodStatus, rule.context);
+        app.innerHTML = homeButton() + renderPeriodBlocked(UI.takeFlash(), periodStatus, rule.context);
         sessionStorage.removeItem('plasticina_old');
         window.scrollTo(0, 0);
         return;

@@ -65,6 +65,28 @@
     T.assertIncludes(document.getElementById('app').innerHTML, 'Owner Activo');
   });
 
+  T.test('El botón HOME con forma de casita aparece salvo en la portada', function () {
+    T.resetStore();
+    const home = 'aria-label="Ir al inicio"';
+    window.location.hash = '#/';
+    app.router.render();
+    T.assert(document.getElementById('app').innerHTML.indexOf(home) === -1,
+      'La portada no debe mostrar el botón HOME');
+
+    window.location.hash = UI.route('reports.analytics');
+    app.router.render();
+    const html = document.getElementById('app').innerHTML;
+    T.assertIncludes(html, home);
+    T.assertIncludes(html, 'href="#/"');
+    T.assertIncludes(html, '<svg class="w-5 h-5"');
+    T.assertIncludes(html, 'M3 12l2-2m0 0l7-7 7 7');
+
+    window.location.hash = '#/ruta-inexistente';
+    app.router.render();
+    T.assertIncludes(document.getElementById('app').innerHTML, home);
+    window.location.hash = '#/';
+  });
+
   T.test('El router muestra 404 para rutas desconocidas', function () {
     window.location.hash = '#/ruta-inexistente';
     app.router.render();
