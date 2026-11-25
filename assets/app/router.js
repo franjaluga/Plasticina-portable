@@ -133,8 +133,8 @@
       if (window.Actions['system.sqlite-export']) window.Actions['system.sqlite-export']();
       return;
     }
-    if (parsed.path === '/vc-documents/libro-diario/export-csv') {
-      window.Plasticina.app.exportJournalCsv(parsed.query);
+    if (parsed.path === '/accounting/system-journals/export-csv') {
+      window.Plasticina.app.exportSystemJournalsCsv(parsed.query);
       return;
     }
     if (parsed.path === '/accounting/reports') {

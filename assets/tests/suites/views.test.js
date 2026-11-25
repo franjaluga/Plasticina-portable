@@ -66,8 +66,8 @@
   });
 
   T.test('Los reportes muestran la glosa del asiento y no la entidad como glosa', function () {
-    T.resetStore();
     const year = Store.workingYear();
+    resetWithStart(1, year);
     Store.registerManualJournal(year, 3, year + '-03-05', 'Glosa manual de prueba', [
       { account_code: '1010401', debit: 1190, credit: 0, component_name: 'manual' },
       { account_code: '4010101', debit: 0, credit: 1190, component_name: 'manual' }
@@ -99,16 +99,17 @@
     T.assertIncludes(ledger, '<th class="py-2.5 px-3">Glosa</th>');
     T.assert(ledger.indexOf('Glosa / Entidad') === -1, 'El encabezado del libro mayor no debe mencionar entidad');
 
-    const book = window.Views.journalBook({
+    const bookQuery = { year: year, date_from: year + '-03-01', date_to: year + '-03-31' };
+    const book = window.Views.systemJournals({
       params: {},
-      query: { date_from: year + '-03-01', date_to: year + '-03-31' }
+      query: bookQuery
     });
-    T.assertIncludes(book, 'Glosa:');
+    T.assertIncludes(book, 'N° Asiento');
     T.assertIncludes(book, 'Glosa manual de prueba');
     T.assertIncludes(book, 'Glosa del documento');
-    T.assertIncludes(book, 'Asiento N°');
-    T.assertIncludes(book, 'Doc:');
     T.assertIncludes(book, '11111111-1');
+    T.assertIncludes(book, UI.route('accounting.system_journals.export_csv', bookQuery));
+    T.assert(book.indexOf('Cambiar Rango') === -1, 'El flujo de rango eliminado no debe aparecer en el reporte');
   });
 
   T.test('El formulario de documentos expone las acciones esperadas', function () {

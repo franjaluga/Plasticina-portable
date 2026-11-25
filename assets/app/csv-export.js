@@ -41,28 +41,25 @@
     }).join('\r\n');
   }
 
-  function journalOptions(query) {
-    const options = { year: Store.workingYear() };
-    const owner = Store.activeOwner();
-    if (owner) options.owner_id = owner.id;
-    if (query.date_from && query.date_to) {
-      options.date_from = query.date_from;
-      options.date_to = query.date_to;
-    }
-    return options;
+  const systemFilterKeys = ['entry_from', 'entry_to', 'date_from', 'date_to', 'folio_from', 'folio_to', 'rut', 'document_type_id', 'folio_ref'];
+
+  function systemJournalOptions(query) {
+    const source = query || {};
+    const year = source.year === undefined || source.year === '' ? Store.workingYear() : source.year;
+    const filters = {};
+    systemFilterKeys.forEach(function (key) {
+      if (source[key] !== undefined && source[key] !== null && source[key] !== '') filters[key] = source[key];
+    });
+    return { year: year, filters: filters };
   }
 
-  function exportJournalCsv(query) {
-    const journals = Store.journals(journalOptions(query || {}));
-    const filename = 'libro_diario_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
+  function exportSystemJournalsCsv(query) {
+    const options = systemJournalOptions(query);
+    const journals = Store.systemJournals(options.year, options.filters);
+    const filename = 'asientos_sistema_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.csv';
     UI.download(filename, toCsv(buildRows(journals)), 'text/csv;charset=utf-8');
-    UI.flash('success', 'Libro diario exportado en CSV.');
-    const route = UI.route('vc_documents.journal_book');
-    const filters = query && query.date_from && query.date_to
-      ? '?' + encodeURIComponent('date_from') + '=' + encodeURIComponent(query.date_from) +
-        '&' + encodeURIComponent('date_to') + '=' + encodeURIComponent(query.date_to)
-      : '';
-    const target = '#' + route.replace(/^#/, '') + filters;
+    UI.flash('success', 'Asientos del sistema exportados en CSV.');
+    const target = UI.route('accounting.system_journals', query || {});
     if (window.location.hash === target) {
       if (window.App) window.App.render();
     } else {
@@ -70,5 +67,5 @@
     }
   }
 
-  window.Plasticina.app.exportJournalCsv = exportJournalCsv;
+  window.Plasticina.app.exportSystemJournalsCsv = exportSystemJournalsCsv;
 })();

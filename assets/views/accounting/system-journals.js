@@ -92,8 +92,11 @@
                 <h2 class="text-2xl font-bold text-gray-800">Asientos Contables del Sistema</h2>
                 <p class="text-sm text-gray-500 mt-1">Periodo tributario año: <span class="font-bold text-blue-600">${UI.h(year)}</span></p>
             </div>
-            <div>
-                <a href="${UI.h(UI.route('reports.journal_context'))}" class="inline-flex items-center text-xs font-semibold bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition">
+            <div class="flex items-center gap-2">
+                <a href="${UI.h(UI.route('accounting.system_journals.export_csv', query))}" class="inline-flex items-center text-xs font-semibold bg-green-600 text-white px-3 py-2 rounded-lg shadow-sm hover:bg-green-700 transition">
+                    Exportar CSV
+                </a>
+                <a href="${UI.h(UI.route('reports.analytics'))}" class="inline-flex items-center text-xs font-semibold bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition">
                     &larr; Volver
                 </a>
             </div>

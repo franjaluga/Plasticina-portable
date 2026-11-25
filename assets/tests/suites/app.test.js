@@ -9,6 +9,10 @@
     T.assertDeepEqual(app.router.matchRoute('/owners/4/accounts'), { view: 'ownersAccounts', params: { owner: '4' } });
     T.assertDeepEqual(app.router.matchRoute('/accounting/journals/9/detail'), { view: 'journalDetail', params: { id: '9' } });
     T.assertEqual(app.router.matchRoute('/no-existe'), null);
+    T.assertEqual(app.router.matchRoute('/reports/journal-context'), null);
+    T.assertEqual(app.router.matchRoute('/vc-documents/libro-diario/rango'), null);
+    T.assertEqual(app.router.matchRoute('/vc-documents/libro-diario'), null);
+    T.assertEqual(app.router.matchRoute('/vc-documents/libro-diario/generar'), null);
   });
 
   T.test('Cada ruta declarada tiene una vista registrada', function () {
@@ -42,7 +46,10 @@
     app.router.render();
     T.assertEqual(window.location.hash, '#/reports/analytics');
     app.router.render();
-    T.assertIncludes(document.getElementById('app').innerHTML, 'Reportes y Análisis');
+    const hubHtml = document.getElementById('app').innerHTML;
+    T.assertIncludes(hubHtml, 'Reportes y Análisis');
+    T.assertIncludes(hubHtml, UI.route('accounting.system_journals'));
+    T.assert(hubHtml.indexOf('#/reports/journal-context') === -1, 'El hub ya no debe enlazar al contexto de libro diario');
     window.location.hash = '#/';
   });
 
@@ -103,7 +110,7 @@
     window.location.hash = '#/';
   });
 
-  T.test('El CSV del libro diario incluye la glosa de cada asiento', function () {
+  T.test('El CSV de asientos del sistema incluye la glosa y respeta los filtros', function () {
     T.resetStore();
     const originalDownload = UI.download;
     let downloaded = '';
@@ -112,18 +119,38 @@
     };
     try {
       const year = Store.workingYear();
-      Store.registerManualJournal(year, 3, year + '-03-05', 'Glosa CSV', [
+      const owner = Store.createOwner({
+        rut: '88888888-8',
+        name: 'Empresa Histórica',
+        account_plan_type: 'standard_pyme',
+        start_month: 1,
+        start_year: year
+      });
+      Store.setActiveOwner(owner.id);
+      const entries = [
         { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
         { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
-      ]);
-      app.exportJournalCsv({});
+      ];
+      Store.registerManualJournal(year, 3, year + '-03-05', 'Glosa CSV', entries);
+      Store.registerManualJournal(year, 4, year + '-04-05', 'Glosa fuera de rango', entries);
+      app.exportSystemJournalsCsv({ date_from: year + '-03-01', date_to: year + '-03-31' });
       T.assertIncludes(downloaded, 'Asiento ID;Fecha;Glosa;Doc V/C ID;Estado;Codigo Cuenta;Componente;Debe;Haber');
       T.assertIncludes(downloaded, 'Glosa CSV');
+      T.assert(downloaded.indexOf('Glosa fuera de rango') === -1, 'El CSV debe respetar el rango de fechas');
       T.assert(downloaded.indexOf('Sin descripción') === -1, 'El asiento tiene glosa y no debe usar el fallback');
     } finally {
       UI.download = originalDownload;
       window.location.hash = '#/';
     }
+  });
+
+  T.test('La exportación CSV vive en asientos del sistema', function () {
+    const hash = UI.route('accounting.system_journals.export_csv', { year: 2026, date_from: '2026-03-01' });
+    const parsed = UI.parseHash(hash);
+    T.assertEqual(parsed.path, '/accounting/system-journals/export-csv');
+    T.assertDeepEqual(parsed.query, { year: '2026', date_from: '2026-03-01' });
+    T.assert(app.config.reportPeriodRoutes[parsed.path], 'La exportación debe validar el periodo del reporte');
+    T.assert(!app.config.getActions['vc_documents.journal_book.generate'], 'La acción de rango eliminada no debe quedar registrada');
   });
 
   T.test('El balance genera la ruta con el mes y el año elegidos', function () {
