@@ -43,6 +43,15 @@
       'entries[1][account_code]': '101', 'entries[1][debit]': '50'
     });
     T.assertDeepEqual(helpers.grouped(sample, 'entries'), [{ _key: '1', account_code: '101', debit: '50' }]);
+
+    const inserted = {
+      elements: [
+        { name: 'entries[row_10][account_code]', type: 'text', value: '101' },
+        { name: 'entries[row_2][account_code]', type: 'text', value: '401' }
+      ]
+    };
+    T.assertDeepEqual(helpers.grouped(inserted, 'entries').map(function (entry) { return entry._key; }),
+      ['row_10', 'row_2']);
   });
 
   T.test('period.update cambia el año de trabajo', function () {

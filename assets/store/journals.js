@@ -30,6 +30,15 @@
     }
   }
 
+  function assertEntryAccount(entry) {
+    const account = entry && entry.account_code !== undefined && entry.account_code !== null
+      ? String(entry.account_code).trim()
+      : '';
+    if (account === '' && (num(entry && entry.debit) > 0 || num(entry && entry.credit) > 0)) {
+      throw new Error('Cada línea con monto debe tener una cuenta contable.');
+    }
+  }
+
   function normalizeEntries(entries) {
     const formatted = [];
     let debitTotal = 0;
@@ -40,6 +49,7 @@
       assertNonNegativeAmount(debit);
       assertNonNegativeAmount(credit);
       assertSingleSideEntry(entry);
+      assertEntryAccount(entry);
       if (debit <= 0 && credit <= 0) return;
       debitTotal += debit;
       creditTotal += credit;

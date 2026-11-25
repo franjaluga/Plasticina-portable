@@ -435,3 +435,10 @@ button,[role=button] { cursor:pointer; }
 .account-suggestion-empty { padding:0.4rem 0.75rem; font-size:0.75rem; color:#64748b }
 .min-w-0 { min-width:0px }
 .account-name-label { display:inline-block; max-width:220px }
+.row-action-btn { display:inline-flex; align-items:center; justify-content:center; width:1.5rem; height:1.5rem; border-radius:9999px; font-size:0.875rem; line-height:1; font-weight:700; vertical-align:middle; padding:0 }
+.row-action-btn + .row-action-btn { margin-left:0.375rem }
+.row-insert-btn { background-color:#eef2ff; color:#4f46e5; border:1px solid #c7d2fe }
+.row-insert-btn:hover, .row-insert-btn:focus { background-color:#4f46e5; color:#ffffff; outline:none }
+.row-remove-btn { background-color:#dc2626; color:#ffffff; border:1px solid #b91c1c }
+.row-remove-btn:hover, .row-remove-btn:focus { background-color:#b91c1c; color:#ffffff; outline:none }
+.row-action-btn:focus-visible { outline:2px solid #6366f1; outline-offset:2px }

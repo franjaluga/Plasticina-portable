@@ -184,6 +184,25 @@
     });
   });
 
+  T.test('Store omite filas vacías y exige cuenta en las líneas con monto', function () {
+    resetWithStart(1, year);
+    const withBlank = [
+      { account_code: '', debit: 0, credit: 0, component_name: 'manual' },
+      { account_code: '1010101', debit: 50, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 50, component_name: 'manual' }
+    ];
+    const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento sin fila vacía', withBlank);
+    T.assertEqual(Store.journal(id).entries.length, 2);
+
+    const missingAccount = [
+      { account_code: '', debit: 50, credit: 0, component_name: 'manual' },
+      { account_code: '4010101', debit: 0, credit: 50, component_name: 'manual' }
+    ];
+    T.assertThrows(function () {
+      Store.registerManualJournal(year, 3, year + '-03-06', 'Asiento sin cuenta', missingAccount);
+    }, /cuenta contable/);
+  });
+
   T.test('Store.taxBalance filtra desde inicio de año hasta el mes indicado', function () {
     resetWithStart(1, year);
     const filters = { date_from: year + '-01-01', date_to: year + '-09-30' };

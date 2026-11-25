@@ -134,7 +134,7 @@
       var templatesData = ${UI.json(templates)};
       var accountsData = ${UI.json(accounts)};
       var oldEntries = ${UI.json(oldEntries)};
-      var rowIndex = 0;
+      var rowSeq = 0;
       var tbody = document.getElementById('entries-body');
       var form = document.querySelector('form[data-action="manualJournal.store"]');
       var differenceInput = document.getElementById('journal-difference');
@@ -159,6 +159,34 @@
         return value === undefined || value === null ? '' : String(value);
       }
 
+      function normalizeAmountInput(input) {
+        if (!input) return;
+        var value = input.value === undefined || input.value === null ? '' : String(input.value);
+        if (value.trim() === '') input.value = '0';
+      }
+
+      function normalizeAmountInputs() {
+        Array.prototype.forEach.call(tbody.querySelectorAll('.debit-input, .credit-input'), normalizeAmountInput);
+      }
+
+      function amountOf(input) {
+        var value = input && input.value !== undefined && input.value !== null ? String(input.value).trim() : '';
+        return value === '' ? 0 : Number(value) || 0;
+      }
+
+      function isBlankRow(row) {
+        var account = row.querySelector('.account-input');
+        var accountValue = account && account.value !== undefined && account.value !== null ? String(account.value).trim() : '';
+        return accountValue === '' && amountOf(row.querySelector('.debit-input')) === 0 && amountOf(row.querySelector('.credit-input')) === 0;
+      }
+
+      function pruneBlankRows() {
+        Array.prototype.forEach.call(Array.prototype.slice.call(tbody.querySelectorAll('tr')), function (row) {
+          if (isBlankRow(row)) row.remove();
+        });
+        calculateTotals();
+      }
+
       function enforceSingleSide(input) {
         if (!(Number(input.value) > 0)) return;
         var row = input.closest('tr');
@@ -179,30 +207,49 @@
             enforceSingleSide(this);
             calculateTotals();
           };
+          input.onblur = function () { normalizeAmountInput(this); calculateTotals(); };
           input.onfocus = function () { this.select(); };
           input.onclick = function () { this.select(); };
         });
       }
 
-      function addRow(account, debit, credit) {
+      function createRow(key, account, debit, credit) {
         var code = textOf(account);
         var row = document.createElement('tr');
         row.innerHTML = [
           '<td class="py-2 px-2">',
-          viewHelpers.accountSearchField('entries[' + rowIndex + '][account_code]', code, {
+          viewHelpers.accountSearchField('entries[' + key + '][account_code]', code, {
             accounts: accountsData,
             inputClass: 'account-input w-28 text-xs p-1.5 border border-gray-300 font-sans',
-            placeholder: 'Código o nombre'
+            placeholder: 'Código o nombre',
+            required: false
           }),
           '</td>',
-          '<td class="py-2 px-2 text-right"><input type="number" step="1" min="0" name="entries[' + rowIndex + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input" required></td>',
-          '<td class="py-2 px-2 text-right"><input type="number" step="1" min="0" name="entries[' + rowIndex + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input" required></td>',
-          '<td class="py-2 px-2 text-center"><button type="button" onclick="removeRow(this)" class="text-red-600 font-bold px-2 py-1">&times;</button></td>'
+          '<td class="py-2 px-2 text-right"><input type="number" step="1" min="0" name="entries[' + key + '][debit]" value="' + textOf(debit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input"></td>',
+          '<td class="py-2 px-2 text-right"><input type="number" step="1" min="0" name="entries[' + key + '][credit]" value="' + textOf(credit) + '" class="w-full text-xs p-1.5 border border-gray-300 text-right credit-input"></td>',
+          '<td class="py-2 px-2 text-center whitespace-nowrap">' +
+            '<button type="button" onclick="insertRowBelow(this)" class="row-action-btn row-insert-btn" title="Agregar línea debajo" aria-label="Agregar línea debajo">+</button>' +
+            '<button type="button" onclick="removeRow(this)" class="row-action-btn row-remove-btn" title="Eliminar línea" aria-label="Eliminar línea"><span aria-hidden="true">&times;</span></button>' +
+          '</td>'
         ].join('');
-        tbody.appendChild(row);
         viewHelpers.bindAccountSearch(row.querySelector('.account-input'), accountsData, {});
         bindAmountInputs(row);
-        rowIndex++;
+        return row;
+      }
+
+      function addRow(account, debit, credit) {
+        var row = createRow('row_' + rowSeq, account, debit, credit);
+        rowSeq++;
+        tbody.appendChild(row);
+        calculateTotals();
+      }
+
+      function insertRowBelow(button) {
+        var current = button && button.closest ? button.closest('tr') : null;
+        if (!current) return;
+        var row = createRow('row_' + rowSeq, '', 0, 0);
+        rowSeq++;
+        tbody.insertBefore(row, current.nextElementSibling);
         calculateTotals();
       }
 
@@ -219,8 +266,8 @@
       function calculateTotals() {
         var totalDebit = 0;
         var totalCredit = 0;
-        Array.prototype.forEach.call(document.querySelectorAll('.debit-input'), function (input) { totalDebit += parseFloat(input.value) || 0; });
-        Array.prototype.forEach.call(document.querySelectorAll('.credit-input'), function (input) { totalCredit += parseFloat(input.value) || 0; });
+        Array.prototype.forEach.call(tbody.querySelectorAll('.debit-input'), function (input) { totalDebit += amountOf(input); });
+        Array.prototype.forEach.call(tbody.querySelectorAll('.credit-input'), function (input) { totalCredit += amountOf(input); });
         var roundedDebit = Math.round(totalDebit);
         var roundedCredit = Math.round(totalCredit);
         var difference = roundedDebit - roundedCredit;
@@ -247,12 +294,30 @@
 
       if (form) {
         form.addEventListener('submit', function (event) {
-          var hasAmount = Array.prototype.some.call(document.querySelectorAll('.debit-input, .credit-input'), function (input) {
-            return Math.round(parseFloat(input.value) || 0) !== 0;
+          normalizeAmountInputs();
+          pruneBlankRows();
+          var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+          var hasAmount = rows.some(function (row) {
+            return Math.round(amountOf(row.querySelector('.debit-input'))) !== 0 ||
+              Math.round(amountOf(row.querySelector('.credit-input'))) !== 0;
           });
           if (!hasAmount) {
             event.preventDefault();
             UI.notify('El asiento está por ingresar; ingrese montos antes de guardar.', 'error');
+            return;
+          }
+          if (rows.length < 2) {
+            event.preventDefault();
+            UI.notify('El asiento debe tener al menos dos líneas.', 'error');
+            return;
+          }
+          var missingAccount = rows.some(function (row) {
+            var input = row.querySelector('.account-input');
+            return !input || String(input.value || '').trim() === '';
+          });
+          if (missingAccount) {
+            event.preventDefault();
+            UI.notify('Cada línea con monto debe tener una cuenta contable.', 'error');
           }
         });
       }
@@ -269,7 +334,7 @@
         }
         document.getElementById('glosa-input').value = template.glosa || '';
         tbody.innerHTML = '';
-        rowIndex = 0;
+        rowSeq = 0;
         Store.journalTemplateEntries(templateKey, amount).forEach(function (entry) {
           addRow(entry.account_code, entry.debit, entry.credit);
         });
@@ -277,6 +342,7 @@
       }
 
       window.addRow = addRow;
+      window.insertRowBelow = insertRowBelow;
       window.removeRow = removeRow;
       window.loadTemplate = loadTemplate;
       Array.prototype.forEach.call(document.querySelectorAll('[data-template]'), function (button) {

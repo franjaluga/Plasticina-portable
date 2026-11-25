@@ -316,6 +316,34 @@
       'Ya no debe existir el campo antiguo de diferencia');
   });
 
+  T.test('El asiento manual convierte montos vacíos en cero y descarta filas sin datos', function () {
+    T.resetStore();
+    const html = window.Views.manualJournalCreate(ctx);
+    T.assertIncludes(html, 'function normalizeAmountInput(input) {');
+    T.assertIncludes(html, "if (value.trim() === '') input.value = '0';");
+    T.assertIncludes(html, 'input.onblur = function () { normalizeAmountInput(this); calculateTotals(); };');
+    T.assertIncludes(html, 'function pruneBlankRows() {');
+    T.assertIncludes(html, 'pruneBlankRows();');
+    T.assertIncludes(html, "Cada línea con monto debe tener una cuenta contable.");
+    T.assert(html.indexOf('debit-input" required>') === -1, 'Debe no debe ser obligatorio para poder normalizarlo');
+    T.assert(html.indexOf('credit-input" required>') === -1, 'Haber no debe ser obligatorio para poder normalizarlo');
+    T.assertIncludes(html, 'required: false');
+  });
+
+  T.test('El asiento manual inserta líneas entremedio y usa botones de acción circulares', function () {
+    T.resetStore();
+    const html = window.Views.manualJournalCreate(ctx);
+    T.assertIncludes(html, 'function insertRowBelow(button) {');
+    T.assertIncludes(html, 'tbody.insertBefore(row, current.nextElementSibling);');
+    T.assertIncludes(html, 'window.insertRowBelow = insertRowBelow;');
+    T.assertIncludes(html, "var row = createRow('row_' + rowSeq, '', 0, 0);");
+    T.assertIncludes(html, 'class="row-action-btn row-insert-btn"');
+    T.assertIncludes(html, 'class="row-action-btn row-remove-btn"');
+    T.assertIncludes(html, 'aria-label="Agregar línea debajo"');
+    T.assertIncludes(html, 'aria-label="Eliminar línea"');
+    T.assert(html.indexOf("&times;</button>") === -1, 'La equis debe ir dentro del botón circular');
+  });
+
   T.test('Los formularios de asientos corrigen de inmediato los montos negativos', function () {
     const year = Store.workingYear();
     resetWithStart(1, year);
