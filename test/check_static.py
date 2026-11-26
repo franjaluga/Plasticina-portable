@@ -157,7 +157,21 @@ def main():
         if token not in browser_source:
             ok = fail('adaptador browser no coordina pestañas: ' + token)
 
+    helpers_source = (ASSETS / 'views' / 'shared' / 'helpers.js').read_text(encoding='utf-8')
+    for token in ('bindAccountSearchFormsIn', "input.addEventListener('click', render)",
+                  "input.addEventListener('focusout'", "document.addEventListener('pointerdown'"):
+        if token not in helpers_source:
+            ok = fail('helpers.js no expone el autocompletado resistente a builds: ' + token)
+    router_source = (ASSETS / 'app' / 'router.js').read_text(encoding='utf-8')
+    if 'bindAccountSearchFormsIn(app)' not in router_source:
+        ok = fail('router.js no enlaza los campos de cuenta tras renderizar')
+    events_source = (ASSETS / 'app' / 'events.js').read_text(encoding='utf-8')
+    if 'viewHelpers.bindAccountSearchFormsIn(document)' not in events_source:
+        ok = fail('events.js no tiene enlace delegado de cuentas')
+
     styles = (ASSETS / 'styles' / 'app.css').read_text(encoding='utf-8')
+    if 'z-index:10000' not in styles:
+        ok = fail('app.css no eleva las sugerencias de cuentas sobre los elementos fijos')
     for token in ('.debit-input[type=number]::-webkit-inner-spin-button',
                   '.debit-input[type=number]::-webkit-outer-spin-button',
                   '.credit-input[type=number]::-webkit-inner-spin-button',

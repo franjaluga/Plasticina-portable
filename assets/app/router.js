@@ -112,6 +112,9 @@
       app.innerHTML = withHomeButton('<div class="w-full">' + flash +
         window.Views[viewName]({ params: match.params, query: query }) + '</div>', viewName);
       runScripts(app);
+      if (window.Plasticina.views.helpers && window.Plasticina.views.helpers.bindAccountSearchFormsIn) {
+        window.Plasticina.views.helpers.bindAccountSearchFormsIn(app);
+      }
     } catch (error) {
       app.innerHTML = withHomeButton(renderError(flash, error), viewName);
     }

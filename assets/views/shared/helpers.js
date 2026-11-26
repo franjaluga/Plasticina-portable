@@ -135,6 +135,38 @@
   }
 
   let accountSearchSequence = 0;
+  const accountSearchBindings = [];
+  let accountOutsideListenerAttached = false;
+
+  function defaultAccountResolver() {
+    return typeof Store !== 'undefined' && Store.activeOwnerAccounts ? Store.activeOwnerAccounts() : [];
+  }
+
+  function closeOtherAccountSearches(current) {
+    accountSearchBindings.forEach(function (binding) {
+      if (binding !== current) binding.hide();
+    });
+  }
+
+  function onAccountOutsidePointerDown(event) {
+    const target = event && event.target;
+    accountSearchBindings.slice().forEach(function (binding) {
+      if (binding.input.isConnected === false) {
+        const index = accountSearchBindings.indexOf(binding);
+        if (index !== -1) accountSearchBindings.splice(index, 1);
+        return;
+      }
+      if (!target || target === binding.input || target === binding.panel ||
+          (typeof binding.panel.contains === 'function' && binding.panel.contains(target))) return;
+      binding.hide();
+    });
+  }
+
+  function ensureAccountOutsideListener() {
+    if (accountOutsideListenerAttached || typeof document === 'undefined' || !document.addEventListener) return;
+    document.addEventListener('pointerdown', onAccountOutsidePointerDown);
+    accountOutsideListenerAttached = true;
+  }
 
   function bindAccountSearch(input, accounts, options) {
     if (!input) return null;
@@ -163,6 +195,7 @@
     }
 
     function show() {
+      closeOtherAccountSearches(binding);
       panel.classList.remove('hidden');
       input.setAttribute('aria-expanded', 'true');
     }
@@ -211,6 +244,7 @@
     }
 
     input.addEventListener('focus', render);
+    input.addEventListener('click', render);
     input.addEventListener('input', function () {
       input.setCustomValidity('');
       const labelState = accountLabelState(source, input.value);
@@ -236,10 +270,15 @@
       }
       if (event.key === 'Escape') hide();
     });
-    input.addEventListener('blur', function () { window.setTimeout(hide, 120); });
+    input.addEventListener('focusout', function (event) {
+      if (event && event.relatedTarget && typeof panel.contains === 'function' && panel.contains(event.relatedTarget)) return;
+      hide();
+    });
 
-    const binding = { input: input, panel: panel, render: render, hide: hide, select: select };
+    const binding = { input: input, panel: panel, render: render, hide: hide, select: select, show: show };
     input.__plasticinaAccountSearch = binding;
+    accountSearchBindings.push(binding);
+    ensureAccountOutsideListener();
     return binding;
   }
 
@@ -288,6 +327,22 @@
     const binding = { form: form, fields: fields };
     form.__plasticinaAccountSearchForm = binding;
     return binding;
+  }
+
+  function bindAccountSearchFormsIn(container, resolver, options) {
+    const root = container || (typeof document !== 'undefined' ? document : null);
+    if (!root || typeof root.querySelectorAll !== 'function') return [];
+    const bindings = [];
+    Array.prototype.forEach.call(root.querySelectorAll('form[data-action]'), function (form) {
+      if (!form.querySelector || !form.querySelector('[data-account-search]')) return;
+      if (form.__plasticinaAccountSearchForm) return;
+      const accounts = typeof resolver === 'function'
+        ? resolver(form)
+        : (resolver === undefined || resolver === null ? defaultAccountResolver(form) : resolver);
+      const binding = bindAccountSearchForm(form, accounts, options || {});
+      if (binding) bindings.push(binding);
+    });
+    return bindings;
   }
 
   function accountOptions(accounts, selectedCode) {
@@ -401,7 +456,7 @@
     oldValue, pad, capitalize, num,
     normalizeAccountText, accountLabel, accountName, searchAccounts, resolveAccount,
     accountDisplayName, accountLabelState, updateAccountLabel,
-    accountSearchField, bindAccountSearch, bindAccountSearchForm,
+    accountSearchField, bindAccountSearch, bindAccountSearchForm, bindAccountSearchFormsIn,
     accountOptions, format0, format0OrDash, queryYear, queryMonth,
     reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload
   });

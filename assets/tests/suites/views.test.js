@@ -395,6 +395,9 @@
     T.assertEqual(helpers.accountLabelState(accounts, '1010102').state, 'valid');
     T.assertEqual(helpers.accountLabelState(accounts, '1010102').text, 'Banco Cuenta Corriente');
     T.assertEqual(helpers.accountLabelState(accounts, '').state, 'empty');
+
+    T.assertEqual(typeof helpers.bindAccountSearchFormsIn, 'function', 'Falta el enlace global de cuentas');
+    T.assertEqual(helpers.bindAccountSearchFormsIn(document).length, 0, 'El enlace global debe tolerar un DOM vacío');
   });
 
   T.test('Los formularios de contabilización buscan cuentas por código o nombre', function () {

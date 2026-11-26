@@ -4,6 +4,7 @@
   const config = window.Plasticina.app.config;
   const router = window.Plasticina.app.router;
   const helpers = window.Plasticina.actions.helpers;
+  const viewHelpers = window.Plasticina.views.helpers;
 
   function confirmSubmission(form, button) {
     const message = button && button.getAttribute('data-confirm')
@@ -93,7 +94,23 @@
     }
   }
 
+  function ensureAccountSearchBindings(target) {
+    if (!viewHelpers || !viewHelpers.bindAccountSearchFormsIn) return;
+    const input = target && target.closest ? target.closest('[data-account-search]') : null;
+    if (!input || input.__plasticinaAccountSearch) return;
+    viewHelpers.bindAccountSearchFormsIn(document);
+    if (input.__plasticinaAccountSearch && typeof input.__plasticinaAccountSearch.render === 'function') {
+      input.__plasticinaAccountSearch.render();
+    }
+  }
+
   document.addEventListener('submit', onSubmit);
   document.addEventListener('click', onClick);
+  document.addEventListener('focusin', function (event) {
+    ensureAccountSearchBindings(event.target);
+  });
+  document.addEventListener('click', function (event) {
+    ensureAccountSearchBindings(event.target);
+  });
   window.addEventListener('hashchange', router.render);
 })();
