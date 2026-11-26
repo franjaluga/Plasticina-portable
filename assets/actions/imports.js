@@ -110,7 +110,7 @@
   };
 
   window.Actions['imports.purchases_confirm'] = function (form) {
-    run(form, function (values) {
+    return run(form, async function (values) {
       const period = periodFrom(values);
       const periodProblem = periodError(period);
       if (periodProblem) throw periodProblem;
@@ -123,13 +123,20 @@
         goTo('ingress.import.purchases.preview');
         return undefined;
       }
-      const count = Store.importPurchases(payload);
-      if (count && typeof count.then === 'function') {
-        return count.then(function (processed) {
-          afterSuccess('¡CSV de compras importado! Se ingresaron ' + processed + ' documentos.', 'vc_documents.pending');
-        });
+      const previousYear = Store.workingYear();
+      if (previousYear !== period.year_register) {
+        await Store.setWorkingYear(period.year_register);
       }
-      afterSuccess('¡CSV de compras importado! Se ingresaron ' + count + ' documentos.', 'vc_documents.pending');
+      let processed;
+      try {
+        processed = await Store.importPurchases(payload);
+      } catch (error) {
+        if (Store.workingYear() !== previousYear) {
+          await Store.setWorkingYear(previousYear);
+        }
+        throw error;
+      }
+      afterSuccess('¡CSV de compras importado! Se ingresaron ' + processed + ' documentos.', 'ingress.import.purchases.imported');
       return undefined;
     });
   };

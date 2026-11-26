@@ -65,6 +65,17 @@
     T.resetStore();
   });
 
+  T.test('La confirmación de contabilización masiva ofrece dos cards', function () {
+    const html = window.Views.documentBatchProcessed({ params: {}, query: { processed: '3' } });
+    T.assertIncludes(html, '3 documentos procesados');
+    T.assertIncludes(html, 'Contabilizar más documentos');
+    T.assertIncludes(html, UI.route('vc_documents.pending'));
+    T.assertIncludes(html, 'Ir a libro de compras y ventas');
+    T.assertIncludes(html, UI.route('accounting.analytics'));
+    T.assertEqual((html.match(/class="group p-6 bg-white border border-slate-200 rounded-2xl/g) || []).length, 2);
+    T.assert(html.indexOf('data-action="documents.batch"') === -1, 'La confirmación no debe mostrar el formulario de contabilización');
+  });
+
   T.test('Los reportes muestran la glosa del asiento y no la entidad como glosa', function () {
     const year = Store.workingYear();
     resetWithStart(1, year);
@@ -162,6 +173,16 @@
     T.assertIncludes(html, 'name="month_register" value="' + period.month_register + '"');
     T.assertIncludes(html, 'name="year_register" value="' + period.year_register + '"');
     T.assertIncludes(html, 'Tipo de documento: Compra (C)');
+  });
+
+  T.test('La confirmación de importación de compras ofrece dos siguientes pasos', function () {
+    T.resetStore();
+    const html = window.Views.ingressImportPurchasesImported(ctx);
+    T.assertIncludes(html, 'Importación de compras completada');
+    T.assertIncludes(html, 'Ingresar más documentos vía importador');
+    T.assertIncludes(html, 'Ir a documentos pendientes de contabilización');
+    T.assertIncludes(html, UI.route('ingress.import'));
+    T.assertIncludes(html, UI.route('vc_documents.pending'));
   });
 
   T.test('La consulta analítica usa el nombre Libro de Compras y Ventas', function () {
@@ -595,6 +616,7 @@
     const headers = Store.PURCHASE_HEADERS;
     const cells = {};
     const period = { month_register: Store.ownerStartPeriod().month, year_register: Store.workingYear() };
+    const periodLabel = String(period.month_register).padStart(2, '0') + '/' + period.year_register;
     headers.forEach(function (header, index) { cells['c' + index] = ''; });
     cells.c1 = '33';
     cells.c3 = '';
@@ -621,6 +643,12 @@
     T.assertIncludes(html, 'name="year_register" value="' + period.year_register + '"');
     T.assert(html.indexOf('name="rows[0][month_register]"') === -1, 'El periodo ya no se edita por fila');
     T.assertIncludes(html, 'Libro de compras seleccionado');
+    T.assertIncludes(html, 'bg-emerald-50');
+    T.assertIncludes(html, 'border-emerald-200');
+    T.assertIncludes(html, 'font-mono text-xs font-bold text-emerald-800');
+    T.assertIncludes(html, '>' + periodLabel + '<');
+    T.assert(html.indexOf('Tipo de documento: Compra (C)') === -1, 'El bloque compacto no debe explicar el tipo de documento');
+    T.assert(html.indexOf('Periodo fijo') === -1, 'El bloque compacto no debe mostrar la etiqueta Periodo fijo');
     T.assertIncludes(html, 'is-invalid');
     T.assertIncludes(html, 'Procesar 1 documento');
     T.assert(html.indexOf('disabled') !== -1, 'El botón de procesar queda bloqueado con errores');

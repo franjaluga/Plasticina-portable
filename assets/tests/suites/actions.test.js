@@ -200,7 +200,7 @@
     window.location.hash = '#/';
   });
 
-  T.test('imports.purchases_confirm guarda la grilla revisada como documentos de compra', function () {
+  T.test('imports.purchases_confirm guarda la grilla revisada como documentos de compra', async function () {
     T.resetStore();
     sessionStorage.removeItem('plasticina_flash');
     const headers = Store.PURCHASE_HEADERS;
@@ -210,15 +210,15 @@
     cells.c3 = '55555555-5';
     cells.c4 = 'Proveedor de Ejemplo';
     cells.c5 = '4720170';
-    cells.c6 = '29/10/' + new Date().getFullYear();
-    cells.c7 = '03/11/' + new Date().getFullYear() + ' 09:41:06';
+    const start = Store.ownerStartPeriod();
+    const periodMonth = start.month < 12 ? start.month + 1 : start.month;
+    const periodYear = Store.workingYearRange().max;
+    cells.c6 = '29/10/' + periodYear;
+    cells.c7 = '03/11/' + periodYear + ' 09:41:06';
     cells.c9 = '0';
     cells.c10 = '4706';
     cells.c11 = '894';
     cells.c14 = '5600';
-    const start = Store.ownerStartPeriod();
-    const periodMonth = start.month < 12 ? start.month + 1 : start.month;
-    const periodYear = start.year;
     const elements = [
       { name: 'file_name', type: 'hidden', value: 'compra.csv' },
       { name: 'month_register', type: 'hidden', value: String(periodMonth) },
@@ -231,14 +231,56 @@
     })).concat([
       { name: 'rows[0][document_type_name]', type: 'text', value: 'Factura Electrónica' }
     ]);
-    window.Actions['imports.purchases_confirm']({ elements: elements, dataset: {} });
+    await window.Actions['imports.purchases_confirm']({ elements: elements, dataset: {} });
+    T.assertEqual(Store.workingYear(), periodYear);
     T.assertEqual(Store.documents().length, 1);
     T.assertEqual(Store.documents()[0].folio, 4720170);
     T.assertEqual(Store.documents()[0].type_vc, 'C');
     T.assertEqual(Store.documents()[0].month_register, periodMonth);
     T.assertEqual(Store.documents()[0].year_register, periodYear);
+    T.assertEqual(Store.pendingDocuments().length, 1);
+    T.assertEqual(Store.pendingDocuments()[0].folio, 4720170);
     T.assertIncludes(UI.takeFlash(), 'Se ingresaron 1 documentos');
-    T.assertEqual(window.location.hash, UI.route('vc_documents.pending'));
+    T.assertEqual(window.location.hash, UI.route('ingress.import.purchases.imported'));
+    const pendingHtml = window.Views.documentPending({ params: {}, query: {} });
+    T.assertIncludes(pendingHtml, '4720170');
+    T.assert(pendingHtml.indexOf('No hay documentos pendientes') === -1, 'La tabla debe mostrar el documento importado');
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
+  T.test('documents.batch abre la confirmación con las dos opciones', async function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    window.location.hash = UI.route('vc_documents.pending');
+    const year = Store.workingYear();
+    const sourceDocument = Store.createDocument({
+      month_register: 3,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 123,
+      date: year + '-03-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    const elements = [
+      { name: 'document_ids[]', type: 'checkbox', value: String(sourceDocument.id), checked: true },
+      { name: 'custom_net_account', type: 'text', value: '4010101', checked: true },
+      { name: 'glosa', type: 'text', value: 'Contabilización masiva', checked: true }
+    ];
+    await window.Actions['documents.batch']({
+      elements: elements,
+      dataset: { action: 'documents.batch' },
+      getAttribute: function () { return null; }
+    });
+    T.assertIncludes(UI.takeFlash(), 'Se procesaron correctamente 1 documentos.');
+    T.assertEqual(window.location.hash, UI.route('vc_documents.batch_processed', { processed: 1 }));
+    T.assertEqual(Store.pendingDocuments().length, 0);
     window.location.hash = '#/';
     T.resetStore();
   });

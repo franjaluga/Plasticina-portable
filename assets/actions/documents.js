@@ -44,7 +44,7 @@
       if (result.errors && result.errors.length) {
         UI.flash('error', result.errors.join(' | '));
       }
-      afterSuccess('Se procesaron correctamente ' + result.success_count + ' documentos.', 'vc_documents.pending');
+      afterSuccess('Se procesaron correctamente ' + result.success_count + ' documentos.', 'vc_documents.batch_processed', { processed: result.success_count });
     });
   };
 

@@ -21,11 +21,13 @@
     });
   });
 
-  T.test('El importador de compras tiene carga y revisión con rutas propias', function () {
+  T.test('El importador de compras tiene carga, revisión y confirmación con rutas propias', function () {
     T.assertEqual(UI.route('ingress.import.purchases'), '#/ingress/import/compras');
     T.assertEqual(UI.route('ingress.import.purchases.preview'), '#/ingress/import/compras/preview');
+    T.assertEqual(UI.route('ingress.import.purchases.imported'), '#/ingress/import/compras/importado');
     T.assertEqual(app.router.matchRoute('/ingress/import/compras').view, 'ingressImportPurchases');
     T.assertEqual(app.router.matchRoute('/ingress/import/compras/preview').view, 'ingressImportPurchasesPreview');
+    T.assertEqual(app.router.matchRoute('/ingress/import/compras/importado').view, 'ingressImportPurchasesImported');
   });
 
   T.test('Las acciones GET redirigen a rutas conocidas', function () {
@@ -41,6 +43,13 @@
     const match = app.router.matchRoute('/accounting/manual-journals/created');
     T.assert(match, 'Falta la ruta de confirmación del asiento manual');
     T.assertEqual(match.view, 'manualJournalCreated');
+  });
+
+  T.test('La confirmación de contabilización masiva tiene ruta y vista propias', function () {
+    T.assertEqual(UI.route('vc_documents.batch_processed'), '#/vc-documents/contabilizados');
+    const match = app.router.matchRoute('/vc-documents/contabilizados');
+    T.assert(match, 'Falta la ruta de confirmación de contabilización masiva');
+    T.assertEqual(match.view, 'documentBatchProcessed');
   });
 
   T.test('La ruta heredada de reportes contables redirige al hub analítico', function () {
@@ -79,6 +88,21 @@
     T.assertIncludes(html, 'Volver al inicio');
     window.location.hash = '#/';
     T.resetStore();
+  });
+
+  T.test('La confirmación masiva muestra el mensaje y sus dos cards', function () {
+    T.resetStore();
+    UI.flash('success', 'Se procesaron correctamente 1 documentos.');
+    window.location.hash = UI.route('vc_documents.batch_processed', { processed: 1 });
+    app.router.render();
+    const html = document.getElementById('app').innerHTML;
+    T.assertIncludes(html, 'Se procesaron correctamente 1 documentos.');
+    T.assertIncludes(html, 'Contabilizar más documentos');
+    T.assertIncludes(html, UI.route('vc_documents.pending'));
+    T.assertIncludes(html, 'Ir a libro de compras y ventas');
+    T.assertIncludes(html, UI.route('accounting.analytics'));
+    T.assertEqual((html.match(/class="group p-6 bg-white border border-slate-200 rounded-2xl/g) || []).length, 2);
+    window.location.hash = '#/';
   });
 
   T.test('El router renderiza la portada en el contenedor', function () {

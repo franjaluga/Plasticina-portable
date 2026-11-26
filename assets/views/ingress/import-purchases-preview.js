@@ -95,13 +95,9 @@
             </div>
         </div>
 
-        <div class="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Libro de compras seleccionado</p>
-                <p class="font-mono text-base font-bold text-indigo-900 mt-1">${UI.h(periodLabel)}</p>
-                <p class="text-[11px] text-indigo-700 mt-1">Tipo de documento: Compra (C). Para cambiar el periodo, vuelve a la pantalla de carga.</p>
-            </div>
-            <span class="text-xs font-semibold text-indigo-700 bg-white border border-indigo-300 px-3 py-2 rounded-lg">Periodo fijo</span>
+        <div class="mb-3 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Libro de compras seleccionado</span>
+            <span class="font-mono text-xs font-bold text-emerald-800">${UI.h(periodLabel)}</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
