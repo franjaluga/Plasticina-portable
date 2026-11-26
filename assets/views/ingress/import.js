@@ -6,7 +6,55 @@
   const { renderUpload } = window.Plasticina.views.helpers;
 
   window.Views.ingressImport = function (ctx) {
-    return `${renderUpload(ctx)}`;
+    return `
+    <div class="max-w-4xl w-full mx-auto p-8 bg-white shadow-xl rounded-2xl border border-slate-100">
+        <div class="mb-6">
+            <a href="${UI.h(UI.route('welcome'))}" class="inline-flex items-center text-xs font-semibold bg-white text-slate-600 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">
+                &larr; Volver al inicio
+            </a>
+        </div>
+
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Importador de documentos</h1>
+            <p class="text-sm text-slate-500 mt-1">Selecciona el tipo de documentos que deseas importar desde CSV.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <a href="${UI.h(UI.route('ingress.import.purchases'))}" class="group p-6 bg-white border border-slate-200 rounded-2xl hover:border-indigo-500 hover:shadow-lg transition text-left flex flex-col justify-between">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <h2 class="font-bold text-slate-800 group-hover:text-indigo-600 transition text-base mb-1">Importar compras</h2>
+                    <p class="text-xs text-slate-500 leading-relaxed">Carga facturas y documentos de proveedores con revisión previa y corrección de datos.</p>
+                    <span class="inline-block mt-4 text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Formato SII compras</span>
+                </div>
+                <span class="text-xs font-semibold text-indigo-600 mt-6 flex items-center">
+                    Importar compras &rarr;
+                </span>
+            </a>
+
+            <div class="group p-6 bg-white border border-slate-200 rounded-2xl text-left flex flex-col justify-between opacity-75">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </div>
+                    <h2 class="font-bold text-slate-800 text-base mb-1">Importar ventas</h2>
+                    <p class="text-xs text-slate-500 leading-relaxed">Carga masiva de documentos de venta. Disponible próximamente.</p>
+                    <span class="inline-block mt-4 text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Formato SII ventas</span>
+                </div>
+                <button type="button" disabled class="cursor-not-allowed mt-6 w-full text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 px-4 py-2 rounded-lg">
+                    Próximamente
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-400 flex justify-between items-center">
+            <p>Sistema Contable v1.0</p>
+            <a href="${UI.h(UI.route('ingress.import.generic'))}" class="font-semibold text-slate-500 hover:text-indigo-600 transition">¿Usas el formato anterior? Importador genérico &rarr;</a>
+        </div>
+    </div>
+    `;
   };
 
   window.Views.documentUpload = function (ctx) {

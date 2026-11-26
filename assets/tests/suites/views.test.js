@@ -548,4 +548,46 @@
     T.assert(html.indexOf('showLabel: false') === -1, 'La cuenta de pagos debe mostrar su nombre al lado');
     T.assertIncludes(html, 'bindAccountSearchForm');
   });
+
+  T.test('El importador ofrece dos cards con botones diferenciados', function () {
+    T.resetStore();
+    const html = window.Views.ingressImport(ctx);
+    T.assertIncludes(html, 'Importar compras');
+    T.assertIncludes(html, 'Importar ventas');
+    T.assertIncludes(html, UI.route('ingress.import.purchases'));
+    T.assertIncludes(html, 'Próximamente');
+    T.assert(html.indexOf('disabled') !== -1, 'El botón de ventas debe estar deshabilitado');
+    T.assertIncludes(html, 'text-indigo-600');
+    T.assertIncludes(html, 'bg-emerald-50');
+  });
+
+  T.test('La grilla de compras precarga el CSV y marca los datos faltantes', function () {
+    T.resetStore();
+    const headers = Store.PURCHASE_HEADERS;
+    const cells = {};
+    headers.forEach(function (header, index) { cells['c' + index] = ''; });
+    cells.c1 = '33';
+    cells.c3 = '';
+    cells.c4 = 'Proveedor sin RUT';
+    cells.c5 = '4720170';
+    cells.c6 = '29/10/' + Store.workingYear();
+    cells.c7 = '03/11/' + Store.workingYear() + ' 09:41:06';
+    cells.c10 = '4706';
+    cells.c11 = '894';
+    cells.c14 = '5600';
+    UI.remember({
+      kind: 'purchases',
+      fileName: 'compra.csv',
+      headers: headers,
+      rows: [{ line: 2, cells: cells, derived: { month_register: 11, year_register: Store.workingYear(), document_type_name: 'Factura Electrónica' } }]
+    });
+    const html = window.Views.ingressImportPurchasesPreview(ctx);
+    T.assertIncludes(html, 'compra.csv');
+    T.assertIncludes(html, 'name="rows[0][c3]"');
+    T.assertIncludes(html, 'name="rows[0][month_register]"');
+    T.assertIncludes(html, 'is-invalid');
+    T.assertIncludes(html, 'Procesar 1 documento');
+    T.assert(html.indexOf('disabled') !== -1, 'El botón de procesar queda bloqueado con errores');
+    T.assertIncludes(html, 'Razon Social');
+  });
 })();

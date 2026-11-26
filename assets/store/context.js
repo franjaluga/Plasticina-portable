@@ -134,7 +134,7 @@
     if (text === '') return null;
     let match = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(text);
     if (match) return makeIso(Number(match[1]), Number(match[2]), Number(match[3]));
-    match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(text);
+    match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:$|[ T])/.exec(text);
     if (match) return makeIso(Number(match[3]), Number(match[2]), Number(match[1]));
     const time = Date.parse(text);
     if (!Number.isNaN(time)) {

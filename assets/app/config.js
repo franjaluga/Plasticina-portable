@@ -7,6 +7,9 @@
     { path: '/', view: 'welcome' },
     { path: '/ingress/manual', view: 'ingressManual' },
     { path: '/ingress/import', view: 'ingressImport' },
+    { path: '/ingress/import/generic', view: 'documentUpload' },
+    { path: '/ingress/import/compras', view: 'ingressImportPurchases' },
+    { path: '/ingress/import/compras/preview', view: 'ingressImportPurchasesPreview' },
     { path: '/reports/analytics', view: 'analyticsHub' },
     { path: '/reports/balance-context', view: 'balanceContext' },
     { path: '/reports/ledger-context', view: 'ledgerContext' },
@@ -37,11 +40,14 @@
   const centered = 'font-sans antialiased bg-slate-50 text-slate-900 flex items-center justify-center min-h-screen p-4';
   const slateList = 'bg-slate-50 text-slate-900 font-sans antialiased min-h-screen py-10';
   const grayList = 'bg-gray-50 text-gray-900 font-sans antialiased min-h-screen py-10';
+  const previewWide = 'font-sans antialiased bg-slate-50 text-slate-900 min-h-screen p-6';
 
   config.bodyClasses = {
     welcome: centered,
     ingressManual: centered,
     ingressImport: centered,
+    ingressImportPurchases: centered,
+    ingressImportPurchasesPreview: previewWide,
     analyticsHub: centered,
     balanceContext: centered,
     ledgerContext: centered,

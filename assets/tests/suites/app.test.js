@@ -21,6 +21,13 @@
     });
   });
 
+  T.test('El importador de compras tiene carga y revisión con rutas propias', function () {
+    T.assertEqual(UI.route('ingress.import.purchases'), '#/ingress/import/compras');
+    T.assertEqual(UI.route('ingress.import.purchases.preview'), '#/ingress/import/compras/preview');
+    T.assertEqual(app.router.matchRoute('/ingress/import/compras').view, 'ingressImportPurchases');
+    T.assertEqual(app.router.matchRoute('/ingress/import/compras/preview').view, 'ingressImportPurchasesPreview');
+  });
+
   T.test('Las acciones GET redirigen a rutas conocidas', function () {
     Object.keys(app.config.getActions).forEach(function (action) {
       const hash = UI.route(app.config.getActions[action], { id: 1, owner: 1 });

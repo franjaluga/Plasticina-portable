@@ -76,6 +76,11 @@
     deleteJournal: s.deleteJournal,
     accountPlan: s.accountPlan,
     parseCsv: s.parseCsv,
+    PURCHASE_HEADERS: s.PURCHASE_HEADERS,
+    parsePurchases: s.parsePurchases,
+    validatePurchases: s.validatePurchases,
+    mapPurchaseRow: s.mapPurchaseRow,
+    importPurchases: s.importPurchases,
     journalTemplates: s.journalTemplates,
     journalTemplateEntries: s.journalTemplateEntries
   };

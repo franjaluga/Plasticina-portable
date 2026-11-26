@@ -408,4 +408,57 @@
     T.assertEqual(Store.workingYear(), year + 1);
     T.assertThrows(function () { Store.importJson('{'); });
   });
+
+  function purchaseRow(overrides) {
+    const cells = [
+      '1', '33', 'Del Giro', '55555555-5', 'Proveedor de Ejemplo', '4720170',
+      '29/10/' + year, '03/11/' + year + ' 09:41:06', '', '0', '4706', '894', '', '',
+      '5600', '', '', '', '0', '', '', '', '', '0', '', '', ''
+    ];
+    Object.keys(overrides || {}).forEach(function (index) { cells[Number(index)] = overrides[index]; });
+    return cells.join(',');
+  }
+
+  T.test('Store interpreta el CSV de compras y lo guarda en SQLite', function () {
+    T.resetStore();
+    const payload = Store.parsePurchases(Store.PURCHASE_HEADERS.join(',') + '\n' + purchaseRow({}));
+    T.assertEqual(payload.headers.length, 27);
+    T.assertEqual(payload.rows.length, 1);
+    T.assertEqual(payload.rows[0].derived.month_register, 11);
+    T.assertEqual(payload.rows[0].derived.year_register, year);
+    const validation = Store.validatePurchases(payload);
+    T.assertEqual(validation.ok, true, JSON.stringify(validation.rowIssues[0].cells));
+    const data = Store.mapPurchaseRow(payload, payload.rows[0]);
+    T.assertEqual(data.type_vc, 'C');
+    T.assertEqual(data.rut, '55555555-5');
+    T.assertEqual(data.date, year + '-10-29');
+    T.assertEqual(data.date_centralize, year + '-11-03');
+    T.assertEqual(data.document_type_name, 'Factura Electrónica');
+    T.assertEqual(Store.importPurchases(payload), 1);
+    T.assertEqual(Store.documents().length, 1);
+    T.assertEqual(Store.documents()[0].folio, 4720170);
+  });
+
+  T.test('Store marca datos faltantes y descuadres del CSV de compras', function () {
+    T.resetStore();
+    const header = Store.PURCHASE_HEADERS.join(',');
+    const missingRut = Store.parsePurchases(header + '\n' + purchaseRow({ 3: '' }));
+    const missingValidation = Store.validatePurchases(missingRut);
+    T.assertEqual(missingValidation.ok, false);
+    T.assert(missingValidation.rowIssues[0].cells.c3 && missingValidation.rowIssues[0].cells.c3.length > 0,
+      'La celda del RUT debe quedar marcada');
+    T.assertThrows(function () { Store.importPurchases(missingRut); });
+
+    const unbalanced = Store.parsePurchases(header + '\n' + purchaseRow({ 14: '5601' }));
+    const unbalancedValidation = Store.validatePurchases(unbalanced);
+    T.assertEqual(unbalancedValidation.ok, false);
+    T.assert(String(unbalancedValidation.rowIssues[0].cells.c14).indexOf('no cuadra') !== -1,
+      'El total debe marcar el descuadre');
+  });
+
+  T.test('Store rechaza columnas obligatorias ausentes en el CSV de compras', function () {
+    T.resetStore();
+    const error = T.assertThrows(function () { Store.parsePurchases('Nro,Monto Total\n1,5600'); });
+    T.assertIncludes(error.message, 'Faltan columnas obligatorias');
+  });
 })();

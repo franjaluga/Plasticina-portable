@@ -14,6 +14,7 @@
   const EXPECTED_ACTIONS = [
     'period.update', 'owners.store', 'owners.update', 'owners.activate', 'owners.destroy',
     'accounts.store', 'accounts.update', 'accounts.destroy', 'documents.store', 'documents.csv',
+    'imports.purchases_upload', 'imports.purchases_confirm', 'imports.purchases_cancel',
     'documents.batch', 'manualJournal.store', 'manualJournal.update', 'journals.update',
     'journals.delete-only', 'journals.delete-with-document', 'payments.store', 'templates.store',
     'templates.update', 'templates.destroy', 'system.export', 'system.import',
@@ -138,6 +139,56 @@
     T.assertEqual(Store.state.settings.activeOwnerId, 1);
     T.assertIncludes(UI.takeFlash(), 'Base de datos reiniciada correctamente.');
     T.assertEqual(window.location.hash, UI.route('welcome'));
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
+  T.test('imports.purchases_upload exige un archivo CSV', function () {
+    const elements = [{ name: 'csv_file', type: 'file', files: [] }];
+    const app = window.App;
+    sessionStorage.removeItem('plasticina_flash');
+    window.App = { render: function () {} };
+    try {
+      window.Actions['imports.purchases_upload']({ elements: elements, dataset: {} });
+      T.assertIncludes(UI.takeFlash(), 'Debe seleccionar un archivo CSV válido.');
+    } finally {
+      window.App = app;
+    }
+  });
+
+  T.test('imports.purchases_confirm guarda la grilla revisada como documentos de compra', function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    const headers = Store.PURCHASE_HEADERS;
+    const cells = {};
+    headers.forEach(function (header, index) { cells['c' + index] = ''; });
+    cells.c1 = '33';
+    cells.c3 = '55555555-5';
+    cells.c4 = 'Proveedor de Ejemplo';
+    cells.c5 = '4720170';
+    cells.c6 = '29/10/' + new Date().getFullYear();
+    cells.c7 = '03/11/' + new Date().getFullYear() + ' 09:41:06';
+    cells.c9 = '0';
+    cells.c10 = '4706';
+    cells.c11 = '894';
+    cells.c14 = '5600';
+    const elements = [
+      { name: 'file_name', type: 'hidden', value: 'compra.csv' }
+    ].concat(headers.map(function (header) {
+      return { name: 'headers[]', type: 'hidden', value: header };
+    })).concat(Object.keys(cells).map(function (key) {
+      return { name: 'rows[0][' + key + ']', type: 'text', value: cells[key] };
+    })).concat([
+      { name: 'rows[0][month_register]', type: 'text', value: '11' },
+      { name: 'rows[0][year_register]', type: 'text', value: String(new Date().getFullYear()) },
+      { name: 'rows[0][document_type_name]', type: 'text', value: 'Factura Electrónica' }
+    ]);
+    window.Actions['imports.purchases_confirm']({ elements: elements, dataset: {} });
+    T.assertEqual(Store.documents().length, 1);
+    T.assertEqual(Store.documents()[0].folio, 4720170);
+    T.assertEqual(Store.documents()[0].type_vc, 'C');
+    T.assertIncludes(UI.takeFlash(), 'Se ingresaron 1 documentos');
+    T.assertEqual(window.location.hash, UI.route('vc_documents.pending'));
     window.location.hash = '#/';
     T.resetStore();
   });
