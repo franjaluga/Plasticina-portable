@@ -135,7 +135,7 @@
         </div>
 
         <div class="mt-8 pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-400">
-            <p>Sistema Contable v1.0</p>
+            <p>Sistema Contable v1.0.0</p>
 
             <div class="flex items-center space-x-4">
                 <a href="${UI.h(UI.route('system.config'))}" class="inline-flex items-center space-x-1 font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition">

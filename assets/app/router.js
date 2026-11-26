@@ -89,7 +89,7 @@
 
   function homeButton() {
     return '<a href="' + UI.h(UI.route('welcome')) + '" aria-label="Ir al inicio" title="Inicio" ' +
-      'style="position:fixed;top:16px;right:16px;z-index:9998;display:inline-flex;align-items:center;' +
+      'style="position:fixed;top:72px;right:16px;z-index:9998;display:inline-flex;align-items:center;' +
       'justify-content:center;width:40px;height:40px;background:#4f46e5;color:#fff;' +
       'border-radius:9999px;box-shadow:0 4px 6px -1px rgba(0,0,0,.2);">' +
       '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
