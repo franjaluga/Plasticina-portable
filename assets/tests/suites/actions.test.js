@@ -125,7 +125,27 @@
 
     sessionStorage.removeItem('plasticina_flash');
     window.location.hash = UI.route('system.config');
-    await window.Actions['system.reset']();
+    const db = window.Plasticina.db;
+    const originalTransaction = db.transaction;
+    let transactionDepth = 0;
+    let maxTransactionDepth = 0;
+    db.transaction = function (callback) {
+      transactionDepth += 1;
+      maxTransactionDepth = Math.max(maxTransactionDepth, transactionDepth);
+      return originalTransaction(function () {
+        try {
+          return callback();
+        } finally {
+          transactionDepth -= 1;
+        }
+      });
+    };
+    try {
+      await window.Actions['system.reset']();
+    } finally {
+      db.transaction = originalTransaction;
+    }
+    T.assertEqual(maxTransactionDepth, 1, 'system.reset no debe anidar transacciones SQLite');
 
     T.assertEqual(Store.owners().length, 1);
     T.assertEqual(Store.owners()[0].id, 1);

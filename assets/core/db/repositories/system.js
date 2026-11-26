@@ -70,27 +70,29 @@
     });
   }
 
+  function seedIfNeeded() {
+    let owner = db.repositories.owners.find(1);
+    if (!owner) {
+      owner = db.repositories.owners.create({
+        rut: '55555555-5', name: 'Test', is_active: true, account_plan_type: 'standard_pyme',
+        start_month: currentMonth(), start_year: currentYear()
+      });
+    }
+    if (!db.repositories.accounts.byOwner(owner.id).length) seedAccounts(owner.id);
+    const settings = db.repositories.settings;
+    if (settings.get('working_year') === undefined) settings.set('working_year', currentYear());
+    if (settings.get('active_owner_id') === undefined) settings.set('active_owner_id', owner.id);
+    return hydrate();
+  }
+
   function ensureSeed() {
-    return db.transaction(function () {
-      let owner = db.repositories.owners.find(1);
-      if (!owner) {
-        owner = db.repositories.owners.create({
-          rut: '55555555-5', name: 'Test', is_active: true, account_plan_type: 'standard_pyme',
-          start_month: currentMonth(), start_year: currentYear()
-        });
-      }
-      if (!db.repositories.accounts.byOwner(owner.id).length) seedAccounts(owner.id);
-      const settings = db.repositories.settings;
-      if (settings.get('working_year') === undefined) settings.set('working_year', currentYear());
-      if (settings.get('active_owner_id') === undefined) settings.set('active_owner_id', owner.id);
-      return hydrate();
-    });
+    return db.transaction(seedIfNeeded);
   }
 
   function reset() {
     return db.transaction(function () {
       q.system.clear.forEach(function (statement) { db.run(statement); });
-      return ensureSeed();
+      return seedIfNeeded();
     });
   }
 
