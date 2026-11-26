@@ -144,6 +144,35 @@
     T.assertIncludes(html, '<option value="C">Compra</option>');
   });
 
+  T.test('La tarjeta de importar compras pide el libro, mes y año antes de abrir el importador', function () {
+    T.resetStore();
+    const html = window.Views.ingressImport(ctx);
+    T.assertIncludes(html, 'data-action="imports.purchases_start"');
+    T.assertIncludes(html, 'name="month_register" id="purchase_month"');
+    T.assertIncludes(html, 'name="year_register" id="purchase_year"');
+    T.assertIncludes(html, 'Mes del libro');
+    T.assertIncludes(html, 'Año del libro');
+  });
+
+  T.test('La carga de compras muestra el libro elegido y lo conserva oculto', function () {
+    T.resetStore();
+    const period = { month_register: Store.ownerStartPeriod().month, year_register: Store.workingYear() };
+    const html = window.Views.ingressImportPurchases({ params: {}, query: period });
+    T.assertIncludes(html, 'Libro de compras seleccionado');
+    T.assertIncludes(html, 'name="month_register" value="' + period.month_register + '"');
+    T.assertIncludes(html, 'name="year_register" value="' + period.year_register + '"');
+    T.assertIncludes(html, 'Tipo de documento: Compra (C)');
+  });
+
+  T.test('La consulta analítica usa el nombre Libro de Compras y Ventas', function () {
+    T.resetStore();
+    const html = window.Views.accountingAnalytics(ctx);
+    T.assertIncludes(html, 'Libro de Compras y Ventas');
+    T.assertIncludes(html, 'Libro de ventas');
+    T.assertIncludes(html, 'Libro de compras');
+    T.assert(html.indexOf('Analíticos (V/C)') === -1, 'El nombre anterior no debe aparecer');
+  });
+
   T.test('El formulario de documentos calcula el total al digitar sin seleccionar el contenido', function () {
     T.resetStore();
     const html = window.Views.documentCreate(ctx);
@@ -565,6 +594,7 @@
     T.resetStore();
     const headers = Store.PURCHASE_HEADERS;
     const cells = {};
+    const period = { month_register: Store.ownerStartPeriod().month, year_register: Store.workingYear() };
     headers.forEach(function (header, index) { cells['c' + index] = ''; });
     cells.c1 = '33';
     cells.c3 = '';
@@ -579,12 +609,18 @@
       kind: 'purchases',
       fileName: 'compra.csv',
       headers: headers,
-      rows: [{ line: 2, cells: cells, derived: { month_register: 11, year_register: Store.workingYear(), document_type_name: 'Factura Electrónica' } }]
+      rows: [{ line: 2, cells: cells, derived: { document_type_name: 'Factura Electrónica' } }],
+      month_register: period.month_register,
+      year_register: period.year_register,
+      type_vc: 'C'
     });
     const html = window.Views.ingressImportPurchasesPreview(ctx);
     T.assertIncludes(html, 'compra.csv');
     T.assertIncludes(html, 'name="rows[0][c3]"');
-    T.assertIncludes(html, 'name="rows[0][month_register]"');
+    T.assertIncludes(html, 'name="month_register" value="' + period.month_register + '"');
+    T.assertIncludes(html, 'name="year_register" value="' + period.year_register + '"');
+    T.assert(html.indexOf('name="rows[0][month_register]"') === -1, 'El periodo ya no se edita por fila');
+    T.assertIncludes(html, 'Libro de compras seleccionado');
     T.assertIncludes(html, 'is-invalid');
     T.assertIncludes(html, 'Procesar 1 documento');
     T.assert(html.indexOf('disabled') !== -1, 'El botón de procesar queda bloqueado con errores');

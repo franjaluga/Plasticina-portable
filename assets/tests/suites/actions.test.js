@@ -14,7 +14,7 @@
   const EXPECTED_ACTIONS = [
     'period.update', 'owners.store', 'owners.update', 'owners.activate', 'owners.destroy',
     'accounts.store', 'accounts.update', 'accounts.destroy', 'documents.store', 'documents.csv',
-    'imports.purchases_upload', 'imports.purchases_confirm', 'imports.purchases_cancel',
+    'imports.purchases_start', 'imports.purchases_upload', 'imports.purchases_confirm', 'imports.purchases_cancel',
     'documents.batch', 'manualJournal.store', 'manualJournal.update', 'journals.update',
     'journals.delete-only', 'journals.delete-with-document', 'payments.store', 'templates.store',
     'templates.update', 'templates.destroy', 'system.export', 'system.import',
@@ -164,7 +164,11 @@
   });
 
   T.test('imports.purchases_upload exige un archivo CSV', function () {
-    const elements = [{ name: 'csv_file', type: 'file', files: [] }];
+    const elements = [
+      { name: 'csv_file', type: 'file', files: [] },
+      { name: 'month_register', type: 'hidden', value: String(Store.ownerStartPeriod().month) },
+      { name: 'year_register', type: 'hidden', value: String(Store.workingYear()) }
+    ];
     const app = window.App;
     sessionStorage.removeItem('plasticina_flash');
     window.App = { render: function () {} };
@@ -174,6 +178,26 @@
     } finally {
       window.App = app;
     }
+  });
+
+  T.test('imports.purchases_start lleva el libro elegido al formulario de carga', function () {
+    T.resetStore();
+    const period = { month_register: Store.ownerStartPeriod().month, year_register: Store.workingYear() };
+    window.location.hash = UI.route('ingress.import');
+    window.Actions['imports.purchases_start'](form(Object.assign({}, period), 'imports.purchases_start'));
+    T.assertEqual(window.location.hash, UI.route('ingress.import.purchases', period));
+    window.location.hash = '#/';
+  });
+
+  T.test('imports.purchases_cancel conserva el libro al volver a la carga', function () {
+    T.resetStore();
+    const period = { month_register: Store.ownerStartPeriod().month, year_register: Store.workingYear() };
+    window.location.hash = UI.route('ingress.import.purchases.preview');
+    window.Actions['imports.purchases_cancel']({
+      dataset: { monthRegister: String(period.month_register), yearRegister: String(period.year_register) }
+    });
+    T.assertEqual(window.location.hash, UI.route('ingress.import.purchases', period));
+    window.location.hash = '#/';
   });
 
   T.test('imports.purchases_confirm guarda la grilla revisada como documentos de compra', function () {
@@ -192,21 +216,27 @@
     cells.c10 = '4706';
     cells.c11 = '894';
     cells.c14 = '5600';
+    const start = Store.ownerStartPeriod();
+    const periodMonth = start.month < 12 ? start.month + 1 : start.month;
+    const periodYear = start.year;
     const elements = [
-      { name: 'file_name', type: 'hidden', value: 'compra.csv' }
+      { name: 'file_name', type: 'hidden', value: 'compra.csv' },
+      { name: 'month_register', type: 'hidden', value: String(periodMonth) },
+      { name: 'year_register', type: 'hidden', value: String(periodYear) },
+      { name: 'type_vc', type: 'hidden', value: 'C' }
     ].concat(headers.map(function (header) {
       return { name: 'headers[]', type: 'hidden', value: header };
     })).concat(Object.keys(cells).map(function (key) {
       return { name: 'rows[0][' + key + ']', type: 'text', value: cells[key] };
     })).concat([
-      { name: 'rows[0][month_register]', type: 'text', value: '11' },
-      { name: 'rows[0][year_register]', type: 'text', value: String(new Date().getFullYear()) },
       { name: 'rows[0][document_type_name]', type: 'text', value: 'Factura Electrónica' }
     ]);
     window.Actions['imports.purchases_confirm']({ elements: elements, dataset: {} });
     T.assertEqual(Store.documents().length, 1);
     T.assertEqual(Store.documents()[0].folio, 4720170);
     T.assertEqual(Store.documents()[0].type_vc, 'C');
+    T.assertEqual(Store.documents()[0].month_register, periodMonth);
+    T.assertEqual(Store.documents()[0].year_register, periodYear);
     T.assertIncludes(UI.takeFlash(), 'Se ingresaron 1 documentos');
     T.assertEqual(window.location.hash, UI.route('vc_documents.pending'));
     window.location.hash = '#/';

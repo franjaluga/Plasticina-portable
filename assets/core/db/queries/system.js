@@ -34,7 +34,8 @@
       'DELETE FROM document_types',
       'DELETE FROM entities',
       'DELETE FROM owners',
-      'DELETE FROM settings'
+      'DELETE FROM settings',
+      'DELETE FROM sqlite_sequence'
     ],
     seedAccount: 'INSERT INTO accounts (owner_id, code, name, category) VALUES (?, ?, ?, ?)',
     insertOwner: 'INSERT INTO owners (id, rut, name, is_active, account_plan_type, start_month, start_year) VALUES (?, ?, ?, ?, ?, ?, ?)',

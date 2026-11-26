@@ -5,8 +5,6 @@
 
   const REQUIRED = ['Tipo Doc', 'RUT Proveedor', 'Razon Social', 'Folio', 'Fecha Docto', 'Monto Total'];
   const DERIVED = [
-    { key: 'month_register', label: 'Mes registro' },
-    { key: 'year_register', label: 'Año registro' },
     { key: 'document_type_name', label: 'Nombre documento' }
   ];
 
@@ -27,9 +25,20 @@
     }
     const headers = state.headers;
     const rows = state.rows;
-    const validation = Store.validatePurchases({ headers: headers, rows: rows });
+    const month = state.month_register === undefined || state.month_register === '' ? new Date().getMonth() + 1 : state.month_register;
+    const year = state.year_register === undefined || state.year_register === '' ? Store.workingYear() : state.year_register;
+    const period = { month_register: month, year_register: year, type_vc: 'C' };
+    const validation = Store.validatePurchases(Object.assign({ headers: headers, rows: rows }, period));
     const fileName = state.fileName || 'documentos.csv';
     const invalidRows = validation.rowIssues.filter(function (issue) { return issue.count > 0; }).length;
+    const periodLabel = String(month).padStart(2, '0') + '/' + year;
+    const backHref = UI.h(UI.route('ingress.import.purchases', period));
+    const periodErrors = validation.periodErrors || [];
+    const rowErrorCount = validation.errorCount - periodErrors.length;
+    const initialStatus = validation.ok
+      ? 'Sin errores: puedes procesar el archivo.'
+      : (periodErrors.length ? periodErrors.join(' ') + (rowErrorCount ? ' ' : '') : '') +
+        (rowErrorCount ? rowErrorCount + ' dato(s) requieren corrección. Las celdas marcadas en rojo contienen el detalle.' : '');
 
     const headerCells = headers.map(function (header, column) {
       const required = REQUIRED.indexOf(header) !== -1;
@@ -76,14 +85,23 @@
     <div class="max-w-[95%] mx-auto">
         <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
             <div>
-                <a href="${UI.h(UI.route('ingress.import.purchases'))}" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition">&larr; Cargar otro CSV</a>
+                <a href="${backHref}" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition">&larr; Cargar otro CSV</a>
                 <h1 class="text-xl font-extrabold text-slate-800 tracking-tight mt-2">Revisar compras importadas</h1>
                 <p class="text-xs text-slate-500 mt-1"><span class="font-semibold text-slate-700">${UI.h(fileName)}</span> · ${rows.length} fila${rows.length === 1 ? '' : 's'} · edita cualquier celda antes de procesar.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="${UI.h(UI.route('ingress.import.purchases'))}" class="text-xs font-semibold bg-white text-slate-600 border border-slate-200 px-4 py-2 rounded-lg hover:bg-slate-50 transition">Descartar</a>
-                <button type="button" data-link-action="imports.purchases_cancel" class="text-xs font-semibold bg-white text-rose-600 border border-rose-200 px-4 py-2 rounded-lg hover:bg-rose-50 transition">Cancelar revisión</button>
+                <a href="${backHref}" class="text-xs font-semibold bg-white text-slate-600 border border-slate-200 px-4 py-2 rounded-lg hover:bg-slate-50 transition">Descartar</a>
+                <button type="button" data-link-action="imports.purchases_cancel" data-month-register="${UI.h(month)}" data-year-register="${UI.h(year)}" class="text-xs font-semibold bg-white text-rose-600 border border-rose-200 px-4 py-2 rounded-lg hover:bg-rose-50 transition">Cancelar revisión</button>
             </div>
+        </div>
+
+        <div class="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Libro de compras seleccionado</p>
+                <p class="font-mono text-base font-bold text-indigo-900 mt-1">${UI.h(periodLabel)}</p>
+                <p class="text-[11px] text-indigo-700 mt-1">Tipo de documento: Compra (C). Para cambiar el periodo, vuelve a la pantalla de carga.</p>
+            </div>
+            <span class="text-xs font-semibold text-indigo-700 bg-white border border-indigo-300 px-3 py-2 rounded-lg">Periodo fijo</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
@@ -95,11 +113,14 @@
 
         <form data-action="imports.purchases_confirm" data-confirm="¿Procesar los documentos de compra revisados? Se guardarán en la base de datos." id="purchase-preview-form">
             <input type="hidden" name="file_name" value="${UI.h(fileName)}">
+            <input type="hidden" name="month_register" value="${UI.h(month)}">
+            <input type="hidden" name="year_register" value="${UI.h(year)}">
+            <input type="hidden" name="type_vc" value="C">
             ${headers.map(function (header) { return '<input type="hidden" name="headers[]" value="' + UI.h(header) + '">'; }).join('')}
 
             <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div id="sheet-status" class="text-xs font-semibold ${validation.ok ? 'text-emerald-700' : 'text-rose-600'}">
-                    ${validation.ok ? 'Sin errores: puedes procesar el archivo.' : UI.h(validation.errorCount + ' dato(s)requieren corrección. Las celdas marcadas en rojo contienen el detalle.')}
+                    ${UI.h(initialStatus)}
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" id="sheet-add-row" class="text-xs font-semibold bg-white text-indigo-700 border border-indigo-300 px-3 py-2 rounded-lg hover:bg-indigo-50 transition">+ Agregar fila</button>
@@ -113,7 +134,7 @@
                     <tbody id="sheet-body">${bodyRows}</tbody>
                 </table>
             </div>
-            <p class="text-[11px] text-slate-400 mt-3">Usa Tab para avanzar y las flechas arriba/abajo para moverte en la misma columna. Los campos automáticos se recalculan desde las fechas al cambiar de fila.</p>
+            <p class="text-[11px] text-slate-400 mt-3">Usa Tab para avanzar y las flechas arriba/abajo para moverte en la misma columna. El nombre del documento se deriva del tipo; el libro de compras se mantiene fijo.</p>
         </form>
     </div>
     <script>
@@ -128,6 +149,8 @@
         var vatAmount = document.getElementById('sheet-vat-amount');
         var headers = ${UI.json(headers || [])};
         var derived = ${UI.json(DERIVED.map(function (field) { return field.key; }))};
+        var monthInput = form ? form.querySelector('input[name="month_register"]') : null;
+        var yearInput = form ? form.querySelector('input[name="year_register"]') : null;
         if (!form || !body || !button) return;
 
         function collect() {
@@ -141,6 +164,9 @@
             else grouped[index].derived[key] = input.value;
           });
           return {
+            month_register: monthInput ? monthInput.value : '',
+            year_register: yearInput ? yearInput.value : '',
+            type_vc: 'C',
             headers: headers,
             rows: Object.keys(grouped).sort(function (a, b) { return Number(a) - Number(b); })
               .map(function (index) { return grouped[index]; })
@@ -190,9 +216,12 @@
           if (totalAmount) totalAmount.textContent = format.format(totals.total);
           if (vatAmount) vatAmount.textContent = format.format(totals.vat);
           if (status) {
+            var periodErrors = result.periodErrors || [];
+            var rowErrors = result.errorCount - periodErrors.length;
             status.textContent = result.ok
               ? 'Sin errores: puedes procesar el archivo.'
-              : result.errorCount + ' dato(s) requieren corrección. Las celdas marcadas en rojo contienen el detalle.';
+              : (periodErrors.length ? periodErrors.join(' ') + (rowErrors ? ' ' : '') : '') +
+                (rowErrors ? rowErrors + ' dato(s) requieren corrección. Las celdas marcadas en rojo contienen el detalle.' : '');
             status.className = 'text-xs font-semibold ' + (result.ok ? 'text-emerald-700' : 'text-rose-600');
           }
           if (button) {

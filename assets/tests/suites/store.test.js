@@ -45,6 +45,16 @@
     T.assertEqual(Store.activeOwner().start_year, year);
   });
 
+  T.test('Store puede reiniciarse repetidamente sin duplicar el RUT semilla', function () {
+    T.resetStore();
+    T.resetStore();
+    T.assertEqual(Store.owners().length, 1);
+    T.assertEqual(Store.owners()[0].id, 1);
+    T.assertEqual(Store.owners()[0].rut, '55555555-5');
+    T.assertEqual(Store.activeOwner().name, 'Test');
+    T.assertEqual(Store.accounts().length, 161);
+  });
+
   T.test('Store valida documentos incompletos y descuadrados', function () {
     T.resetStore();
     T.assertThrows(function () { Store.createDocument({ total: 100 }); }, /obligatorio/);
@@ -419,9 +429,13 @@
     return cells.join(',');
   }
 
-  T.test('Store interpreta el CSV de compras y lo guarda en SQLite', function () {
+  T.test('Store usa el libro indicado para el CSV de compras y lo guarda en SQLite', function () {
     T.resetStore();
+    resetWithStart(1, year - 1);
     const payload = Store.parsePurchases(Store.PURCHASE_HEADERS.join(',') + '\n' + purchaseRow({}));
+    payload.month_register = 2;
+    payload.year_register = year - 1;
+    payload.type_vc = 'C';
     T.assertEqual(payload.headers.length, 27);
     T.assertEqual(payload.rows.length, 1);
     T.assertEqual(payload.rows[0].derived.month_register, 11);
@@ -429,14 +443,26 @@
     const validation = Store.validatePurchases(payload);
     T.assertEqual(validation.ok, true, JSON.stringify(validation.rowIssues[0].cells));
     const data = Store.mapPurchaseRow(payload, payload.rows[0]);
+    T.assertEqual(data.month_register, 2);
+    T.assertEqual(data.year_register, year - 1);
     T.assertEqual(data.type_vc, 'C');
     T.assertEqual(data.rut, '55555555-5');
     T.assertEqual(data.date, year + '-10-29');
     T.assertEqual(data.date_centralize, year + '-11-03');
     T.assertEqual(data.document_type_name, 'Factura Electrónica');
+
+    const invalid = Object.assign({}, payload, { month_register: 13 });
+    const invalidValidation = Store.validatePurchases(invalid);
+    T.assertEqual(invalidValidation.ok, false);
+    T.assert(invalidValidation.periodErrors.length > 0);
+    T.assertThrows(function () { Store.importPurchases(invalid); });
+
     T.assertEqual(Store.importPurchases(payload), 1);
     T.assertEqual(Store.documents().length, 1);
     T.assertEqual(Store.documents()[0].folio, 4720170);
+    T.assertEqual(Store.documents()[0].month_register, 2);
+    T.assertEqual(Store.documents()[0].year_register, year - 1);
+    T.assertEqual(Store.queryDocuments('C', 2, year - 1).length, 1);
   });
 
   T.test('Store marca datos faltantes y descuadres del CSV de compras', function () {

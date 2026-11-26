@@ -3,9 +3,17 @@
 
   window.Views = window.Views || {};
 
-  const { renderUpload } = window.Plasticina.views.helpers;
+  const { renderUpload, capitalize } = window.Plasticina.views.helpers;
 
   window.Views.ingressImport = function (ctx) {
+    const month = new Date().getMonth() + 1;
+    const year = Store.workingYear();
+    const range = Store.workingYearRange();
+    let monthOptions = '';
+    for (let value = 1; value <= 12; value++) {
+      monthOptions += `<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)} - ${UI.h(capitalize(UI.monthName(value)))}</option>`;
+    }
+
     return `
     <div class="max-w-4xl w-full mx-auto p-8 bg-white shadow-xl rounded-2xl border border-slate-100">
         <div class="mb-6">
@@ -20,19 +28,30 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <a href="${UI.h(UI.route('ingress.import.purchases'))}" class="group p-6 bg-white border border-slate-200 rounded-2xl hover:border-indigo-500 hover:shadow-lg transition text-left flex flex-col justify-between">
+            <form data-action="imports.purchases_start" class="group p-6 bg-white border border-slate-200 rounded-2xl hover:border-indigo-500 hover:shadow-lg transition text-left flex flex-col justify-between">
                 <div>
                     <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
                     <h2 class="font-bold text-slate-800 group-hover:text-indigo-600 transition text-base mb-1">Importar compras</h2>
                     <p class="text-xs text-slate-500 leading-relaxed">Carga facturas y documentos de proveedores con revisión previa y corrección de datos.</p>
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="purchase_month" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Mes del libro</label>
+                            <select name="month_register" id="purchase_month" class="w-full text-xs rounded-lg border border-slate-300 bg-white p-2" required>${monthOptions}</select>
+                        </div>
+                        <div>
+                            <label for="purchase_year" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Año del libro</label>
+                            <input type="number" name="year_register" id="purchase_year" min="${UI.h(range.min)}" max="${UI.h(range.max)}" value="${UI.h(year)}" class="w-full text-xs rounded-lg border border-slate-300 bg-white p-2" required>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">El periodo define el libro de compras; no se deduce de las fechas del CSV.</p>
                     <span class="inline-block mt-4 text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Formato SII compras</span>
                 </div>
-                <span class="text-xs font-semibold text-indigo-600 mt-6 flex items-center">
+                <button type="submit" class="text-xs font-semibold text-indigo-600 mt-6 flex items-center">
                     Importar compras &rarr;
-                </span>
-            </a>
+                </button>
+            </form>
 
             <div class="group p-6 bg-white border border-slate-200 rounded-2xl text-left flex flex-col justify-between opacity-75">
                 <div>

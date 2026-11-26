@@ -4,7 +4,7 @@
   const s = window.Plasticina.store.internals;
   const {
     parseCsv, parseDate, num, round2, validateDocument,
-    createDocument, transaction, documentTypeByDoctype, workingYear
+    createDocument, transaction, documentTypeByDoctype, workingYear, reportPeriodStatus
   } = s;
 
   const PURCHASE_HEADERS = [
@@ -84,6 +84,36 @@
     return value === null || value === undefined ? '' : String(value).trim();
   }
 
+  function periodFrom(payload) {
+    const source = payload && typeof payload === 'object' ? payload : {};
+    return {
+      month_register: source.month_register !== undefined ? source.month_register : source.month,
+      year_register: source.year_register !== undefined ? source.year_register : source.year
+    };
+  }
+
+  function hasPeriod(period) {
+    return period.month_register !== undefined || period.year_register !== undefined;
+  }
+
+  function periodValue(period, key, fallback) {
+    const value = period[key];
+    return value === undefined || value === null || value === '' ? fallback : value;
+  }
+
+  function periodMessages(payload) {
+    const period = periodFrom(payload);
+    if (!hasPeriod(period)) return [];
+    const status = reportPeriodStatus(period.year_register, period.month_register);
+    if (status.allowed) return [];
+    if (status.reason === 'before-start') {
+      return ['El periodo del libro de compras (' + String(period.month_register).padStart(2, '0') + '/' +
+        period.year_register + ') es anterior al inicio de actividades (' + String(status.startMonth).padStart(2, '0') + '/' +
+        status.startYear + ').'];
+    }
+    return ['Debe indicar un mes (1-12) y un año válidos para el libro de compras.'];
+  }
+
   function parseAmount(value) {
     const text = String(value === null || value === undefined ? '' : value).trim().replace(/\s/g, '');
     if (text === '') return 0;
@@ -110,6 +140,9 @@
     source.headers = Array.isArray(source.headers) && source.headers.length ? source.headers.slice() : PURCHASE_HEADERS.slice();
     source.rows = Array.isArray(source.rows) ? source.rows : [];
     source.index = buildIndex(source.headers);
+    const period = periodFrom(source);
+    if (period.month_register !== undefined) source.month_register = period.month_register;
+    if (period.year_register !== undefined) source.year_register = period.year_register;
     source.rows.forEach(function (row) {
       row.cells = row.cells && typeof row.cells === 'object' ? row.cells : {};
       if (!row.derived || typeof row.derived !== 'object') row.derived = derive(source, row);
@@ -154,13 +187,16 @@
     const centralizeDate = parseDate(centralizeRaw);
     const otherTaxCode = valueAt(source, row, 'Codigo Otro Impuesto');
     const otherTaxValue = valueAt(source, row, 'Valor Otro Impuesto');
+    const period = periodFrom(source);
     return {
-      month_register: derived.month_register === undefined || derived.month_register === null || derived.month_register === ''
-        ? (centralizeDate || documentDate ? Number((centralizeDate || documentDate).slice(5, 7)) : null)
-        : derived.month_register,
-      year_register: derived.year_register === undefined || derived.year_register === null || derived.year_register === ''
-        ? (centralizeDate || documentDate ? Number((centralizeDate || documentDate).slice(0, 4)) : null)
-        : derived.year_register,
+      month_register: periodValue(period, 'month_register',
+        derived.month_register === undefined || derived.month_register === null || derived.month_register === ''
+          ? (centralizeDate || documentDate ? Number((centralizeDate || documentDate).slice(5, 7)) : null)
+          : derived.month_register),
+      year_register: periodValue(period, 'year_register',
+        derived.year_register === undefined || derived.year_register === null || derived.year_register === ''
+          ? (centralizeDate || documentDate ? Number((centralizeDate || documentDate).slice(0, 4)) : null)
+          : derived.year_register),
       type_vc: 'C',
       rut: valueAt(source, row, 'RUT Proveedor'),
       entity_name: valueAt(source, row, 'Razon Social'),
@@ -202,9 +238,12 @@
 
   function validatePurchases(payload) {
     const source = preparePayload(payload);
+    const period = periodFrom(source);
+    const explicitPeriod = hasPeriod(period);
+    const periodErrors = periodMessages(source);
     const seen = {};
     const rowIssues = [];
-    let errorCount = 0;
+    let errorCount = periodErrors.length;
     let validRows = 0;
 
     source.rows.forEach(function (row, index) {
@@ -212,6 +251,7 @@
       const cells = {};
       const validation = validateDocument(data);
       Object.keys(validation).forEach(function (field) {
+        if (explicitPeriod && (field === 'month_register' || field === 'year_register')) return;
         validation[field].forEach(function (message) { addIssue(cells, issueKey(source, field), message); });
       });
 
@@ -262,7 +302,9 @@
       errorCount: errorCount,
       validRows: validRows,
       totalRows: source.rows.length,
-      rowIssues: rowIssues
+      rowIssues: rowIssues,
+      period: period,
+      periodErrors: periodErrors
     };
   }
 
@@ -271,8 +313,9 @@
     const validation = validatePurchases(source);
     if (!validation.ok) {
       const first = validation.rowIssues.filter(function (issue) { return issue.count > 0; })[0];
-      throw new Error('Corrige los datos marcados antes de importar' +
-        (first ? ': fila ' + (first.row + 1) + ': ' + first.messages[0] : '') + '.');
+      const detail = first ? 'fila ' + (first.row + 1) + ': ' + first.messages[0] :
+        (validation.periodErrors && validation.periodErrors[0]);
+      throw new Error('Corrige los datos marcados antes de importar' + (detail ? ': ' + detail : '') + '.');
     }
     return transaction(function () {
       let processed = 0;

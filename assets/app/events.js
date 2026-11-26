@@ -84,7 +84,7 @@
     if (element.dataset.executing === '1') return;
     element.dataset.executing = '1';
     try {
-      await window.Actions[action]();
+      await window.Actions[action](element);
     } catch (error) {
       UI.flash('error', error.message || String(error));
       router.render();

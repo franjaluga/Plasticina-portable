@@ -71,7 +71,7 @@
   }
 
   function seedIfNeeded() {
-    let owner = db.repositories.owners.find(1);
+    let owner = db.repositories.owners.byRut('55555555-5');
     if (!owner) {
       owner = db.repositories.owners.create({
         rut: '55555555-5', name: 'Test', is_active: true, account_plan_type: 'standard_pyme',
@@ -81,7 +81,16 @@
     if (!db.repositories.accounts.byOwner(owner.id).length) seedAccounts(owner.id);
     const settings = db.repositories.settings;
     if (settings.get('working_year') === undefined) settings.set('working_year', currentYear());
-    if (settings.get('active_owner_id') === undefined) settings.set('active_owner_id', owner.id);
+    const activeIdRaw = settings.get('active_owner_id');
+    const selected = activeIdRaw === undefined || activeIdRaw === null
+      ? null : db.repositories.owners.find(Number(activeIdRaw));
+    const activeOwner = selected || db.repositories.owners.active();
+    if (!activeOwner) {
+      db.repositories.owners.setActive(owner.id);
+      settings.set('active_owner_id', owner.id);
+    } else if (!selected) {
+      settings.set('active_owner_id', activeOwner.id);
+    }
     return hydrate();
   }
 

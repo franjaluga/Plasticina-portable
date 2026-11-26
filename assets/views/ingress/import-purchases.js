@@ -7,6 +7,11 @@
     const required = (Store.PURCHASE_HEADERS || []).filter(function (header) {
       return ['Tipo Doc', 'RUT Proveedor', 'Razon Social', 'Folio', 'Fecha Docto', 'Monto Total'].indexOf(header) !== -1;
     });
+    const query = ctx.query || {};
+    const month = query.month_register === undefined || query.month_register === '' ? new Date().getMonth() + 1 : query.month_register;
+    const year = query.year_register === undefined || query.year_register === '' ? Store.workingYear() : query.year_register;
+    const periodLabel = String(month).padStart(2, '0') + '/' + year;
+    const changePeriodHref = UI.h(UI.route('ingress.import'));
     return `
     <div class="max-w-4xl w-full mx-auto p-8 bg-white shadow-xl rounded-2xl border border-slate-100">
         <div class="mb-6 flex items-center justify-between">
@@ -21,7 +26,19 @@
             <p class="text-sm text-slate-500 mt-1">Carga el CSV de compras. Revisarás cada documento en una grilla editable antes de guardarlo.</p>
         </div>
 
+        <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Libro de compras seleccionado</p>
+                <p class="font-mono text-base font-bold text-indigo-900 mt-1">${UI.h(periodLabel)}</p>
+                <p class="text-[11px] text-indigo-700 mt-1">Tipo de documento: Compra (C). El periodo se definió al ingresar y no se modifica con las fechas del CSV.</p>
+            </div>
+            <a href="${changePeriodHref}" class="text-xs font-semibold bg-white text-indigo-700 border border-indigo-300 px-3 py-2 rounded-lg hover:bg-indigo-50 transition">Cambiar periodo</a>
+        </div>
+
         <form data-action="imports.purchases_upload" enctype="multipart/form-data">
+            <input type="hidden" name="month_register" value="${UI.h(month)}">
+            <input type="hidden" name="year_register" value="${UI.h(year)}">
+            <input type="hidden" name="type_vc" value="C">
             <label for="purchase_csv" class="block text-xs font-bold uppercase text-slate-600 mb-2">Archivo CSV</label>
             <div class="border border-indigo-200 bg-indigo-50/50 rounded-2xl p-6 text-center">
                 <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mx-auto mb-4">
