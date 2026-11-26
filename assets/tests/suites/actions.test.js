@@ -11,10 +11,34 @@
     return { elements: elements, dataset: { action: action }, getAttribute: function () { return null; } };
   }
 
+  function salesInvoiceCells(year) {
+    const cells = {};
+    Store.SALES_INVOICE_HEADERS.forEach(function (header, index) { cells['c' + index] = ''; });
+    cells.c1 = '33';
+    cells.c3 = '55555555-5';
+    cells.c4 = 'Cliente de prueba';
+    cells.c5 = '12';
+    cells.c6 = '05/01/' + year;
+    cells.c7 = '05/01/' + year + ' 21:19:13';
+    cells.c10 = '0';
+    cells.c11 = '5288';
+    cells.c12 = '1005';
+    cells.c13 = '6293';
+    cells.c14 = '0';
+    cells.c19 = '-';
+    cells.c28 = '0';
+    cells.c30 = '0';
+    cells.c31 = '1';
+    cells.c32 = '0';
+    cells.c33 = '0';
+    return cells;
+  }
+
   const EXPECTED_ACTIONS = [
     'period.update', 'owners.store', 'owners.update', 'owners.activate', 'owners.destroy',
     'accounts.store', 'accounts.update', 'accounts.destroy', 'documents.store', 'documents.csv',
     'imports.purchases_start', 'imports.purchases_upload', 'imports.purchases_confirm', 'imports.purchases_cancel',
+    'imports.sales_start', 'imports.sales_upload', 'imports.sales_confirm', 'imports.sales_cancel',
     'documents.batch', 'manualJournal.store', 'manualJournal.update', 'journals.update',
     'journals.delete-only', 'journals.delete-with-document', 'payments.store', 'templates.store',
     'templates.update', 'templates.destroy', 'system.export', 'system.import',
@@ -254,16 +278,17 @@
     sessionStorage.removeItem('plasticina_flash');
     window.location.hash = UI.route('vc_documents.pending');
     const year = Store.workingYear();
+    const period = Store.ownerStartPeriod();
     const sourceDocument = Store.createDocument({
-      month_register: 3,
-      year_register: year,
+      month_register: period.month,
+      year_register: period.year,
       type_vc: 'V',
       rut: '11111111-1',
       entity_name: 'Cliente Prueba',
       doctype: 33,
       document_type_name: 'Factura Electrónica',
       folio: 123,
-      date: year + '-03-10',
+      date: period.year + '-' + String(period.month).padStart(2, '0') + '-10',
       net: 1000,
       vat_rec: 190,
       total: 1190
@@ -281,6 +306,135 @@
     T.assertIncludes(UI.takeFlash(), 'Se procesaron correctamente 1 documentos.');
     T.assertEqual(window.location.hash, UI.route('vc_documents.batch_processed', { processed: 1 }));
     T.assertEqual(Store.pendingDocuments().length, 0);
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
+  T.test('documents.batch no muestra éxito cuando ningún documento se contabiliza', async function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    window.location.hash = UI.route('vc_documents.pending');
+    const year = Store.workingYear();
+    const period = Store.ownerStartPeriod();
+    const sourceDocument = Store.createDocument({
+      month_register: period.month,
+      year_register: period.year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 124,
+      date: period.year + '-' + String(period.month).padStart(2, '0') + '-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    Store.registerDocumentJournal(sourceDocument.id, '4010101', 'Asiento previo');
+    const elements = [
+      { name: 'document_ids[]', type: 'checkbox', value: String(sourceDocument.id), checked: true },
+      { name: 'custom_net_account', type: 'text', value: '4010101', checked: true },
+      { name: 'glosa', type: 'text', value: 'Contabilización masiva', checked: true }
+    ];
+    const app = window.App;
+    window.App = { render: function () {} };
+    try {
+      await window.Actions['documents.batch']({
+        elements: elements,
+        dataset: { action: 'documents.batch' },
+        getAttribute: function () { return null; }
+      });
+    } finally {
+      window.App = app;
+    }
+    const flash = UI.takeFlash();
+    T.assertIncludes(flash, 'ya ha sido contabilizado previamente');
+    T.assert(flash.indexOf('Se procesaron correctamente') === -1, 'No debe mostrarse éxito si no se procesó ningún documento');
+    T.assertEqual(window.location.hash, UI.route('vc_documents.pending'));
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
+  T.test('imports.sales_start lleva el formato y el libro elegidos al formulario de carga', function () {
+    T.resetStore();
+    const period = Store.ownerStartPeriod();
+    const values = {
+      sale_format: 'boleta',
+      month_register: period.month,
+      year_register: period.year
+    };
+    window.location.hash = UI.route('ingress.import');
+    window.Actions['imports.sales_start'](form(values, 'imports.sales_start'));
+    T.assertEqual(window.location.hash, UI.route('ingress.import.sales', values));
+    window.location.hash = '#/';
+  });
+
+  T.test('imports.sales_upload exige un archivo CSV', function () {
+    const period = Store.ownerStartPeriod();
+    const elements = [
+      { name: 'csv_file', type: 'file', files: [] },
+      { name: 'sale_format', type: 'hidden', value: 'factura' },
+      { name: 'month_register', type: 'hidden', value: String(period.month) },
+      { name: 'year_register', type: 'hidden', value: String(period.year) }
+    ];
+    const app = window.App;
+    sessionStorage.removeItem('plasticina_flash');
+    window.App = { render: function () {} };
+    try {
+      window.Actions['imports.sales_upload']({ elements: elements, dataset: {} });
+      T.assertIncludes(UI.takeFlash(), 'Debe seleccionar un archivo CSV válido.');
+    } finally {
+      window.App = app;
+    }
+  });
+
+  T.test('imports.sales_cancel conserva el formato y el libro al volver a la carga', function () {
+    T.resetStore();
+    const period = Store.ownerStartPeriod();
+    window.location.hash = UI.route('ingress.import.sales.preview');
+    window.Actions['imports.sales_cancel']({
+      dataset: {
+        saleFormat: 'boleta',
+        monthRegister: String(period.month),
+        yearRegister: String(period.year)
+      }
+    });
+    T.assertEqual(window.location.hash, UI.route('ingress.import.sales', {
+      sale_format: 'boleta',
+      month_register: period.month,
+      year_register: period.year
+    }));
+    window.location.hash = '#/';
+  });
+
+  T.test('imports.sales_confirm guarda la grilla revisada como documento de venta', async function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    const headers = Store.SALES_INVOICE_HEADERS;
+    const cells = salesInvoiceCells(Store.workingYear());
+    const period = Store.ownerStartPeriod();
+    const elements = [
+      { name: 'file_name', type: 'hidden', value: 'venta.csv' },
+      { name: 'sale_format', type: 'hidden', value: 'factura' },
+      { name: 'month_register', type: 'hidden', value: String(period.month) },
+      { name: 'year_register', type: 'hidden', value: String(period.year) },
+      { name: 'type_vc', type: 'hidden', value: 'V' }
+    ].concat(headers.map(function (header) {
+      return { name: 'headers[]', type: 'hidden', value: header };
+    })).concat(Object.keys(cells).map(function (key) {
+      return { name: 'rows[0][' + key + ']', type: 'text', value: cells[key] };
+    })).concat([
+      { name: 'rows[0][document_type_name]', type: 'text', value: 'Factura Electrónica' }
+    ]);
+    await window.Actions['imports.sales_confirm']({ elements: elements, dataset: {} });
+    T.assertEqual(Store.documents().length, 1);
+    T.assertEqual(Store.documents()[0].folio, 12);
+    T.assertEqual(Store.documents()[0].type_vc, 'V');
+    T.assertEqual(Store.documents()[0].month_register, period.month);
+    T.assertEqual(Store.documents()[0].year_register, period.year);
+    T.assertEqual(Store.pendingDocuments().length, 1);
+    T.assertIncludes(UI.takeFlash(), 'Se ingresaron 1 documentos');
+    T.assertEqual(window.location.hash, UI.route('ingress.import.sales.imported'));
     window.location.hash = '#/';
     T.resetStore();
   });

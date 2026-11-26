@@ -81,6 +81,14 @@
     validatePurchases: s.validatePurchases,
     mapPurchaseRow: s.mapPurchaseRow,
     importPurchases: s.importPurchases,
+    SALES_INVOICE_HEADERS: s.SALES_INVOICE_HEADERS,
+    SALES_BOLETA_HEADERS: s.SALES_BOLETA_HEADERS,
+    SALES_FORMATS: s.SALES_FORMATS,
+    SALES_HEADERS: s.SALES_HEADERS,
+    parseSales: s.parseSales,
+    validateSales: s.validateSales,
+    mapSaleRow: s.mapSaleRow,
+    importSales: s.importSales,
     journalTemplates: s.journalTemplates,
     journalTemplateEntries: s.journalTemplateEntries
   };

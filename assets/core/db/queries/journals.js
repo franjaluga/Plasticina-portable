@@ -7,10 +7,21 @@
     return filters && filters.order === 'desc' ? 'DESC' : 'ASC';
   }
 
+  function monthEnd(dateExpression) {
+    return "date(substr(" + dateExpression + ", 1, 7) || '-01', '+1 month', '-1 day')";
+  }
+
   function systemConditions(ownerId, year, filters) {
-    const clauses = ['j.owner_id = ?', 'j.year = ?'];
-    const params = [ownerId, year];
-    const effectiveDate = "COALESCE(NULLIF(d.date_centralize, ''), j.date)";
+    const registeredPeriod = "substr('0000' || CAST(d.year_register AS TEXT), -4) || '-' || " +
+      "substr('00' || CAST(d.month_register AS TEXT), -2) || '-01'";
+    const centralizeDate = "COALESCE(NULLIF(d.date_centralize, ''), j.date)";
+    const effectiveDate = "CASE WHEN d.id IS NOT NULL THEN COALESCE(" +
+      monthEnd(registeredPeriod) + ', ' + monthEnd(centralizeDate) + ', j.date) ELSE j.date END';
+    const clauses = [
+      'j.owner_id = ?',
+      '(j.year = ? OR (j.vc_document_id IS NOT NULL AND substr(' + effectiveDate + ', 1, 4) = CAST(? AS TEXT)))'
+    ];
+    const params = [ownerId, year, year];
     if (filters.entry_from !== undefined && filters.entry_from !== null) {
       clauses.push('j.entry_number >= ?');
       params.push(filters.entry_from);

@@ -5,6 +5,8 @@
   const db = window.Plasticina.db;
   const {
     activeOwnerRaw,
+    closingDateFromPeriod,
+    closingDateIso,
     hydrateJournal,
     isSaleDocument,
     nextEntryNumber,
@@ -12,6 +14,7 @@
     num,
     parseDate,
     rawDocument,
+    reportStartIso,
     rawJournal,
     round2,
     transaction,
@@ -116,9 +119,14 @@
     }
     const ownerId = Number(source.owner_id);
     if (!ownerId) throw new Error('El documento no tiene un Owner asociado, no se puede generar el asiento contable.');
-    const centralizeDate = source.date_centralize || source.date;
-    const parsedDate = parseDate(centralizeDate);
-    const year = parsedDate ? Number(parsedDate.slice(0, 4)) : Number(String(centralizeDate).slice(0, 4));
+    const closingDate = closingDateFromPeriod(source.year_register, source.month_register) ||
+      closingDateIso(source.date_centralize) || closingDateIso(source.date);
+    if (!closingDate) throw new Error('El documento no tiene un periodo de cierre válido.');
+    const startDate = reportStartIso(ownerId);
+    if (startDate && closingDate < startDate) {
+      throw new Error('El cierre de mes ' + closingDate + ' es anterior al inicio de actividades de la empresa.');
+    }
+    const year = Number(closingDate.slice(0, 4));
     const mapping = accountMapping(source, customNetAccount);
     const components = ['net', 'exempt', 'vat_rec', 'vat_no_rec', 'plus_oth_tax', 'minus_oth_tax', 'total'];
     return transaction(function () {
@@ -147,7 +155,7 @@
         owner_id: ownerId,
         year: year,
         entry_number: nextEntryNumber(ownerId, year),
-        date: centralizeDate,
+        date: closingDate,
         description: glosa ? String(glosa) : ('Contabilización documento folio ' + source.folio),
         total_debit: round2(totalDebit),
         total_credit: round2(totalCredit)

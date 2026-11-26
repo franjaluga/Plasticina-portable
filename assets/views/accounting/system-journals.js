@@ -47,7 +47,7 @@
                                     ${UI.h(journal.entry_number)} &rarr;
                                 </a>
                             </td>
-                            <td class="py-3 px-4 text-gray-600">${UI.h(doc ? (doc.date_centralize || journal.date) : journal.date)}</td>
+                            <td class="py-3 px-4 text-gray-600">${UI.h(journal.closing_date || journal.date)}</td>
 
                             <td class="py-3 px-4 font-bold text-gray-900">${UI.h(folio)}</td>
 

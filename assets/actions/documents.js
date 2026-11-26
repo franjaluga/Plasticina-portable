@@ -41,10 +41,17 @@
       const ids = Array.isArray(values['document_ids[]']) ? values['document_ids[]'] : [];
       if (ids.length === 0 || !values.custom_net_account || !values.glosa) throw new Error('Debe seleccionar documentos, una cuenta contable para el Neto y una glosa.');
       const result = await Store.batchProcess(ids, values.custom_net_account, values.glosa);
-      if (result.errors && result.errors.length) {
-        UI.flash('error', result.errors.join(' | '));
+      const errors = Array.isArray(result.errors) ? result.errors : [];
+      const processed = Number(result.success_count) || 0;
+      if (errors.length) {
+        UI.flash('error', errors.join(' | '));
       }
-      afterSuccess('Se procesaron correctamente ' + result.success_count + ' documentos.', 'vc_documents.batch_processed', { processed: result.success_count });
+      if (processed === 0) {
+        UI.remember(values);
+        if (window.App) window.App.render();
+        return undefined;
+      }
+      afterSuccess('Se procesaron correctamente ' + processed + ' documentos.', 'vc_documents.batch_processed', { processed: processed });
     });
   };
 

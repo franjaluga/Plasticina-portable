@@ -4,6 +4,11 @@
   const T = window.PlasticinaTest;
   const year = new Date().getFullYear();
 
+  function monthEndIso(month, valueYear) {
+    const lastDay = new Date(valueYear, month, 0).getDate();
+    return valueYear + '-' + String(month).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0');
+  }
+
   function resetWithStart(month, startYear) {
     T.resetStore();
     const owner = Store.createOwner({
@@ -72,7 +77,7 @@
   });
 
   T.test('Store genera asientos cuadrados desde documentos', function () {
-    T.resetStore();
+    resetWithStart(1, year);
     const document = Store.createDocument(sampleDocument(20, 1190));
     const journalId = Store.registerDocumentJournal(document.id, '4010101', 'Venta de prueba');
     const journal = Store.journal(journalId);
@@ -365,13 +370,18 @@
       { account_code: '4010101', debit: 0, credit: 100, component_name: 'manual' }
     ];
     Store.registerManualJournal(year, 3, year + '-03-05', 'Marzo', entries);
-    const document = Store.createDocument(sampleDocument(70, 1190));
+    const juneDocument = sampleDocument(70, 1190);
+    juneDocument.month_register = 6;
+    juneDocument.date = year + '-06-10';
+    const document = Store.createDocument(juneDocument);
     Store.registerDocumentJournal(document.id, '4010101');
     T.assertEqual(Store.ledger('1010101', 3, year).length, 0);
     T.assertEqual(Store.queryDocuments('V', 3, year).length, 0);
-    T.assertEqual(Store.systemJournals(year, { date_from: year + '-01-01' }).length, 0);
+    const book = Store.systemJournals(year, { date_from: year + '-01-01' });
+    T.assertEqual(book.length, 1);
+    T.assertEqual(book[0].closing_date, monthEndIso(6, year));
     T.assertEqual(Store.taxBalance(year, { date_to: year + '-03-31' }).length, 0);
-    T.assertEqual(Store.journals({ year: year, date_from: year + '-01-01' }).length, 0);
+    T.assertEqual(Store.journals({ year: year, date_from: year + '-01-01' }).length, 1);
     Store.registerManualJournal(year, 6, year + '-06-05', 'Junio', entries);
     T.assertEqual(Store.ledger('1010101', 6, year).length, 1);
     T.resetStore();
@@ -486,5 +496,239 @@
     T.resetStore();
     const error = T.assertThrows(function () { Store.parsePurchases('Nro,Monto Total\n1,5600'); });
     T.assertIncludes(error.message, 'Faltan columnas obligatorias');
+  });
+
+  function salesInvoiceRow(overrides) {
+    const cells = [
+      '1', '33', 'Del Giro', '55555555-5', 'Cliente de prueba', '12', '05/01/' + year,
+      '05/01/' + year + ' 21:19:13', '', '', '0', '5288', '1005', '6293', '0', '0', '0', '0', '0',
+      '-', '0', '0', '0', '0', '', '', '', '', '0', '', '0', '1', '0', '0', '0', '', '', '',
+      '89335247', '', '', '', ''
+    ];
+    Object.keys(overrides || {}).forEach(function (index) { cells[Number(index)] = overrides[index]; });
+    return cells.join(',');
+  }
+
+  function salesBoletaRow(overrides) {
+    const cells = ['39', '66666666-6', '05/01/' + year, ' ', '3', '96', '7671', '1458', '0', '9129'];
+    Object.keys(overrides || {}).forEach(function (index) { cells[Number(index)] = overrides[index]; });
+    return cells.join(',');
+  }
+
+  function salesPeriod() {
+    const start = Store.ownerStartPeriod();
+    return { month_register: start.month, year_register: start.year, sale_format: 'factura', type_vc: 'V' };
+  }
+
+  T.test('Store importa ventas facturas desde el formato SII con el libro indicado', function () {
+    T.resetStore();
+    const period = salesPeriod();
+    const payload = Store.parseSales(Store.SALES_INVOICE_HEADERS.join(',') + '\n' + salesInvoiceRow({}), 'factura');
+    Object.assign(payload, period);
+    T.assertEqual(payload.headers.length, 43);
+    T.assertEqual(payload.rows.length, 1);
+    const validation = Store.validateSales(payload);
+    T.assertEqual(validation.ok, true, JSON.stringify(validation.rowIssues[0].cells));
+    const data = Store.mapSaleRow(payload, payload.rows[0]);
+    T.assertEqual(data.type_vc, 'V');
+    T.assertEqual(data.rut, '55555555-5');
+    T.assertEqual(data.entity_name, 'Cliente de prueba');
+    T.assertEqual(data.doctype, '33');
+    T.assertEqual(data.folio, '12');
+    T.assertEqual(data.vat_rec, 1005);
+    T.assertEqual(data.total, 6293);
+    T.assertEqual(data.date_centralize, year + '-01-05');
+    T.assertEqual(data.month_register, period.month_register);
+    T.assertEqual(Store.importSales(payload), 1);
+    T.assertEqual(Store.documents().length, 1);
+    T.assertEqual(Store.documents()[0].type_vc, 'V');
+    T.assertEqual(Store.queryDocuments('V', period.month_register, period.year_register).length, 1);
+  });
+
+  T.test('Store importa ventas boletas con el receptor genérico', function () {
+    T.resetStore();
+    const period = salesPeriod();
+    period.sale_format = 'boleta';
+    const payload = Store.parseSales(Store.SALES_BOLETA_HEADERS.join(',') + '\n' + salesBoletaRow({}), 'boleta');
+    Object.assign(payload, period);
+    const validation = Store.validateSales(payload);
+    T.assertEqual(validation.ok, true, JSON.stringify(validation.rowIssues[0].cells));
+    const data = Store.mapSaleRow(payload, payload.rows[0]);
+    T.assertEqual(data.type_vc, 'V');
+    T.assertEqual(data.rut, '66666666-6');
+    T.assertEqual(data.entity_name, 'cliente con boletas');
+    T.assertEqual(data.folio, '96');
+    T.assertEqual(data.vat_rec, 1458);
+    T.assertEqual(data.total, 9129);
+    T.assertEqual(data.date_centralize, null);
+    T.assertEqual(Store.importSales(payload), 1);
+    T.assertEqual(Store.queryDocuments('V', period.month_register, period.year_register).length, 1);
+  });
+
+  T.test('Store marca datos faltantes y descuadres del CSV de ventas', function () {
+    T.resetStore();
+    const period = salesPeriod();
+    const missingRut = Store.parseSales(Store.SALES_INVOICE_HEADERS.join(',') + '\n' + salesInvoiceRow({ 3: '' }), 'factura');
+    Object.assign(missingRut, period);
+    const missingValidation = Store.validateSales(missingRut);
+    T.assertEqual(missingValidation.ok, false);
+    T.assert(missingValidation.rowIssues[0].cells.c3 && missingValidation.rowIssues[0].cells.c3.length > 0,
+      'La celda del RUT debe quedar marcada');
+    T.assertThrows(function () { Store.importSales(missingRut); });
+
+    period.sale_format = 'boleta';
+    const unbalanced = Store.parseSales(Store.SALES_BOLETA_HEADERS.join(',') + '\n' + salesBoletaRow({ 9: '9130' }), 'boleta');
+    Object.assign(unbalanced, period);
+    const unbalancedValidation = Store.validateSales(unbalanced);
+    T.assertEqual(unbalancedValidation.ok, false);
+    T.assert(String(unbalancedValidation.rowIssues[0].cells.c9).indexOf('no cuadra') !== -1,
+      'El total debe marcar el descuadre');
+  });
+
+  T.test('Store rechaza columnas obligatorias ausentes y formatos incorrectos en ventas', function () {
+    T.resetStore();
+    const error = T.assertThrows(function () {
+      Store.parseSales('Nro,Tipo Doc,Rut cliente,Monto total\n1,33,55555555-5,6293', 'factura');
+    });
+    T.assertIncludes(error.message, 'Faltan columnas obligatorias en el CSV de ventas factura');
+    const formatError = T.assertThrows(function () {
+      Store.parseSales(Store.SALES_BOLETA_HEADERS.join(',') + '\n' + salesBoletaRow({}), 'factura');
+    });
+    T.assertIncludes(formatError.message, 'Faltan columnas obligatorias en el CSV de ventas factura');
+  });
+
+  T.test('Los documentos de venta importados generan asientos en el libro diario', function () {
+    const fixtures = [
+      { format: 'factura', headers: Store.SALES_INVOICE_HEADERS, row: salesInvoiceRow({}), net: 5288, vat: 1005, total: 6293 },
+      { format: 'boleta', headers: Store.SALES_BOLETA_HEADERS, row: salesBoletaRow({}), net: 7671, vat: 1458, total: 9129 }
+    ];
+    fixtures.forEach(function (fixture) {
+      T.resetStore();
+      resetWithStart(1, year);
+      const period = salesPeriod();
+      period.sale_format = fixture.format;
+      const payload = Store.parseSales(fixture.headers.join(',') + '\n' + fixture.row, fixture.format);
+      Object.assign(payload, period);
+      T.assertEqual(Store.importSales(payload), 1);
+      const document = Store.documents({ type_vc: 'V' })[0];
+      const glosa = 'Contabilización de venta ' + fixture.format;
+      const batch = Store.batchProcess([document.id], '4010110', glosa);
+      T.assertEqual(batch.success_count, 1);
+      T.assertEqual(batch.errors.length, 0);
+      const posted = Store.documents()[0];
+      const journal = posted.journal;
+      T.assert(journal, 'El asiento de la venta ' + fixture.format + ' debió crearse');
+      T.assertEqual(journal.year, period.year_register);
+      T.assertEqual(journal.date, monthEndIso(period.month_register, period.year_register));
+      T.assertEqual(journal.closing_date, journal.date);
+      T.assertEqual(journal.description, glosa);
+      T.assertEqual(journal.is_balanced, true);
+      T.assertEqual(journal.entries.length, 3);
+      const entry = function (component) {
+        return journal.entries.find(function (item) { return item.component_name === component; });
+      };
+      T.assertEqual(entry('net').credit, fixture.net);
+      T.assertEqual(entry('net').debit, 0);
+      T.assertEqual(entry('vat_rec').credit, fixture.vat);
+      T.assertEqual(entry('total').debit, fixture.total);
+      T.assertEqual(entry('total').account_code, '1010401');
+      T.assertEqual(Store.pendingDocuments().length, 0);
+      T.assert(Store.systemJournals(period.year_register).some(function (item) {
+        return Number(item.id) === Number(journal.id);
+      }), 'El asiento debe aparecer en el libro diario');
+    });
+    T.resetStore();
+  });
+
+  T.test('El libro diario incluye compras y ventas de boleta y factura por el cierre del mes', function () {
+    resetWithStart(11, year);
+    const closingDate = monthEndIso(11, year);
+    const cases = [
+      { folio: 301, type_vc: 'V', doctype: 33, name: 'Factura de venta' },
+      { folio: 302, type_vc: 'V', doctype: 39, name: 'Boleta de venta' },
+      { folio: 303, type_vc: 'C', doctype: 33, name: 'Factura de compra' },
+      { folio: 304, type_vc: 'C', doctype: 39, name: 'Boleta de compra' }
+    ];
+    const journalIds = [];
+    cases.forEach(function (item) {
+      const document = Store.createDocument({
+        month_register: 11,
+        year_register: year,
+        type_vc: item.type_vc,
+        rut: '11111111-1',
+        entity_name: item.name,
+        doctype: item.doctype,
+        document_type_name: item.doctype === 39 ? 'Boleta' : 'Factura Electrónica',
+        folio: item.folio,
+        date: year + '-01-10',
+        net: 1000,
+        vat_rec: 190,
+        total: 1190
+      });
+      const result = Store.batchProcess([document.id], '4010110', 'Cierre ' + item.name);
+      T.assertEqual(result.success_count, 1, item.name + ': ' + result.errors.join('; '));
+      journalIds.push(Store.document(document.id).journal.id);
+    });
+    const book = Store.systemJournals(year, {});
+    T.assertEqual(book.length, cases.length);
+    journalIds.forEach(function (journalId) {
+      const journal = book.find(function (item) { return Number(item.id) === Number(journalId); });
+      T.assert(journal, 'El asiento ' + journalId + ' debió aparecer en el libro diario');
+      T.assertEqual(journal.date, closingDate);
+      T.assertEqual(journal.closing_date, closingDate);
+      T.assertEqual(journal.year, year);
+    });
+    T.resetStore();
+  });
+
+  T.test('El libro diario recupera asientos heredados por el cierre del mes de su libro', function () {
+    resetWithStart(11, year);
+    const document = Store.createDocument({
+      month_register: 11,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Heredado',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 350,
+      date: year + '-01-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    const journalId = Store.registerDocumentJournal(document.id, '4010110', 'Asiento heredado');
+    const backup = JSON.parse(Store.exportJson());
+    const raw = backup.journals.find(function (item) { return Number(item.id) === Number(journalId); });
+    raw.year = year - 1;
+    raw.date = year + '-01-10';
+    Store.replaceState(JSON.stringify(backup));
+    const book = Store.systemJournals(year, {});
+    T.assertEqual(book.length, 1);
+    T.assertEqual(Number(book[0].id), Number(journalId));
+    T.assertEqual(book[0].date, year + '-01-10');
+    T.assertEqual(book[0].closing_date, monthEndIso(11, year));
+    T.resetStore();
+  });
+
+  T.test('No se contabiliza un cierre anterior al inicio de actividades', function () {
+    resetWithStart(11, year);
+    const document = Store.createDocument({
+      month_register: 10,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Antiguo',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 351,
+      date: year + '-01-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    const error = T.assertThrows(function () { Store.registerDocumentJournal(document.id, '4010110'); });
+    T.assertIncludes(error.message, 'anterior al inicio de actividades');
+    T.resetStore();
   });
 })();

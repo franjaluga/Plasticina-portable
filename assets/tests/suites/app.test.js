@@ -30,6 +30,15 @@
     T.assertEqual(app.router.matchRoute('/ingress/import/compras/importado').view, 'ingressImportPurchasesImported');
   });
 
+  T.test('El importador de ventas tiene carga, revisión y confirmación con rutas propias', function () {
+    T.assertEqual(UI.route('ingress.import.sales'), '#/ingress/import/ventas');
+    T.assertEqual(UI.route('ingress.import.sales.preview'), '#/ingress/import/ventas/preview');
+    T.assertEqual(UI.route('ingress.import.sales.imported'), '#/ingress/import/ventas/importado');
+    T.assertEqual(app.router.matchRoute('/ingress/import/ventas').view, 'ingressImportSales');
+    T.assertEqual(app.router.matchRoute('/ingress/import/ventas/preview').view, 'ingressImportSalesPreview');
+    T.assertEqual(app.router.matchRoute('/ingress/import/ventas/importado').view, 'ingressImportSalesImported');
+  });
+
   T.test('Las acciones GET redirigen a rutas conocidas', function () {
     Object.keys(app.config.getActions).forEach(function (action) {
       const hash = UI.route(app.config.getActions[action], { id: 1, owner: 1 });

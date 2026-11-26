@@ -144,6 +144,20 @@
     return null;
   }
 
+  function closingDateFromPeriod(year, month) {
+    const normalizedYear = Number(year);
+    const normalizedMonth = Number(month);
+    if (!Number.isInteger(normalizedYear) || !Number.isInteger(normalizedMonth)) return null;
+    if (normalizedYear < 2000 || normalizedMonth < 1 || normalizedMonth > 12) return null;
+    return makeIso(normalizedYear, normalizedMonth, new Date(normalizedYear, normalizedMonth, 0).getDate());
+  }
+
+  function closingDateIso(value) {
+    const parsed = parseDate(value);
+    if (!parsed) return null;
+    return closingDateFromPeriod(Number(parsed.slice(0, 4)), Number(parsed.slice(5, 7)));
+  }
+
   function like(haystack, needle) {
     if (needle === null || needle === undefined || needle === '') return true;
     return String(haystack === null || haystack === undefined ? '' : haystack).toLowerCase().indexOf(String(needle).toLowerCase()) !== -1;
@@ -282,6 +296,8 @@
     isNumericValue,
     makeIso,
     parseDate,
+    closingDateFromPeriod,
+    closingDateIso,
     like,
     nullable,
     validationMessage,

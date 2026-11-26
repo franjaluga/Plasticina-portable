@@ -7,6 +7,8 @@
     AMOUNT_FIELDS,
     activeOwnerRaw,
     clone,
+    closingDateFromPeriod,
+    closingDateIso,
     entityRut,
     isIntegerValue,
     isNumericValue,
@@ -71,6 +73,11 @@
       if (raw.vc_document_id) journal.document = hydrateDocument(rawDocument(raw.vc_document_id), false);
       if (raw.ref_doc_payed) journal.paidDocument = hydrateDocument(rawDocument(raw.ref_doc_payed), false);
     }
+    const sourceDocument = raw.vc_document_id ? rawDocument(raw.vc_document_id) : null;
+    journal.closing_date = sourceDocument
+      ? (closingDateFromPeriod(sourceDocument.year_register, sourceDocument.month_register) ||
+        closingDateIso(sourceDocument.date_centralize) || closingDateIso(sourceDocument.date) || journal.date)
+      : journal.date;
     journal.is_balanced = Boolean(journal.is_balanced);
     journal.total_debit = num(journal.total_debit);
     journal.total_credit = num(journal.total_credit);

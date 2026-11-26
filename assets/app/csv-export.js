@@ -9,7 +9,7 @@
   function journalRow(journal, entry) {
     return [
       journal.id,
-      journal.date,
+      journal.closing_date || journal.date,
       journal.description || 'Sin descripción',
       journal.vc_document_id || '',
       journal.is_balanced ? 'Cuadrado' : 'Descuadrado',

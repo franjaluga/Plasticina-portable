@@ -4,6 +4,11 @@
   const T = window.PlasticinaTest;
   const ctx = { params: { id: 1, owner: 1, accountTemplate: 1 }, query: {} };
 
+  function monthEndIso(month, valueYear) {
+    const lastDay = new Date(valueYear, month, 0).getDate();
+    return valueYear + '-' + String(month).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0');
+  }
+
   function resetWithStart(month, startYear) {
     T.resetStore();
     const owner = Store.createOwner({
@@ -119,8 +124,34 @@
     T.assertIncludes(book, 'Glosa manual de prueba');
     T.assertIncludes(book, 'Glosa del documento');
     T.assertIncludes(book, '11111111-1');
+    T.assertIncludes(book, monthEndIso(3, year));
     T.assertIncludes(book, UI.route('accounting.system_journals.export_csv', bookQuery));
     T.assert(book.indexOf('Cambiar Rango') === -1, 'El flujo de rango eliminado no debe aparecer en el reporte');
+  });
+
+  T.test('El libro diario muestra documentos anteriores al inicio por su cierre de mes', function () {
+    const year = Store.workingYear();
+    const closingDate = monthEndIso(11, year);
+    resetWithStart(11, year);
+    const document = Store.createDocument({
+      month_register: 11,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente de cierre',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 88,
+      date: year + '-01-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    Store.registerDocumentJournal(document.id, '4010110', 'Cierre de noviembre');
+    const html = window.Views.systemJournals({ params: {}, query: { year: year } });
+    T.assertIncludes(html, 'Cierre de noviembre');
+    T.assertIncludes(html, closingDate);
+    T.assert(html.indexOf('No se encontraron asientos contables') === -1, 'El asiento debió aparecer en el libro');
   });
 
   T.test('El formulario de documentos expone las acciones esperadas', function () {
@@ -599,16 +630,88 @@
     T.assertIncludes(html, 'bindAccountSearchForm');
   });
 
-  T.test('El importador ofrece dos cards con botones diferenciados', function () {
+  T.test('El importador ofrece dos cards con botones activos', function () {
     T.resetStore();
     const html = window.Views.ingressImport(ctx);
     T.assertIncludes(html, 'Importar compras');
     T.assertIncludes(html, 'Importar ventas');
     T.assertIncludes(html, UI.route('ingress.import.purchases'));
-    T.assertIncludes(html, 'Próximamente');
-    T.assert(html.indexOf('disabled') !== -1, 'El botón de ventas debe estar deshabilitado');
+    T.assertIncludes(html, 'data-action="imports.sales_start"');
+    T.assert(html.indexOf('Próximamente') === -1, 'El importador de ventas ya no debe estar deshabilitado');
     T.assertIncludes(html, 'text-indigo-600');
     T.assertIncludes(html, 'bg-emerald-50');
+  });
+
+  T.test('La tarjeta de importar ventas pide formato, mes y año antes de abrir el importador', function () {
+    T.resetStore();
+    const html = window.Views.ingressImport(ctx);
+    T.assertIncludes(html, 'data-action="imports.sales_start"');
+    T.assertIncludes(html, 'name="sale_format" id="sale_format"');
+    T.assertIncludes(html, '<option value="factura" selected>Ventas facturas</option>');
+    T.assertIncludes(html, '<option value="boleta">Ventas boletas</option>');
+    T.assertIncludes(html, 'name="month_register" id="sales_month"');
+    T.assertIncludes(html, 'name="year_register" id="sales_year"');
+    T.assertIncludes(html, 'Mes del libro');
+    T.assertIncludes(html, 'Año del libro');
+  });
+
+  T.test('La carga de ventas muestra el formato y el libro elegidos', function () {
+    T.resetStore();
+    const period = { sale_format: 'boleta', month_register: Store.ownerStartPeriod().month, year_register: Store.workingYear() };
+    const html = window.Views.ingressImportSales({ params: {}, query: period });
+    T.assertIncludes(html, 'Libro de ventas seleccionado');
+    T.assertIncludes(html, 'Ventas boletas');
+    T.assertIncludes(html, 'name="sale_format" value="boleta"');
+    T.assertIncludes(html, 'name="month_register" value="' + period.month_register + '"');
+    T.assertIncludes(html, 'name="year_register" value="' + period.year_register + '"');
+    T.assertIncludes(html, 'Tipo de documento: Venta (V)');
+  });
+
+  T.test('La grilla de boletas precarga el CSV y muestra la razón social derivada', function () {
+    T.resetStore();
+    const headers = Store.SALES_BOLETA_HEADERS;
+    const cells = {};
+    const period = Store.ownerStartPeriod();
+    headers.forEach(function (header, index) { cells['c' + index] = ''; });
+    cells.c0 = '39';
+    cells.c1 = '66666666-6';
+    cells.c2 = '05/01/' + Store.workingYear();
+    cells.c5 = '96';
+    cells.c6 = '7671';
+    cells.c7 = '1458';
+    cells.c8 = '0';
+    cells.c9 = '9129';
+    UI.remember({
+      kind: 'sales',
+      fileName: 'venta-boleta.csv',
+      sale_format: 'boleta',
+      headers: headers,
+      rows: [{
+        line: 2,
+        cells: cells,
+        derived: { document_type_name: 'Boleta Electrónica', entity_name: 'cliente con boletas' }
+      }],
+      month_register: period.month,
+      year_register: period.year,
+      type_vc: 'V'
+    });
+    const html = window.Views.ingressImportSalesPreview(ctx);
+    T.assertIncludes(html, 'venta-boleta.csv');
+    T.assertIncludes(html, 'Revisar ventas importadas');
+    T.assertIncludes(html, 'name="sale_format" value="boleta"');
+    T.assertIncludes(html, 'name="rows[0][entity_name]" value="cliente con boletas"');
+    T.assertIncludes(html, 'Libro de ventas seleccionado');
+    T.assertIncludes(html, 'Procesar 1 documento');
+  });
+
+  T.test('La confirmación de importación de ventas ofrece dos siguientes pasos', function () {
+    T.resetStore();
+    const html = window.Views.ingressImportSalesImported(ctx);
+    T.assertIncludes(html, 'Importación de ventas completada');
+    T.assertIncludes(html, 'Ingresar más documentos vía importador');
+    T.assertIncludes(html, 'Ir a documentos pendientes de contabilización');
+    T.assertIncludes(html, UI.route('ingress.import'));
+    T.assertIncludes(html, UI.route('vc_documents.pending'));
   });
 
   T.test('La grilla de compras precarga el CSV y marca los datos faltantes', function () {
