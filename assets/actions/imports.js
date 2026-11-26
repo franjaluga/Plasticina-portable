@@ -104,7 +104,7 @@
     const reader = new FileReader();
     reader.onload = function () {
       try {
-        const parsed = Store.parsePurchases(String(reader.result || ''));
+        const parsed = Store.parsePurchases(reader.result);
         const payload = Object.assign({ headers: parsed.headers, rows: parsed.rows, type_vc: 'C' }, period);
         const validation = Store.validatePurchases(payload);
         rememberPreview(file.name || 'documentos.csv', payload.headers, payload.rows, period);
@@ -117,7 +117,7 @@
       }
     };
     reader.onerror = function () { fail(new Error('No se pudo leer el archivo CSV.'), values); };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
   };
 
   window.Actions['imports.purchases_confirm'] = function (form) {
@@ -199,7 +199,7 @@
     const reader = new FileReader();
     reader.onload = function () {
       try {
-        const parsed = Store.parseSales(String(reader.result || ''), format);
+        const parsed = Store.parseSales(reader.result, format);
         const payload = Object.assign({ headers: parsed.headers, rows: parsed.rows, sale_format: format, type_vc: 'V' }, period);
         const validation = Store.validateSales(payload);
         rememberPreview(file.name || 'documentos.csv', payload.headers, payload.rows, period, {
@@ -216,7 +216,7 @@
       }
     };
     reader.onerror = function () { fail(new Error('No se pudo leer el archivo CSV.'), values); };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
   };
 
   window.Actions['imports.sales_confirm'] = function (form) {

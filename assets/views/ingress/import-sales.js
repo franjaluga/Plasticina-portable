@@ -53,7 +53,7 @@
             <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
                 <p class="text-xs font-bold text-slate-700 mb-2">Columnas imprescindibles del CSV</p>
                 <p class="text-xs text-slate-500 leading-relaxed">${UI.h(required.join(' · '))}</p>
-                <p class="text-[11px] text-slate-400 mt-2">Separador: coma · Codificación: UTF-8 · Fechas: DD/MM/AAAA (adicionalmente se acepta hora).</p>
+                <p class="text-[11px] text-slate-400 mt-2">Separador: se detecta automáticamente (coma, punto y coma o tabulador) · Codificación: UTF-8 o Windows-1252 · Fechas: DD/MM/AAAA (adicionalmente se acepta hora).</p>
             </div>
 
             <div class="mt-8 pt-5 border-t border-slate-200 flex justify-between items-center">

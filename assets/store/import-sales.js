@@ -233,7 +233,7 @@
   }
 
   function parseSales(text, format) {
-    const rows = parseCsv(text, ',');
+    const rows = parseCsv(text);
     if (rows.length === 0) throw new Error('El archivo CSV está vacío.');
     const headers = rows[0].map(function (header) { return String(header === null || undefined === header ? '' : header).trim(); });
     const key = format ? formatKey(format) : detectFormat(headers);

@@ -26,14 +26,14 @@
     const reader = new FileReader();
     reader.onload = async function () {
       try {
-        const count = await Store.importCsv(String(reader.result || ''));
+        const count = await Store.importCsv(reader.result);
         afterSuccess('¡CSV importado correctamente! Se ingresaron ' + count + ' documentos.', 'vc_documents.create');
       } catch (error) {
         fail(error, values);
       }
     };
     reader.onerror = function () { fail(new Error('No se pudo leer el archivo CSV.'), values); };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
   };
 
   window.Actions['documents.batch'] = function (form) {

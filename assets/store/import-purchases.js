@@ -151,7 +151,7 @@
   }
 
   function parsePurchases(text) {
-    const rows = parseCsv(text, ',');
+    const rows = parseCsv(text);
     if (rows.length === 0) throw new Error('El archivo CSV está vacío.');
     const headers = rows[0].map(function (header) { return String(header === null || header === undefined ? '' : header).trim(); });
     const index = buildIndex(headers);

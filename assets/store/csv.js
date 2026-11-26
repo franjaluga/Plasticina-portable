@@ -9,9 +9,68 @@
     validateDocument,
   } = s;
 
-  function parseCsv(text, delimiter) {
+  function asBytes(value) {
+    if (value === null || value === undefined) return new Uint8Array(0);
+    if (typeof value === 'string') return null;
+    if (value instanceof Uint8Array) return value;
+    if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(value)) {
+      return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    }
+    if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return new Uint8Array(value);
+    return null;
+  }
+
+  function decodeText(value) {
+    if (value === null || value === undefined) return '';
+    const bytes = asBytes(value);
+    if (!bytes) return String(value);
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (error) {
+      try {
+        return new TextDecoder('windows-1252').decode(bytes);
+      } catch (fallbackError) {
+        let result = '';
+        for (let index = 0; index < bytes.length; index++) result += String.fromCharCode(bytes[index]);
+        return result;
+      }
+    }
+  }
+
+  function detectDelimiter(text) {
     const source = String(text === null || text === undefined ? '' : text).replace(/^\uFEFF/, '');
-    const separator = delimiter === undefined || delimiter === null || delimiter === '' ? ',' : String(delimiter).charAt(0);
+    const candidates = [',', ';', '\t', '|'];
+    const counts = { ',': 0, ';': 0, '\t': 0, '|': 0 };
+    let quoted = false;
+    for (let index = 0; index < source.length; index++) {
+      const character = source[index];
+      if (quoted) {
+        if (character === '"') {
+          if (source[index + 1] === '"') index++;
+          else quoted = false;
+        }
+        continue;
+      }
+      if (character === '"') {
+        quoted = true;
+      } else if (character === '\n' || character === '\r') {
+        break;
+      } else if (Object.prototype.hasOwnProperty.call(counts, character)) {
+        counts[character] += 1;
+      }
+    }
+    let best = ',';
+    candidates.forEach(function (candidate) {
+      if (counts[candidate] > counts[best]) best = candidate;
+    });
+    return best;
+  }
+
+  function parseCsv(text, delimiter) {
+    const source = decodeText(text).replace(/^\uFEFF/, '');
+    const separator = delimiter === undefined || delimiter === null || delimiter === ''
+      ? detectDelimiter(source)
+      : String(delimiter).charAt(0);
     const rows = [];
     let row = [];
     let field = '';
@@ -54,7 +113,7 @@
 
   function importCsv(text) {
     return transaction(function () {
-      const rows = parseCsv(text, ',');
+      const rows = parseCsv(text);
       let headers = null;
       let processed = 0;
       const errors = [];
@@ -107,6 +166,8 @@
   }
 
   Object.assign(s, {
+    decodeText,
+    detectDelimiter,
     parseCsv,
     importCsv,
   });

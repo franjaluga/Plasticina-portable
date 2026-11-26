@@ -48,14 +48,14 @@
     const reader = new FileReader();
     reader.onload = async function () {
       try {
-        await Store.importJson(String(reader.result || ''));
+        await Store.importJson(Store.decodeText(reader.result));
         afterSuccess('Respaldo importado correctamente.', 'welcome');
       } catch (error) {
         fail(error, readForm(form));
       }
     };
     reader.onerror = function () { fail(new Error('No se pudo leer el respaldo.'), readForm(form)); };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
   };
 
   window.Actions['system.reset'] = async function () {

@@ -75,6 +75,8 @@
     processPayment: s.processPayment,
     deleteJournal: s.deleteJournal,
     accountPlan: s.accountPlan,
+    decodeText: s.decodeText,
+    detectDelimiter: s.detectDelimiter,
     parseCsv: s.parseCsv,
     PURCHASE_HEADERS: s.PURCHASE_HEADERS,
     parsePurchases: s.parsePurchases,

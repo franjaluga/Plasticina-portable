@@ -406,6 +406,15 @@
     T.assertDeepEqual(rows[1], ['1', '2', '3']);
   });
 
+  T.test('Store detecta delimitadores y decodifica Windows-1252', function () {
+    T.resetStore();
+    T.assertEqual(Store.detectDelimiter('a;b;c\n1;2;3'), ';');
+    T.assertEqual(Store.detectDelimiter('a\tb\tc\n1\t2\t3'), '\t');
+    const rows = Store.parseCsv('a;"b;c";d\n1;2;3');
+    T.assertDeepEqual(rows[0], ['a', 'b;c', 'd']);
+    T.assertEqual(Store.decodeText(new Uint8Array([67, 111, 109, 112, 97, 241, 237, 97])), 'Compañía');
+  });
+
   T.test('Store exporta e importa un respaldo SQLite', function () {
     T.resetStore();
     const created = Store.createDocument(sampleDocument(40, 1190));
@@ -429,14 +438,14 @@
     T.assertThrows(function () { Store.importJson('{'); });
   });
 
-  function purchaseRow(overrides) {
+  function purchaseRow(overrides, delimiter) {
     const cells = [
       '1', '33', 'Del Giro', '55555555-5', 'Proveedor de Ejemplo', '4720170',
       '29/10/' + year, '03/11/' + year + ' 09:41:06', '', '0', '4706', '894', '', '',
       '5600', '', '', '', '0', '', '', '', '', '0', '', '', ''
     ];
     Object.keys(overrides || {}).forEach(function (index) { cells[Number(index)] = overrides[index]; });
-    return cells.join(',');
+    return cells.join(delimiter === undefined ? ',' : delimiter);
   }
 
   T.test('Store usa el libro indicado para el CSV de compras y lo guarda en SQLite', function () {
@@ -475,6 +484,18 @@
     T.assertEqual(Store.queryDocuments('C', 2, year - 1).length, 1);
   });
 
+  T.test('Store detecta automáticamente el separador en el CSV de compras', function () {
+    T.resetStore();
+    resetWithStart(1, year - 1);
+    const payload = Store.parsePurchases(Store.PURCHASE_HEADERS.join(';') + '\n' + purchaseRow({}, ';'));
+    payload.month_register = 2;
+    payload.year_register = year - 1;
+    T.assertEqual(payload.headers.length, 27);
+    T.assertEqual(payload.rows.length, 1);
+    T.assertEqual(payload.rows[0].cells.c3, '55555555-5');
+    T.assertEqual(Store.validatePurchases(payload).ok, true, JSON.stringify(payload.rows[0].cells));
+  });
+
   T.test('Store marca datos faltantes y descuadres del CSV de compras', function () {
     T.resetStore();
     const header = Store.PURCHASE_HEADERS.join(',');
@@ -498,7 +519,7 @@
     T.assertIncludes(error.message, 'Faltan columnas obligatorias');
   });
 
-  function salesInvoiceRow(overrides) {
+  function salesInvoiceRow(overrides, delimiter) {
     const cells = [
       '1', '33', 'Del Giro', '55555555-5', 'Cliente de prueba', '12', '05/01/' + year,
       '05/01/' + year + ' 21:19:13', '', '', '0', '5288', '1005', '6293', '0', '0', '0', '0', '0',
@@ -506,13 +527,13 @@
       '89335247', '', '', '', ''
     ];
     Object.keys(overrides || {}).forEach(function (index) { cells[Number(index)] = overrides[index]; });
-    return cells.join(',');
+    return cells.join(delimiter === undefined ? ',' : delimiter);
   }
 
-  function salesBoletaRow(overrides) {
+  function salesBoletaRow(overrides, delimiter) {
     const cells = ['39', '66666666-6', '05/01/' + year, ' ', '3', '96', '7671', '1458', '0', '9129'];
     Object.keys(overrides || {}).forEach(function (index) { cells[Number(index)] = overrides[index]; });
-    return cells.join(',');
+    return cells.join(delimiter === undefined ? ',' : delimiter);
   }
 
   function salesPeriod() {
@@ -543,6 +564,22 @@
     T.assertEqual(Store.documents().length, 1);
     T.assertEqual(Store.documents()[0].type_vc, 'V');
     T.assertEqual(Store.queryDocuments('V', period.month_register, period.year_register).length, 1);
+  });
+
+  T.test('Store detecta automáticamente el separador en el CSV de ventas', function () {
+    T.resetStore();
+    const period = salesPeriod();
+    const invoice = Store.parseSales(Store.SALES_INVOICE_HEADERS.join(';') + '\n' + salesInvoiceRow({}, ';'), 'factura');
+    Object.assign(invoice, period);
+    T.assertEqual(invoice.headers.length, 43);
+    T.assertEqual(invoice.rows[0].cells.c4, 'Cliente de prueba');
+    T.assertEqual(Store.validateSales(invoice).ok, true, JSON.stringify(invoice.rows[0].cells));
+
+    const boleta = Store.parseSales(Store.SALES_BOLETA_HEADERS.join(';') + '\n' + salesBoletaRow({}, ';'), 'boleta');
+    Object.assign(boleta, period, { sale_format: 'boleta' });
+    T.assertEqual(boleta.headers.length, 10);
+    T.assertEqual(boleta.rows[0].cells.c9, '9129');
+    T.assertEqual(Store.validateSales(boleta).ok, true, JSON.stringify(boleta.rows[0].cells));
   });
 
   T.test('Store importa ventas boletas con el receptor genérico', function () {
