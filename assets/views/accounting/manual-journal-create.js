@@ -125,6 +125,8 @@
             <span id="templates-toggle-label" class="text-xs font-bold uppercase tracking-wider text-indigo-900">[+] ver asientos prefabricados</span>
         </button>
         <div id="templates-panel" class="hidden p-4 bg-indigo-50/50 border-t border-indigo-100">
+            <label for="template-amount-input" class="block text-xs font-bold uppercase text-gray-700 mb-1">Monto del asiento</label>
+            <input type="number" id="template-amount-input" min="1" value="1" class="w-32 text-xs p-1.5 border border-gray-300 bg-white font-mono mb-2" placeholder="Monto">
             <div class="flex flex-wrap gap-2">
                 ${templateButtons}
             </div>
@@ -147,6 +149,7 @@
       var templatesToggle = document.getElementById('templates-toggle');
       var templatesPanel = document.getElementById('templates-panel');
       var templatesToggleLabel = document.getElementById('templates-toggle-label');
+      var templateAmountInput = document.getElementById('template-amount-input');
 
       if (templatesToggle && templatesPanel && templatesToggleLabel) {
         templatesToggle.addEventListener('click', function () {
@@ -155,6 +158,9 @@
           templatesToggleLabel.textContent = opened
             ? '[−] ocultar asientos prefabricados'
             : '[+] ver asientos prefabricados';
+          if (opened && templateAmountInput) {
+            templateAmountInput.focus();
+          }
         });
       }
 
@@ -328,10 +334,8 @@
       function loadTemplate(templateKey) {
         var template = templatesData[templateKey];
         if (!template) { return; }
-        var amountInput = window.prompt('Ingrese el monto para la transacción (' + (template.name || templateKey) + '):');
-        if (amountInput === null) { return; }
-        var amount = parseFloat(amountInput);
-        if (isNaN(amount) || amount <= 0 || Math.round(amount) !== amount) {
+        var amount = templateAmountInput ? Number(String(templateAmountInput.value).trim()) : 0;
+        if (!Number.isInteger(amount) || amount <= 0) {
           UI.notify('Por favor, ingrese un monto entero mayor a 0.', 'error');
           return;
         }

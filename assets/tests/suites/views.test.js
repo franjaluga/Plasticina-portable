@@ -453,6 +453,18 @@
     T.assertIncludes(html, '[+] ver asientos prefabricados');
     T.assertIncludes(html, 'id="templates-panel" class="hidden"');
     T.assertIncludes(html, "[−] ocultar asientos prefabricados");
+    T.assertIncludes(html, 'type="number" id="template-amount-input" min="1" value="1"');
+    T.assert(html.indexOf('window.prompt') === -1, 'Las plantillas rápidas no deben abrir un diálogo nativo');
+  });
+
+  T.test('Las plantillas rápidas toman el monto del formulario sin diálogo nativo', function () {
+    T.resetStore();
+    const html = window.Views.manualJournalCreate(ctx);
+    T.assertIncludes(html, "var templateAmountInput = document.getElementById('template-amount-input');");
+    T.assertIncludes(html, 'var amount = templateAmountInput ? Number(String(templateAmountInput.value).trim()) : 0;');
+    T.assertIncludes(html, "UI.notify('Por favor, ingrese un monto entero mayor a 0.', 'error');");
+    T.assertIncludes(html, 'Store.journalTemplateEntries(templateKey, amount).forEach(function (entry) {');
+    T.assert(html.indexOf('window.prompt') === -1, 'No debe quedar window.prompt en la vista');
   });
 
   T.test('El asiento manual recalcula totales y muestra el cuadre en la fila de totales', function () {
