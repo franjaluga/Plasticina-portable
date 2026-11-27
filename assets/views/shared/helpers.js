@@ -359,6 +359,37 @@
     return num(value) ? format0(value) : '-';
   }
 
+  function taxBalanceFigures(balanceRows) {
+    const figures = {
+      sumSd: 0, sumSc: 0, sumBd: 0, sumBc: 0,
+      sumAct: 0, sumPas: 0, sumPer: 0, sumGan: 0,
+      resPerdida: 0, resGanancia: 0, resActivo: 0, resPasivo: 0
+    };
+    (balanceRows || []).forEach(function (row) {
+      figures.sumSd += num(row.sum_debit);
+      figures.sumSc += num(row.sum_credit);
+      figures.sumBd += num(row.balance_debit);
+      figures.sumBc += num(row.balance_credit);
+      figures.sumAct += num(row.activo);
+      figures.sumPas += num(row.pasivo);
+      figures.sumPer += num(row.perdida);
+      figures.sumGan += num(row.ganancia);
+    });
+    const diffResult = Math.abs(figures.sumPer - figures.sumGan);
+    if (figures.sumGan > figures.sumPer) {
+      figures.resPerdida = diffResult;
+      figures.resPasivo = diffResult;
+    } else if (figures.sumPer > figures.sumGan) {
+      figures.resGanancia = diffResult;
+      figures.resActivo = diffResult;
+    }
+    figures.totalInvActivo = figures.sumAct + figures.resActivo;
+    figures.totalInvPasivo = figures.sumPas + figures.resPasivo;
+    figures.totalResPerdida = figures.sumPer + figures.resPerdida;
+    figures.totalResGanancia = figures.sumGan + figures.resGanancia;
+    return figures;
+  }
+
   function queryYear(query) {
     return query && query.year !== undefined && query.year !== '' ? query.year : Store.workingYear();
   }
@@ -457,7 +488,7 @@
     normalizeAccountText, accountLabel, accountName, searchAccounts, resolveAccount,
     accountDisplayName, accountLabelState, updateAccountLabel,
     accountSearchField, bindAccountSearch, bindAccountSearchForm, bindAccountSearchFormsIn,
-    accountOptions, format0, format0OrDash, queryYear, queryMonth,
+    accountOptions, format0, format0OrDash, taxBalanceFigures, queryYear, queryMonth,
     reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload
   });
 })();

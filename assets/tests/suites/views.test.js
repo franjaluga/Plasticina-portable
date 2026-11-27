@@ -356,6 +356,15 @@
     T.assert(html.indexOf(UI.route('welcome')) === -1, 'El balance no debe volver al inicio');
   });
 
+  T.test('El balance tributario ofrece exportar CSV con el mes y año del reporte', function () {
+    T.resetStore();
+    const year = Store.workingYear();
+    const html = window.Views.taxBalance({ params: {}, query: { month: '9', year: String(year) } });
+    T.assertIncludes(html, 'href="' + UI.route('vc_documents.tax_balance.export_csv', { month: '9', year: String(year) }) + '"');
+    T.assertIncludes(html, 'Exportar CSV');
+    T.assertIncludes(html, 'bg-green-600 text-white');
+  });
+
   T.test('El balance tributario sin query mantiene el volver contextual', function () {
     T.resetStore();
     const html = window.Views.taxBalance({ params: {}, query: {} });

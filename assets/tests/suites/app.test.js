@@ -219,6 +219,61 @@
     }
   });
 
+  T.test('El CSV del balance incluye totales y respeta el mes solicitado', function () {
+    T.resetStore();
+    const originalDownload = UI.download;
+    let downloaded = '';
+    let filename = '';
+    UI.download = function (name, content) {
+      filename = name;
+      downloaded = content;
+    };
+    try {
+      const year = Store.workingYear();
+      const owner = Store.createOwner({
+        rut: '99999999-9',
+        name: 'Empresa Balance CSV',
+        account_plan_type: 'standard_pyme',
+        start_month: 1,
+        start_year: year
+      });
+      Store.setActiveOwner(owner.id);
+      Store.registerManualJournal(year, 3, year + '-03-05', 'Balance CSV', [
+        { account_code: '1010101', debit: 100, credit: 0, component_name: 'manual' },
+        { account_code: '4010110', debit: 0, credit: 100, component_name: 'manual' }
+      ]);
+      Store.registerManualJournal(year, 4, year + '-04-05', 'Fuera de rango', [
+        { account_code: '1010102', debit: 250, credit: 0, component_name: 'manual' },
+        { account_code: '4010110', debit: 0, credit: 250, component_name: 'manual' }
+      ]);
+      app.exportTaxBalanceCsv({ month: 3, year: year });
+      T.assertIncludes(filename, 'balance_tributario_' + year + '-03_');
+      T.assertIncludes(downloaded, 'Empresa;Empresa Balance CSV');
+      T.assertIncludes(downloaded, 'RUT;99999999-9');
+      T.assertIncludes(downloaded, 'Periodo Comercial;01/01/' + year + ' al 31/03/' + year);
+      T.assert(downloaded.indexOf('Empresa;') < downloaded.indexOf('Código;Cuenta Contable'), 'Los datos de la empresa deben ir antes de la tabla');
+      T.assertIncludes(downloaded, 'Código;Cuenta Contable;Sumas Débito;Sumas Crédito');
+      T.assertIncludes(downloaded, '1010101;CAJA;100;0;100;0;100;0;0;0');
+      T.assertIncludes(downloaded, 'Sumas;');
+      T.assertIncludes(downloaded, 'Resultado del Ejercicio (Utilidad)');
+      T.assertIncludes(downloaded, 'Sumas Iguales;');
+      T.assert(downloaded.endsWith('Art. 100 del Código Tributario, los antecedentes fueron presentados ante mí como fidedignos.'), 'La glosa legal debe cerrar el CSV');
+      T.assert(downloaded.indexOf('BANCOS') === -1, 'El CSV debe respetar el mes solicitado');
+    } finally {
+      UI.download = originalDownload;
+      window.location.hash = '#/';
+    }
+  });
+
+  T.test('La exportación CSV del balance es una ruta con validación de periodo', function () {
+    const hash = UI.route('vc_documents.tax_balance.export_csv', { month: 9, year: 2026 });
+    const parsed = UI.parseHash(hash);
+    T.assertEqual(parsed.path, '/vc-documents/balance-tributario/export-csv');
+    T.assertDeepEqual(parsed.query, { month: '9', year: '2026' });
+    T.assertEqual(app.config.reportPeriodRoutes[parsed.path].kind, 'month-year');
+    T.assertEqual(app.config.reportPeriodRoutes[parsed.path].context, '/reports/balance-context');
+  });
+
   T.test('La exportación CSV vive en asientos del sistema', function () {
     const hash = UI.route('accounting.system_journals.export_csv', { year: 2026, date_from: '2026-03-01' });
     const parsed = UI.parseHash(hash);

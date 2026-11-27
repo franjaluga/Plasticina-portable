@@ -95,6 +95,7 @@
 
   config.reportPeriodRoutes = {
     '/vc-documents/balance-tributario': { kind: 'month-year', context: '/reports/balance-context' },
+    '/vc-documents/balance-tributario/export-csv': { kind: 'month-year', context: '/reports/balance-context' },
     '/accounting/ledger': { kind: 'month-year', context: '/reports/ledger-context' },
     '/accounting/documents/query': { kind: 'month-year', context: '/accounting/analytics' },
     '/accounting/system-journals': { kind: 'date-from-or-year', context: '/accounting/system-journals' },

@@ -25,6 +25,7 @@
     'vc_documents.pending': '/vc-documents/pendientes',
     'vc_documents.batch_processed': '/vc-documents/contabilizados',
     'vc_documents.tax_balance': '/vc-documents/balance-tributario',
+    'vc_documents.tax_balance.export_csv': '/vc-documents/balance-tributario/export-csv',
     'vc_documents.query': '/accounting/documents/query',
     'accounting.reports.index': '/reports/analytics',
     'accounting.analytics': '/accounting/analytics',

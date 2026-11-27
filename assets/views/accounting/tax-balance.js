@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { format0, format0OrDash, num, pad, queryMonth, queryYear } = window.Plasticina.views.helpers;
+  const { format0, format0OrDash, pad, queryMonth, queryYear, taxBalanceFigures } = window.Plasticina.views.helpers;
 
   window.Views.taxBalance = function (ctx) {
     const query = ctx.query || {};
@@ -17,43 +17,11 @@
     const dateTo = year + '-' + pad(month) + '-' + pad(lastDay);
     const activeOwner = Store.activeOwner();
     const balanceRows = Store.taxBalance(year, { date_from: dateFrom, date_to: dateTo }) || [];
-    let sumSd = 0;
-    let sumSc = 0;
-    let sumBd = 0;
-    let sumBc = 0;
-    let sumAct = 0;
-    let sumPas = 0;
-    let sumPer = 0;
-    let sumGan = 0;
-
-    balanceRows.forEach(function (row) {
-      sumSd += num(row.sum_debit);
-      sumSc += num(row.sum_credit);
-      sumBd += num(row.balance_debit);
-      sumBc += num(row.balance_credit);
-      sumAct += num(row.activo);
-      sumPas += num(row.pasivo);
-      sumPer += num(row.perdida);
-      sumGan += num(row.ganancia);
-    });
-
-    const diffResult = Math.abs(sumPer - sumGan);
-    let resPerdida = 0;
-    let resGanancia = 0;
-    let resActivo = 0;
-    let resPasivo = 0;
-    if (sumGan > sumPer) {
-      resPerdida = diffResult;
-      resPasivo = diffResult;
-    } else if (sumPer > sumGan) {
-      resGanancia = diffResult;
-      resActivo = diffResult;
-    }
-
-    const totalInvActivo = sumAct + resActivo;
-    const totalInvPasivo = sumPas + resPasivo;
-    const totalResPerdida = sumPer + resPerdida;
-    const totalResGanancia = sumGan + resGanancia;
+    const {
+      sumSd, sumSc, sumBd, sumBc, sumAct, sumPas, sumPer, sumGan,
+      resPerdida, resGanancia, resActivo, resPasivo,
+      totalInvActivo, totalInvPasivo, totalResPerdida, totalResGanancia
+    } = taxBalanceFigures(balanceRows);
 
     const rows = balanceRows.length
       ? balanceRows.map(function (row) {
@@ -132,7 +100,10 @@
                 <p><span class="font-bold text-slate-900">Periodo Comercial:</span> 01/01/${UI.h(year)} al ${UI.h(pad(lastDay))}/${UI.h(pad(month))}/${UI.h(year)}</p>
             </div>
         </div>
-        <div class="text-sm">
+        <div class="flex items-center gap-2">
+            <a href="${UI.h(UI.route('vc_documents.tax_balance.export_csv', { month: month, year: year }))}" class="inline-flex items-center text-xs font-semibold bg-green-600 text-white px-3 py-2 rounded-lg shadow-sm hover:bg-green-700 transition">
+                Exportar CSV
+            </a>
             <a href="javascript:history.back()" class="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition">
                 &larr; Volver
             </a>

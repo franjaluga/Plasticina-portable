@@ -225,6 +225,10 @@
       window.Plasticina.app.exportSystemJournalsCsv(parsed.query);
       return;
     }
+    if (parsed.path === '/vc-documents/balance-tributario/export-csv') {
+      window.Plasticina.app.exportTaxBalanceCsv(parsed.query);
+      return;
+    }
     if (parsed.path === '/accounting/reports') {
       navigate(UI.route('reports.analytics'));
       return;
