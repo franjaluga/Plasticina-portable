@@ -412,6 +412,16 @@
     T.assertIncludes(pending, 'custom_net_account');
     T.assertIncludes(pending, 'Código o nombre');
     T.assert(pending.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
+    T.assert(pending.indexOf('accountsData =') === -1, 'La vista no debe incrustar un snapshot de cuentas');
+    T.assert(pending.indexOf('bindAccountSearchForm(form') === -1, 'La vista no debe usar el enlace genérico');
+    T.assertIncludes(pending, "document.getElementById('custom_net_account')");
+    T.assertIncludes(pending, 'Store.activeOwnerAccounts()');
+    T.assertIncludes(pending, 'form.__plasticinaAccountSearchForm');
+    const pendingScript = pending.split('<script>')[1].split('</script>')[0];
+    T.assert(pendingScript.indexOf("input.addEventListener('focus'") === -1, 'El campo no debe renderizar al enfocar');
+    T.assert(pendingScript.indexOf("input.addEventListener('click'") === -1, 'El campo no debe renderizar al hacer clic');
+    T.assert(pendingScript.indexOf('this.select()') === -1, 'El campo no debe seleccionar el texto al entrar');
+    new Function(pendingScript);
 
     const ledger = window.Views.ledgerContext({ params: {}, query: {} });
     T.assertIncludes(ledger, 'accountSearchField(');
