@@ -3,6 +3,12 @@
 
   const helpers = window.Plasticina.views.helpers;
 
+  function dataset(ctx, name, fallback) {
+    const data = ctx && ctx.data ? ctx.data : null;
+    if (data && Object.prototype.hasOwnProperty.call(data, name)) return data[name];
+    return typeof fallback === 'function' ? fallback() : fallback;
+  }
+
   function oldValue(oldValues, key, fallback) {
     if (oldValues && Object.prototype.hasOwnProperty.call(oldValues, key) && oldValues[key] !== null && oldValues[key] !== undefined && oldValues[key] !== '') {
       return oldValues[key];
@@ -118,6 +124,12 @@
     const labelState = opts.label === undefined
       ? accountLabelState(opts.accounts, value)
       : { text: String(opts.label), state: 'valid' };
+    const picker = opts.picker === false ? '' : ' data-account-picker="' + UI.h(opts.picker || '') + '"';
+    const source = opts.source === undefined ? '' : ' data-account-source="' + UI.h(opts.source) + '"';
+    const ownerId = opts.ownerId === undefined || opts.ownerId === null || opts.ownerId === ''
+      ? '' : ' data-owner-id="' + UI.h(opts.ownerId) + '"';
+    const workingYear = opts.workingYear === undefined || opts.workingYear === null || opts.workingYear === ''
+      ? '' : ' data-working-year="' + UI.h(opts.workingYear) + '"';
     const labelClass = labelState.state === 'valid'
       ? 'account-name-label truncate text-xs text-slate-600 font-medium'
       : 'account-name-label truncate text-xs text-gray-400 italic';
@@ -130,219 +142,32 @@
       '<input type="text"' + id + ' name="' + UI.h(name) + '" value="' + UI.h(value || '') +
       '" placeholder="' + UI.h(opts.placeholder || 'Código o nombre') +
       '" class="' + UI.h(opts.inputClass || 'w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white') +
-      '" data-account-search autocomplete="off"' + required + '>' +
+      '" data-account-search' + picker + source + ownerId + workingYear + ' autocomplete="off"' + required + '>' +
       '</div>' + label + '</div>';
   }
-
-  let accountSearchSequence = 0;
-  const accountSearchBindings = [];
-  let accountOutsideListenerAttached = false;
 
   function defaultAccountResolver() {
     return typeof Store !== 'undefined' && Store.activeOwnerAccounts ? Store.activeOwnerAccounts() : [];
   }
 
-  function closeOtherAccountSearches(current) {
-    accountSearchBindings.forEach(function (binding) {
-      if (binding !== current) binding.hide();
-    });
-  }
-
-  function onAccountOutsidePointerDown(event) {
-    const target = event && event.target;
-    accountSearchBindings.slice().forEach(function (binding) {
-      if (binding.input.isConnected === false) {
-        const index = accountSearchBindings.indexOf(binding);
-        if (index !== -1) accountSearchBindings.splice(index, 1);
-        return;
-      }
-      if (!target || target === binding.input || target === binding.panel ||
-          (typeof binding.panel.contains === 'function' && binding.panel.contains(target))) return;
-      binding.hide();
-    });
-  }
-
-  function ensureAccountOutsideListener() {
-    if (accountOutsideListenerAttached || typeof document === 'undefined' || !document.addEventListener) return;
-    document.addEventListener('pointerdown', onAccountOutsidePointerDown);
-    accountOutsideListenerAttached = true;
+  function picker() {
+    return window.Plasticina.views.accountPicker || null;
   }
 
   function bindAccountSearch(input, accounts, options) {
-    if (!input) return null;
-    if (input.__plasticinaAccountSearch) return input.__plasticinaAccountSearch;
-
-    const opts = options || {};
-    const source = accountSource(accounts);
-    const listId = 'account-suggestions-' + (++accountSearchSequence);
-    const panel = document.createElement('div');
-    panel.id = listId;
-    panel.className = 'account-suggestions hidden';
-    panel.setAttribute('role', 'listbox');
-    input.setAttribute('role', 'combobox');
-    input.setAttribute('aria-autocomplete', 'list');
-    input.setAttribute('aria-expanded', 'false');
-    input.setAttribute('aria-controls', listId);
-    input.parentElement.appendChild(panel);
-
-    let matches = [];
-    let active = -1;
-
-    function hide() {
-      panel.classList.add('hidden');
-      input.setAttribute('aria-expanded', 'false');
-      active = -1;
-    }
-
-    function show() {
-      closeOtherAccountSearches(binding);
-      panel.classList.remove('hidden');
-      input.setAttribute('aria-expanded', 'true');
-    }
-
-    function markActive() {
-      Array.prototype.forEach.call(panel.querySelectorAll('[role="option"]'), function (option, index) {
-        const selected = index === active;
-        option.classList.toggle('account-suggestion-active', selected);
-        option.setAttribute('aria-selected', selected ? 'true' : 'false');
-      });
-    }
-
-    function select(index) {
-      const account = matches[index];
-      if (!account) return;
-      input.value = String(account.code);
-      input.setCustomValidity('');
-      updateAccountLabel(input, accountName(account), 'valid');
-      hide();
-      if (typeof opts.onSelect === 'function') opts.onSelect(account, input);
-    }
-
-    function render() {
-      matches = searchAccounts(source, input.value, opts.limit === undefined ? 8 : opts.limit);
-      if (!matches.length) {
-        panel.innerHTML = '<div class="account-suggestion-empty">Sin coincidencias</div>';
-        show();
-        return;
-      }
-      panel.innerHTML = matches.map(function (account, index) {
-        return '<button type="button" role="option" aria-selected="false" data-index="' + index +
-          '" class="account-suggestion" data-code="' + UI.h(account.code) + '">' +
-          '<span class="font-mono font-semibold text-slate-800">' + UI.h(account.code) + '</span>' +
-          '<span class="text-slate-400"> - </span>' +
-          '<span class="text-slate-600">' + UI.h(account.name) + '</span>' +
-          '</button>';
-      }).join('');
-      Array.prototype.forEach.call(panel.querySelectorAll('[data-index]'), function (option) {
-        option.addEventListener('mousedown', function (event) {
-          event.preventDefault();
-          select(Number(option.getAttribute('data-index')));
-        });
-      });
-      active = -1;
-      show();
-    }
-
-    input.addEventListener('focus', render);
-    input.addEventListener('click', render);
-    input.addEventListener('input', function () {
-      input.setCustomValidity('');
-      const labelState = accountLabelState(source, input.value);
-      updateAccountLabel(input, labelState.text, labelState.state);
-      render();
-      if (typeof opts.onInput === 'function') opts.onInput(input);
-    });
-    input.addEventListener('keydown', function (event) {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        if (!matches.length) render();
-        if (!matches.length) return;
-        active = event.key === 'ArrowDown'
-          ? Math.min(active + 1, matches.length - 1)
-          : Math.max(active - 1, 0);
-        markActive();
-        return;
-      }
-      if (event.key === 'Enter' && active >= 0 && matches[active]) {
-        event.preventDefault();
-        select(active);
-        return;
-      }
-      if (event.key === 'Escape') hide();
-    });
-    input.addEventListener('focusout', function (event) {
-      if (event && event.relatedTarget && typeof panel.contains === 'function' && panel.contains(event.relatedTarget)) return;
-      hide();
-    });
-
-    const binding = { input: input, panel: panel, render: render, hide: hide, select: select, show: show };
-    input.__plasticinaAccountSearch = binding;
-    accountSearchBindings.push(binding);
-    ensureAccountOutsideListener();
-    return binding;
+    const controller = picker();
+    return controller ? controller.bindInput(input, accounts, options) : null;
   }
 
   function bindAccountSearchForm(form, accounts, options) {
-    if (!form) return null;
-    if (form.__plasticinaAccountSearchForm) return form.__plasticinaAccountSearchForm;
-
-    const opts = options || {};
-    const selector = opts.selector || '[data-account-search]';
-    const source = accountSource(accounts);
-
-    function fields() {
-      return Array.prototype.slice.call(form.querySelectorAll(selector));
-    }
-
-    fields().forEach(function (input) { bindAccountSearch(input, source, opts); });
-
-    form.addEventListener('submit', function (event) {
-      let valid = true;
-      fields().forEach(function (input) {
-        const value = String(input.value || '').trim();
-        if (!value) {
-          input.setCustomValidity('');
-          updateAccountLabel(input, 'Seleccione o escriba cuenta', 'empty');
-          return;
-        }
-        const result = resolveAccount(source, value);
-        if (result.account) {
-          input.value = String(result.account.code);
-          input.setCustomValidity('');
-          updateAccountLabel(input, accountName(result.account), 'valid');
-          if (typeof opts.onResolve === 'function') opts.onResolve(result.account, input);
-          return;
-        }
-        valid = false;
-        const message = result.ambiguous
-          ? 'La cuenta "' + value + '" es ambigua; seleccione una coincidencia de la lista.'
-          : 'No existe una cuenta contable que coincida con "' + value + '".';
-        updateAccountLabel(input, result.ambiguous ? 'Cuenta ambigua' : 'Cuenta no encontrada', 'invalid');
-        input.setCustomValidity(message);
-        if (typeof UI !== 'undefined' && UI.notify) UI.notify(message, 'error');
-      });
-      if (!valid) event.preventDefault();
-    });
-
-    const binding = { form: form, fields: fields };
-    form.__plasticinaAccountSearchForm = binding;
-    return binding;
+    const controller = picker();
+    return controller ? controller.bindForm(form, accounts, options) : null;
   }
 
   function bindAccountSearchFormsIn(container, resolver, options) {
-    const root = container || (typeof document !== 'undefined' ? document : null);
-    if (!root || typeof root.querySelectorAll !== 'function') return [];
-    const bindings = [];
-    Array.prototype.forEach.call(root.querySelectorAll('form[data-action]'), function (form) {
-      if (!form.querySelector || !form.querySelector('[data-account-search]')) return;
-      if (form.__plasticinaAccountSearchForm) return;
-      const accounts = typeof resolver === 'function'
-        ? resolver(form)
-        : (resolver === undefined || resolver === null ? defaultAccountResolver(form) : resolver);
-      const binding = bindAccountSearchForm(form, accounts, options || {});
-      if (binding) bindings.push(binding);
-    });
-    return bindings;
+    const controller = picker();
+    if (!controller) return [];
+    return controller.mount(container, resolver, options);
   }
 
   function accountOptions(accounts, selectedCode) {
@@ -484,9 +309,9 @@
   }
 
   Object.assign(helpers, {
-    oldValue, pad, capitalize, num,
-    normalizeAccountText, accountLabel, accountName, searchAccounts, resolveAccount,
-    accountDisplayName, accountLabelState, updateAccountLabel,
+    dataset, oldValue, pad, capitalize, num,
+    normalizeAccountText, accountLabel, accountName, accountSource, searchAccounts, resolveAccount,
+    accountDisplayName, accountLabelState, updateAccountLabel, defaultAccountResolver,
     accountSearchField, bindAccountSearch, bindAccountSearchForm, bindAccountSearchFormsIn,
     accountOptions, format0, format0OrDash, taxBalanceFigures, queryYear, queryMonth,
     reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload

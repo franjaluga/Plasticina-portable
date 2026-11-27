@@ -3,14 +3,16 @@
 
   window.Views = window.Views || {};
 
-  const { format0, num, pad, queryMonth, queryYear } = window.Plasticina.views.helpers;
+  const { dataset, format0, num, pad, queryMonth, queryYear } = window.Plasticina.views.helpers;
 
   window.Views.ledgerResults = function (ctx) {
     const query = ctx.query || {};
     const accountCode = query.account_code === undefined || query.account_code === null ? '' : query.account_code;
     const month = queryMonth(query);
     const year = queryYear(query);
-    const journals = Store.ledger(accountCode, month, year) || [];
+    const journals = dataset(ctx, 'journals.ledger', function () {
+      return Store.ledger(accountCode, month, year) || [];
+    });
     let saldo = 0;
     let totalDebe = 0;
     let totalHaber = 0;
@@ -90,4 +92,5 @@
     </div>
     `;
   };
+  window.Views.ledgerResults.resources = ['journals.ledger'];
 })();

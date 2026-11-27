@@ -3,9 +3,15 @@
 
   window.Views = window.Views || {};
 
+  const { dataset } = window.Plasticina.views.helpers;
+
   window.Views.ownersAccounts = function (ctx) {
-    const owner = Store.owner(ctx.params.owner) || {};
-    const accounts = Store.accounts(owner.id);
+    const detail = dataset(ctx, 'owners.accounts', function () {
+      const owner = Store.owner(ctx.params.owner) || {};
+      return { owner: owner, accounts: Store.accounts(owner.id) };
+    });
+    const owner = detail.owner || {};
+    const accounts = detail.accounts || [];
     const badgeColors = {
       activo: 'bg-blue-50 text-blue-700 border-blue-200',
       pasivo: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -196,4 +202,5 @@
     </script>
     `;
   };
+  window.Views.ownersAccounts.resources = ['owners.accounts'];
 })();

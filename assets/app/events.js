@@ -2,6 +2,7 @@
   'use strict';
 
   const config = window.Plasticina.app.config;
+  const db = window.Plasticina.db;
   const router = window.Plasticina.app.router;
   const helpers = window.Plasticina.actions.helpers;
   const viewHelpers = window.Plasticina.views.helpers;
@@ -106,6 +107,15 @@
 
   document.addEventListener('submit', onSubmit);
   document.addEventListener('click', onClick);
+  document.addEventListener('change', function (event) {
+    const source = event && event.target && typeof event.target.getAttribute === 'function' ? event.target : null;
+    if (!source || source.getAttribute('data-select-all') === null) return;
+    const selector = source.getAttribute('data-select-all') || '.doc-checkbox';
+    const root = source.form || document;
+    Array.prototype.forEach.call(root.querySelectorAll(selector), function (checkbox) {
+      checkbox.checked = source.checked;
+    });
+  });
   document.addEventListener('focusin', function (event) {
     ensureAccountSearchBindings(event.target);
   });
@@ -113,4 +123,17 @@
     ensureAccountSearchBindings(event.target);
   });
   window.addEventListener('hashchange', router.render);
+
+  if (db.onExternalChange) {
+    db.onExternalChange(function () {
+      Promise.resolve(db.ensureFresh()).then(function () {
+        if (window.Store) window.Store.refresh();
+        if (window.Data) window.Data.invalidate();
+        router.render();
+      }).catch(function (error) {
+        UI.flash('error', error && error.message ? error.message : String(error));
+        router.render();
+      });
+    });
+  }
 })();

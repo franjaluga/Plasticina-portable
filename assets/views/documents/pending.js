@@ -3,19 +3,21 @@
 
   window.Views = window.Views || {};
 
-  const { accountSearchField } = window.Plasticina.views.helpers;
+  const { accountSearchField, dataset } = window.Plasticina.views.helpers;
 
   window.Views.documentPending = function (ctx) {
     const owner = Store.activeOwner();
     const query = ctx.query || {};
-    const documentTypes = Store.documentTypes();
-    const accounts = Store.activeOwnerAccounts();
+    const documentTypes = dataset(ctx, 'catalogs.documentTypes', function () { return Store.documentTypes(); });
+    const accounts = dataset(ctx, 'catalogs.accounts', function () {
+      return { accounts: Store.activeOwnerAccounts() };
+    }).accounts;
     const filters = {};
     if (query.rut !== undefined && query.rut !== '') filters.rut = query.rut;
     if (query.document_type_id !== undefined && query.document_type_id !== '') filters.document_type_id = query.document_type_id;
     if (query.date !== undefined && query.date !== '') filters.date = query.date;
     if (query.folio !== undefined && query.folio !== '') filters.folio = query.folio;
-    const documents = Store.pendingDocuments(filters);
+    const documents = dataset(ctx, 'documents.pending', function () { return Store.pendingDocuments(filters); });
     const oldValues = UI.old() || {};
     const glosa = oldValues.glosa === undefined || oldValues.glosa === null || oldValues.glosa === ''
       ? 'Contabilización de documentos V/C'
@@ -114,6 +116,10 @@
                         ${accountSearchField('custom_net_account', accountCode, {
                           id: 'custom_net_account',
                           accounts: accounts,
+                          picker: 'net',
+                          source: 'catalogs.accounts',
+                          ownerId: owner ? owner.id : '',
+                          workingYear: Store.workingYear(),
                           inputClass: 'w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white',
                           placeholder: 'Código o nombre'
                         })}
@@ -139,7 +145,7 @@
                     <thead class="bg-gray-800 text-white">
                         <tr>
                             <th scope="col" class="w-12 px-4 py-3 text-center">
-                                <input type="checkbox" id="select-all" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <input type="checkbox" id="select-all" data-select-all=".doc-checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             </th>
                             <th scope="col" class="px-6 py-3 font-bold uppercase tracking-wider">Folio</th>
                             <th scope="col" class="px-6 py-3 font-bold uppercase tracking-wider">Entidad / RUT</th>
@@ -158,160 +164,7 @@
         </form>
     </div>
 
-    <script>
-    (function () {
-      var viewHelpers = window.Plasticina.views.helpers;
-      var form = document.querySelector('form[data-action="documents.batch"]');
-      var input = document.getElementById('custom_net_account');
-
-      if (form && input) {
-        var panel = document.createElement('div');
-        panel.id = 'custom_net_account-suggestions';
-        panel.className = 'account-suggestions hidden';
-        panel.setAttribute('role', 'listbox');
-        input.setAttribute('role', 'combobox');
-        input.setAttribute('aria-autocomplete', 'list');
-        input.setAttribute('aria-expanded', 'false');
-        input.setAttribute('aria-controls', panel.id);
-        input.parentElement.appendChild(panel);
-
-        var accounts = null;
-        var matches = [];
-        var active = -1;
-        var frame = null;
-
-        function ensureAccounts() {
-          if (accounts === null) accounts = Store.activeOwnerAccounts();
-          return accounts;
-        }
-
-        function hide() {
-          panel.classList.add('hidden');
-          input.setAttribute('aria-expanded', 'false');
-          active = -1;
-        }
-
-        function show() {
-          panel.classList.remove('hidden');
-          input.setAttribute('aria-expanded', 'true');
-        }
-
-        function markActive() {
-          Array.prototype.forEach.call(panel.querySelectorAll('[role="option"]'), function (option, index) {
-            var selected = index === active;
-            option.classList.toggle('account-suggestion-active', selected);
-            option.setAttribute('aria-selected', selected ? 'true' : 'false');
-          });
-        }
-
-        function select(index) {
-          var account = matches[index];
-          if (!account) return;
-          input.value = String(account.code);
-          input.setCustomValidity('');
-          viewHelpers.updateAccountLabel(input, viewHelpers.accountName(account), 'valid');
-          hide();
-        }
-
-        function render() {
-          matches = viewHelpers.searchAccounts(ensureAccounts(), input.value, 0);
-          active = -1;
-          if (!matches.length) {
-            panel.innerHTML = '<div class="account-suggestion-empty">Sin coincidencias</div>';
-            show();
-            return;
-          }
-          panel.innerHTML = matches.map(function (account, index) {
-            return '<button type="button" role="option" aria-selected="false" data-index="' + index +
-              '" class="account-suggestion" data-code="' + UI.h(account.code) + '">' +
-              '<span class="font-mono font-semibold text-slate-800">' + UI.h(account.code) + '</span>' +
-              '<span class="text-slate-400"> - </span>' +
-              '<span class="text-slate-600">' + UI.h(account.name) + '</span>' +
-              '</button>';
-          }).join('');
-          Array.prototype.forEach.call(panel.querySelectorAll('[data-index]'), function (option) {
-            option.addEventListener('mousedown', function (event) {
-              event.preventDefault();
-              select(Number(option.getAttribute('data-index')));
-            });
-          });
-          show();
-        }
-
-        function scheduleRender() {
-          if (frame !== null) return;
-          frame = window.requestAnimationFrame
-            ? window.requestAnimationFrame(function () { frame = null; render(); })
-            : window.setTimeout(function () { frame = null; render(); }, 0);
-        }
-
-        input.addEventListener('input', function () {
-          input.setCustomValidity('');
-          var state = viewHelpers.accountLabelState(ensureAccounts(), input.value);
-          viewHelpers.updateAccountLabel(input, state.text, state.state);
-          scheduleRender();
-        });
-
-        input.addEventListener('keydown', function (event) {
-          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            if (panel.classList.contains('hidden')) render();
-            if (!matches.length) return;
-            event.preventDefault();
-            active = event.key === 'ArrowDown'
-              ? Math.min(active + 1, matches.length - 1)
-              : Math.max(active - 1, 0);
-            markActive();
-            return;
-          }
-          if (event.key === 'Enter' && active >= 0 && matches[active]) {
-            event.preventDefault();
-            select(active);
-            return;
-          }
-          if (event.key === 'Escape') hide();
-        });
-
-        input.addEventListener('focusout', function () { hide(); });
-
-        form.addEventListener('submit', function (event) {
-          var value = String(input.value || '').trim();
-          if (!value) {
-            input.setCustomValidity('');
-            viewHelpers.updateAccountLabel(input, 'Seleccione o escriba cuenta', 'empty');
-            hide();
-            return;
-          }
-          var result = viewHelpers.resolveAccount(ensureAccounts(), value);
-          if (result.account) {
-            input.value = String(result.account.code);
-            input.setCustomValidity('');
-            viewHelpers.updateAccountLabel(input, viewHelpers.accountName(result.account), 'valid');
-            hide();
-            return;
-          }
-          var message = result.ambiguous
-            ? 'La cuenta "' + value + '" es ambigua; seleccione una coincidencia de la lista.'
-            : 'No existe una cuenta contable que coincida con "' + value + '".';
-          event.preventDefault();
-          input.setCustomValidity(message);
-          viewHelpers.updateAccountLabel(input, result.ambiguous ? 'Cuenta ambigua' : 'Cuenta no encontrada', 'invalid');
-          if (window.UI && window.UI.notify) window.UI.notify(message, 'error');
-        });
-
-        form.__plasticinaAccountSearchForm = { form: form, fields: function () { return [input]; } };
-        input.__plasticinaAccountSearch = { input: input, panel: panel, render: render, hide: hide, select: select };
-      }
-
-      var selectAll = document.getElementById('select-all');
-      if (!selectAll) { return; }
-      selectAll.addEventListener('change', function () {
-        var checkboxes = document.querySelectorAll('.doc-checkbox');
-        for (var index = 0; index < checkboxes.length; index++) {
-          checkboxes[index].checked = selectAll.checked;
-        }
-      });
-    })();
-    </script>
     `;
   };
+  window.Views.documentPending.resources = ['catalogs.documentTypes', 'catalogs.accounts', 'documents.pending'];
 })();

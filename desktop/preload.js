@@ -4,8 +4,8 @@ contextBridge.exposeInMainWorld('plasticinaSqlite', {
   read: function () {
     return ipcRenderer.invoke('sqlite:read');
   },
-  write: function (bytes) {
-    return ipcRenderer.invoke('sqlite:write', bytes);
+  write: function (bytes, writerId) {
+    return ipcRenderer.invoke('sqlite:write', bytes, writerId);
   },
   acquireLock: function () {
     return ipcRenderer.invoke('sqlite:acquire-lock');
@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('plasticinaSqlite', {
     return ipcRenderer.invoke('sqlite:release-lock', token);
   },
   onChanged: function (handler) {
-    ipcRenderer.on('sqlite:changed', function () { handler(); });
+    const listener = function (_event, payload) { handler(payload || {}); };
+    ipcRenderer.on('sqlite:changed', listener);
+    return function () { ipcRenderer.removeListener('sqlite:changed', listener); };
   }
 });

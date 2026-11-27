@@ -61,16 +61,16 @@
     T.assertEqual(match.view, 'documentBatchProcessed');
   });
 
-  T.test('La ruta heredada de reportes contables redirige al hub analítico', function () {
+  T.test('La ruta heredada de reportes contables redirige al hub analítico', async function () {
     T.resetStore();
     T.assertEqual(UI.route('accounting.reports.index'), '#/reports/analytics');
     T.assertEqual(app.router.matchRoute('/accounting/reports'), null);
     T.assertEqual(app.router.matchRoute('/reports/analytics').view, 'analyticsHub');
     T.assertEqual(app.router.matchRoute('/accounting/reports/audit').view, 'auditIndex');
     window.location.hash = '#/accounting/reports';
-    app.router.render();
+    await app.router.render();
     T.assertEqual(window.location.hash, '#/reports/analytics');
-    app.router.render();
+    await app.router.render();
     const hubHtml = document.getElementById('app').innerHTML;
     T.assertIncludes(hubHtml, 'Reportes y Análisis');
     T.assertIncludes(hubHtml, UI.route('accounting.system_journals'));
@@ -78,7 +78,7 @@
     window.location.hash = '#/';
   });
 
-  T.test('La confirmación muestra el mensaje de éxito, el número creado y sus dos opciones', function () {
+  T.test('La confirmación muestra el mensaje de éxito, el número creado y sus dos opciones', async function () {
     T.resetStore();
     const year = Store.workingYear();
     const id = Store.registerManualJournal(year, 3, year + '-03-05', 'Asiento creado', [
@@ -88,7 +88,7 @@
     const journal = Store.journal(id);
     UI.flash('success', 'Asiento contable manual creado exitosamente.');
     window.location.hash = UI.route('accounting.manual_journals.created', { journal_id: id });
-    app.router.render();
+    await app.router.render();
     const html = document.getElementById('app').innerHTML;
     T.assertIncludes(html, 'Asiento contable manual creado exitosamente.');
     T.assertIncludes(html, 'Asiento N° <span class="font-mono">' + journal.entry_number + '</span>');
@@ -99,11 +99,11 @@
     T.resetStore();
   });
 
-  T.test('La confirmación masiva muestra el mensaje y sus dos cards', function () {
+  T.test('La confirmación masiva muestra el mensaje y sus dos cards', async function () {
     T.resetStore();
     UI.flash('success', 'Se procesaron correctamente 1 documentos.');
     window.location.hash = UI.route('vc_documents.batch_processed', { processed: 1 });
-    app.router.render();
+    await app.router.render();
     const html = document.getElementById('app').innerHTML;
     T.assertIncludes(html, 'Se procesaron correctamente 1 documentos.');
     T.assertIncludes(html, 'Contabilizar más documentos');
@@ -114,23 +114,23 @@
     window.location.hash = '#/';
   });
 
-  T.test('El router renderiza la portada en el contenedor', function () {
+  T.test('El router renderiza la portada en el contenedor', async function () {
     T.resetStore();
     window.location.hash = '#/';
-    app.router.render();
+    await app.router.render();
     T.assertIncludes(document.getElementById('app').innerHTML, 'Empresa Activa');
   });
 
-  T.test('El botón HOME con forma de casita aparece salvo en la portada', function () {
+  T.test('El botón HOME con forma de casita aparece salvo en la portada', async function () {
     T.resetStore();
     const home = 'aria-label="Ir al inicio"';
     window.location.hash = '#/';
-    app.router.render();
+    await app.router.render();
     T.assert(document.getElementById('app').innerHTML.indexOf(home) === -1,
       'La portada no debe mostrar el botón HOME');
 
     window.location.hash = UI.route('reports.analytics');
-    app.router.render();
+    await app.router.render();
     const html = document.getElementById('app').innerHTML;
     T.assertIncludes(html, home);
     T.assertIncludes(html, 'href="#/"');
@@ -138,16 +138,16 @@
     T.assertIncludes(html, 'M3 12l2-2m0 0l7-7 7 7');
 
     window.location.hash = '#/ruta-inexistente';
-    app.router.render();
+    await app.router.render();
     T.assertIncludes(document.getElementById('app').innerHTML, home);
     window.location.hash = '#/';
   });
 
-  T.test('El botón AYUDA muestra la mini guía en todas las vistas', function () {
+  T.test('El botón AYUDA muestra la mini guía en todas las vistas', async function () {
     T.resetStore();
     const help = 'aria-label="Ayuda"';
     window.location.hash = '#/';
-    app.router.render();
+    await app.router.render();
     let html = document.getElementById('app').innerHTML;
     T.assertIncludes(html, help);
     T.assertIncludes(html, 'id="plasticina-help-guide"');
@@ -167,20 +167,20 @@
     T.assertEqual(typeof app.router.closeHelp, 'function');
 
     window.location.hash = UI.route('reports.analytics');
-    app.router.render();
+    await app.router.render();
     html = document.getElementById('app').innerHTML;
     T.assertIncludes(html, help);
     T.assertIncludes(html, 'id="plasticina-help-guide"');
 
     window.location.hash = '#/ruta-inexistente';
-    app.router.render();
+    await app.router.render();
     T.assertIncludes(document.getElementById('app').innerHTML, help);
     window.location.hash = '#/';
   });
 
-  T.test('El router muestra 404 para rutas desconocidas', function () {
+  T.test('El router muestra 404 para rutas desconocidas', async function () {
     window.location.hash = '#/ruta-inexistente';
-    app.router.render();
+    await app.router.render();
     T.assertIncludes(document.getElementById('app').innerHTML, '404');
     window.location.hash = '#/';
   });
@@ -291,7 +291,7 @@
     T.assertEqual(app.router.matchRoute(parsed.path).view, 'taxBalance');
   });
 
-  T.test('El router bloquea reportes directos anteriores al inicio de actividades', function () {
+  T.test('El router bloquea reportes directos anteriores al inicio de actividades', async function () {
     T.resetStore();
     const year = Store.workingYear();
     const owner = Store.createOwner({
@@ -306,7 +306,7 @@
     T.assertEqual(before.allowed, false);
     T.assertEqual(before.reason, 'before-start');
     window.location.hash = '#/accounting/ledger?month=5&year=' + year;
-    app.router.render();
+    await app.router.render();
     T.assertIncludes(document.getElementById('app').innerHTML, 'No es posible generar el reporte');
     T.assertIncludes(document.getElementById('app').innerHTML, '06/' + year);
     window.location.hash = '#/';

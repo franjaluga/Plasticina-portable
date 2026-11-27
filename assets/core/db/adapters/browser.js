@@ -9,6 +9,7 @@
   const LOCK_KEY = 'sqlite-write';
   const LOCK_NAME = 'plasticina-sqlite-write';
   const CHANNEL_NAME = 'plasticina-sqlite-changed';
+  const REVISION_KEY = 'plasticina_sqlite_revision_v1';
   const LEASE_MS = 5000;
   const FALLBACK_LOCK_KEY = 'plasticina_sqlite_lock_v1';
   let channel = null;
@@ -82,15 +83,33 @@
     }
   }
 
+  function currentRevision() {
+    try {
+      return Number(window.localStorage.getItem(REVISION_KEY)) || 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function setRevision(value) {
+    try { window.localStorage.setItem(REVISION_KEY, String(value)); } catch (error) {}
+    return value;
+  }
+
   function read() {
-    if (typeof window.indexedDB === 'undefined') return fallbackRead();
-    return indexedRead().catch(fallbackRead);
+    const revision = currentRevision();
+    const pending = typeof window.indexedDB === 'undefined' ? fallbackRead() : indexedRead().catch(fallbackRead);
+    return pending.then(function (bytes) {
+      return { bytes: bytes, revision: revision };
+    });
   }
 
   function write(bytes) {
     const pending = typeof window.indexedDB === 'undefined' ? fallbackWrite(bytes) : indexedWrite(bytes).catch(fallbackWrite);
     return pending.then(function () {
-      notifyChanged();
+      const revision = setRevision(currentRevision() + 1);
+      notifyChanged(revision);
+      return { revision: revision };
     });
   }
 
@@ -194,17 +213,23 @@
     return channel;
   }
 
-  function notifyChanged() {
+  function notifyChanged(revision) {
     const active = changeChannel();
-    if (active) active.postMessage({ type: 'changed' });
+    if (active) active.postMessage({
+      type: 'changed',
+      revision: revision,
+      writerId: window.Plasticina.db.internals.writerId
+    });
   }
 
   function onChanged(handler) {
     const active = changeChannel();
-    if (!active) return;
-    active.onmessage = function (event) {
-      if (event.data && event.data.type === 'changed') handler();
+    if (!active) return function () {};
+    const listener = function (event) {
+      if (event.data && event.data.type === 'changed') handler(event.data);
     };
+    active.addEventListener('message', listener);
+    return function () { active.removeEventListener('message', listener); };
   }
 
   window.Plasticina.db.internals.adapters = window.Plasticina.db.internals.adapters || {};

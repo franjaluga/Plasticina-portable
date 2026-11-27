@@ -3,14 +3,22 @@
 
   window.Views = window.Views || {};
 
-  const { capitalize, oldValue } = window.Plasticina.views.helpers;
+  const { capitalize, dataset, oldValue } = window.Plasticina.views.helpers;
 
   window.Views.manualJournalCreate = function (ctx) {
-    const owner = Store.activeOwner();
-    const workingYear = Store.workingYear();
+    const editor = dataset(ctx, 'editors.manualJournal', function () {
+      return {
+        owner: Store.activeOwner(),
+        workingYear: Store.workingYear(),
+        templates: Store.journalTemplates() || {},
+        accounts: Store.activeOwnerAccounts()
+      };
+    });
+    const owner = editor.owner;
+    const workingYear = editor.workingYear;
     const oldValues = UI.old() || {};
-    const templates = Store.journalTemplates() || {};
-    const accounts = Store.activeOwnerAccounts();
+    const templates = editor.templates || {};
+    const accounts = editor.accounts;
     const oldEntries = Array.isArray(oldValues.entries) ? oldValues.entries : [];
     const date = oldValue(oldValues, 'date', UI.today());
     const month = Number(oldValue(oldValues, 'month', Number(UI.today().slice(5, 7))));
@@ -370,4 +378,5 @@
     </div>
     `;
   };
+  window.Views.manualJournalCreate.resources = ['editors.manualJournal'];
 })();

@@ -3,9 +3,15 @@
 
   window.Views = window.Views || {};
 
+  const { dataset } = window.Plasticina.views.helpers;
+
   window.Views.templatesEdit = function (ctx) {
-    const template = Store.template(ctx.params.accountTemplate) || {};
-    const items = Store.templateItems(template.id);
+    const detail = dataset(ctx, 'masters.templateDetail', function () {
+      const template = Store.template(ctx.params.accountTemplate) || {};
+      return { template: template, items: Store.templateItems(template.id) };
+    });
+    const template = detail.template || {};
+    const items = detail.items || [];
 
     function selected(value, expected) {
       return String(value) === expected ? ' selected' : '';
@@ -111,4 +117,5 @@
     </script>
     `;
   };
+  window.Views.templatesEdit.resources = ['masters.templateDetail'];
 })();

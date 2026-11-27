@@ -3,14 +3,14 @@
 
   window.Views = window.Views || {};
 
-  const { format0 } = window.Plasticina.views.helpers;
+  const { dataset, format0 } = window.Plasticina.views.helpers;
 
   window.Views.auditIndex = function (ctx) {
     const owner = Store.activeOwner();
     const workingYear = Store.workingYear();
     const options = { year: workingYear };
     if (owner) options.owner_id = owner.id;
-    const journals = Store.journals(options) || [];
+    const journals = dataset(ctx, 'journals.audit', function () { return Store.journals(options) || []; });
 
     const rows = journals.length
       ? journals.map(function (journal) {
@@ -97,4 +97,5 @@
     </div>
     `;
   };
+  window.Views.auditIndex.resources = ['journals.audit'];
 })();

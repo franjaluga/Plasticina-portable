@@ -34,6 +34,58 @@ function createStorage() {
   };
 }
 
+function createElement(tag) {
+  const attributes = Object.create(null);
+  const listeners = Object.create(null);
+  const classes = Object.create(null);
+  const children = [];
+  const element = {
+    tagName: tag,
+    children: children,
+    listeners: listeners,
+    style: {},
+    dataset: {},
+    innerHTML: '',
+    value: '',
+    checked: false,
+    isConnected: true,
+    classList: {
+      add: function (name) { classes[name] = true; },
+      remove: function (name) { delete classes[name]; },
+      contains: function (name) { return Boolean(classes[name]); },
+      toggle: function (name, force) {
+        const next = force === undefined ? !classes[name] : Boolean(force);
+        if (next) classes[name] = true;
+        else delete classes[name];
+        return next;
+      }
+    },
+    setAttribute: function (name, value) { attributes[name] = String(value); },
+    getAttribute: function (name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null; },
+    hasAttribute: function (name) { return Object.prototype.hasOwnProperty.call(attributes, name); },
+    removeAttribute: function (name) { delete attributes[name]; },
+    appendChild: function (child) { children.push(child); child.parentElement = element; return child; },
+    removeChild: function (child) {
+      const index = children.indexOf(child);
+      if (index !== -1) children.splice(index, 1);
+      return child;
+    },
+    contains: function (node) {
+      if (node === element) return true;
+      return children.some(function (child) { return child.contains && child.contains(node); });
+    },
+    querySelectorAll: function () { return []; },
+    addEventListener: function (type, handler) {
+      listeners[type] = listeners[type] || [];
+      listeners[type].push(handler);
+    },
+    setCustomValidity: function (message) { element.validityMessage = message || ''; },
+    closest: function () { return null; },
+    click: function () {}
+  };
+  return element;
+}
+
 function createDom() {
   const app = { innerHTML: '', querySelectorAll: function () { return []; } };
   const results = { innerHTML: '' };
@@ -46,9 +98,7 @@ function createDom() {
         return null;
       },
       addEventListener: function () {},
-      createElement: function () {
-        return { setAttribute: function () {}, appendChild: function () {}, removeChild: function () {}, click: function () {}, style: {} };
-      },
+      createElement: createElement,
       querySelectorAll: function () { return []; }
     },
     app: app

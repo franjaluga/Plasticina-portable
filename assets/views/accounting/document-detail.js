@@ -3,10 +3,10 @@
 
   window.Views = window.Views || {};
 
-  const { format0 } = window.Plasticina.views.helpers;
+  const { dataset, format0 } = window.Plasticina.views.helpers;
 
   window.Views.documentDetail = function (ctx) {
-    const document = Store.document(ctx.params.id) || {};
+    const document = dataset(ctx, 'documents.detail', function () { return Store.document(ctx.params.id) || {}; });
     const docType = document.documentType || {};
     const docTypeDescription = docType.name || docType.description || 'Sin nombre registrado';
 
@@ -124,4 +124,5 @@
     </div>
     `;
   };
+  window.Views.documentDetail.resources = ['documents.detail'];
 })();

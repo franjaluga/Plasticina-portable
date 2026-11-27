@@ -3,12 +3,16 @@
 
   window.Views = window.Views || {};
 
-  const { accountSearchField } = window.Plasticina.views.helpers;
+  const { accountSearchField, dataset } = window.Plasticina.views.helpers;
 
   window.Views.paymentsIndex = function (ctx) {
     const owner = Store.activeOwner();
-    const pendingDocuments = Store.pendingBalanceDocuments() || [];
-    const accounts = Store.activeOwnerAccounts();
+    const pendingDocuments = dataset(ctx, 'reports.paymentsPending', function () {
+      return Store.pendingBalanceDocuments() || [];
+    });
+    const accounts = dataset(ctx, 'catalogs.accounts', function () {
+      return { accounts: Store.activeOwnerAccounts() };
+    }).accounts;
     const defaultAccountCode = accounts.length ? accounts[0].code : '';
 
     const rows = pendingDocuments.length
@@ -89,4 +93,5 @@
     </script>
     `;
   };
+  window.Views.paymentsIndex.resources = ['reports.paymentsPending', 'catalogs.accounts'];
 })();

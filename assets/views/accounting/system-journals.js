@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { queryYear } = window.Plasticina.views.helpers;
+  const { dataset, queryYear } = window.Plasticina.views.helpers;
 
   window.Views.systemJournals = function (ctx) {
     const query = ctx.query || {};
@@ -13,8 +13,8 @@
     filterKeys.forEach(function (key) {
       if (query[key] !== undefined && query[key] !== '') filters[key] = query[key];
     });
-    const journals = Store.systemJournals(year, filters) || [];
-    const documentTypes = Store.documentTypes();
+    const journals = dataset(ctx, 'journals.system', function () { return Store.systemJournals(year, filters) || []; });
+    const documentTypes = dataset(ctx, 'catalogs.documentTypes', function () { return Store.documentTypes(); });
     const start = Store.ownerStartPeriod();
     const startIso = start.year + '-' + String(start.month).padStart(2, '0') + '-01';
 
@@ -184,4 +184,5 @@
     </div>
     `;
   };
+  window.Views.systemJournals.resources = ['journals.system', 'catalogs.documentTypes'];
 })();

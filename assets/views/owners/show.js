@@ -3,9 +3,15 @@
 
   window.Views = window.Views || {};
 
+  const { dataset } = window.Plasticina.views.helpers;
+
   window.Views.ownersShow = function (ctx) {
-    const owner = Store.owner(ctx.params.owner) || {};
-    const accountsCount = Store.accounts(owner.id).length;
+    const detail = dataset(ctx, 'owners.detail', function () {
+      const owner = Store.owner(ctx.params.owner) || {};
+      return { owner: owner, accountsCount: Store.accounts(owner.id).length };
+    }) || {};
+    const owner = detail.owner || {};
+    const accountsCount = detail.accountsCount || 0;
 
     return `
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,4 +72,5 @@
     </div>
     `;
   };
+  window.Views.ownersShow.resources = ['owners.detail'];
 })();

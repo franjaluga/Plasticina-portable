@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { format0, format0OrDash, pad, queryMonth, queryYear, taxBalanceFigures } = window.Plasticina.views.helpers;
+  const { dataset, format0, format0OrDash, pad, queryMonth, queryYear, taxBalanceFigures } = window.Plasticina.views.helpers;
 
   window.Views.taxBalance = function (ctx) {
     const query = ctx.query || {};
@@ -16,7 +16,9 @@
     const dateFrom = year + '-01-01';
     const dateTo = year + '-' + pad(month) + '-' + pad(lastDay);
     const activeOwner = Store.activeOwner();
-    const balanceRows = Store.taxBalance(year, { date_from: dateFrom, date_to: dateTo }) || [];
+    const balanceRows = dataset(ctx, 'reports.taxBalance', function () {
+      return Store.taxBalance(year, { date_from: dateFrom, date_to: dateTo }) || [];
+    });
     const {
       sumSd, sumSc, sumBd, sumBc, sumAct, sumPas, sumPer, sumGan,
       resPerdida, resGanancia, resActivo, resPasivo,
@@ -142,4 +144,5 @@
     </div>
     `;
   };
+  window.Views.taxBalance.resources = ['reports.taxBalance'];
 })();

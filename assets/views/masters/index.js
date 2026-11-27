@@ -3,8 +3,10 @@
 
   window.Views = window.Views || {};
 
+  const { dataset } = window.Plasticina.views.helpers;
+
   window.Views.templatesIndex = function (ctx) {
-    const templates = Store.templates();
+    const templates = dataset(ctx, 'masters.templates', function () { return Store.templates(); });
 
     const rows = templates.length
       ? templates.map(function (tpl) {
@@ -77,4 +79,5 @@
     </div>
     `;
   };
+  window.Views.templatesIndex.resources = ['masters.templates'];
 })();

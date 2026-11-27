@@ -416,25 +416,45 @@
     T.assertIncludes(create, 'Código o nombre');
     T.assert(create.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
 
+    const controller = window.Plasticina.views.accountPicker;
+    T.assert(controller, 'Falta el controlador centralizado de cuentas');
+    const accounts = Store.activeOwnerAccounts();
+    T.assert(controller.resolveValue(accounts, accounts[0].code).account, 'El código exacto debe resolver la cuenta');
+    T.assert(controller.resolveValue(accounts, accounts[0].name).account, 'El nombre exacto debe resolver la cuenta');
+    T.assert(controller.search(accounts, 'banco', 8).length <= 8, 'Las sugerencias deben quedarse acotadas');
+
     const pending = window.Views.documentPending(ctx);
-    T.assertIncludes(pending, 'accountSearchField(');
     T.assertIncludes(pending, 'custom_net_account');
     T.assertIncludes(pending, 'Código o nombre');
+    T.assertIncludes(pending, 'data-account-picker="net"');
+    T.assertIncludes(pending, 'data-account-source="catalogs.accounts"');
+    T.assertIncludes(pending, 'data-select-all=".doc-checkbox"');
+    T.assert(pending.indexOf('<script>') === -1, 'La vista de pendientes ya no debe incrustar scripts');
     T.assert(pending.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
     T.assert(pending.indexOf('accountsData =') === -1, 'La vista no debe incrustar un snapshot de cuentas');
     T.assert(pending.indexOf('bindAccountSearchForm(form') === -1, 'La vista no debe usar el enlace genérico');
-    T.assertIncludes(pending, "document.getElementById('custom_net_account')");
-    T.assertIncludes(pending, 'Store.activeOwnerAccounts()');
-    T.assertIncludes(pending, 'form.__plasticinaAccountSearchForm');
-    const pendingScript = pending.split('<script>')[1].split('</script>')[0];
-    T.assert(pendingScript.indexOf("input.addEventListener('focus'") === -1, 'El campo no debe renderizar al enfocar');
-    T.assert(pendingScript.indexOf("input.addEventListener('click'") === -1, 'El campo no debe renderizar al hacer clic');
-    T.assert(pendingScript.indexOf('this.select()') === -1, 'El campo no debe seleccionar el texto al entrar');
-    new Function(pendingScript);
+    T.assert(pending.indexOf('form.__plasticinaAccountSearchForm') === -1, 'La vista no debe marcar el formulario a mano');
+
+    const parent = document.createElement('div');
+    const input = document.createElement('input');
+    parent.appendChild(input);
+    input.setAttribute('data-account-source', 'none');
+    input.value = accounts[0].code;
+    const first = controller.bindInput(input, accounts, {});
+    const second = controller.bindInput(input, accounts, {});
+    T.assertEqual(first, second, 'El control debe enlazarse una sola vez');
+    T.assertEqual(controller.bindings().length, 1, 'Debe existir un solo binding activo');
+    if (input.listeners) {
+      T.assert(!input.listeners.focus, 'El campo no debe renderizar al enfocar');
+      T.assert(!input.listeners.click, 'El campo no debe renderizar al hacer clic');
+    }
+    input.isConnected = false;
+    controller.prune();
+    T.assertEqual(controller.bindings().length, 0, 'El binding desconectado debe limpiarse');
 
     const ledger = window.Views.ledgerContext({ params: {}, query: {} });
-    T.assertIncludes(ledger, 'accountSearchField(');
-    T.assertIncludes(ledger, 'account_code');
+    T.assertIncludes(ledger, 'data-account-search');
+    T.assertIncludes(ledger, 'name="account_code"');
     T.assertIncludes(ledger, 'Código o nombre');
     T.assert(ledger.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
     T.assert(ledger.indexOf('for="account_code"') < ledger.indexOf('id="ledger_month"'), 'La cuenta debe estar arriba del mes');
@@ -624,13 +644,32 @@
     ]);
 
     const manual = window.Views.editManualJournal({ params: { id: id }, query: {} });
-    T.assertIncludes(manual, 'accountSearchField(');
+    T.assertIncludes(manual, 'data-account-search');
     T.assertIncludes(manual, 'Código o nombre');
     T.assert(manual.indexOf('<select name="entries[') === -1, 'La edición manual aún usa select de cuentas');
     T.assertIncludes(manual, 'bindAccountSearchForm');
 
-    const journal = window.Views.editJournal({ params: { id: id }, query: {} });
-    T.assertIncludes(journal, 'accountSearchField(');
+    const month = Number(UI.today().slice(5, 7));
+    const document = Store.createDocument({
+      month_register: month,
+      year_register: year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 9001,
+      date: UI.today(),
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    Store.registerDocumentJournal(document.id, '4010101');
+    const vcJournal = Store.journals().find(function (item) { return item.vc_document_id === document.id; });
+    T.assert(vcJournal, 'No se generó el asiento V/C');
+
+    const journal = window.Views.editJournal({ params: { id: vcJournal.id }, query: {} });
+    T.assertIncludes(journal, 'data-account-search');
     T.assert(journal.indexOf('<select name="entries[') === -1, 'La edición V/C aún usa select de cuentas');
     T.assertIncludes(journal, 'bindAccountSearchForm');
     T.assertIncludes(journal, 'entries[devengo][account_code]');
@@ -656,7 +695,7 @@
     Store.registerDocumentJournal(document.id, '4010101');
 
     const html = window.Views.paymentsIndex(ctx);
-    T.assertIncludes(html, 'accountSearchField(');
+    T.assertIncludes(html, 'data-account-search');
     T.assertIncludes(html, 'bank_account_code');
     T.assertIncludes(html, 'Código o nombre');
     T.assert(html.indexOf('<select name="bank_account_code"') === -1, 'Cobros y pagos aún usa select de cuenta');

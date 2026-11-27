@@ -158,10 +158,18 @@ def main():
             ok = fail('adaptador browser no coordina pestañas: ' + token)
 
     helpers_source = (ASSETS / 'views' / 'shared' / 'helpers.js').read_text(encoding='utf-8')
-    for token in ('bindAccountSearchFormsIn', "input.addEventListener('click', render)",
-                  "input.addEventListener('focusout'", "document.addEventListener('pointerdown'"):
+    picker_source = (ASSETS / 'views' / 'shared' / 'account-picker.js').read_text(encoding='utf-8')
+    for token in ('bindAccountSearchFormsIn', 'data-account-picker'):
         if token not in helpers_source:
-            ok = fail('helpers.js no expone el autocompletado resistente a builds: ' + token)
+            ok = fail('helpers.js no expone el selector de cuentas: ' + token)
+    for token in ('data-account-picker', 'account-suggestions',
+                  "panel.addEventListener('mousedown'", "input.addEventListener('keydown'",
+                  "input.addEventListener('input'", "document.addEventListener('pointerdown'"):
+        if token not in picker_source:
+            ok = fail('account-picker.js no concentra el autocompletado: ' + token)
+    for token in ("input.addEventListener('focus'", "input.addEventListener('click'", 'this.select()'):
+        if token in picker_source:
+            ok = fail('account-picker.js no debe abrir ni seleccionar al enfocar: ' + token)
     router_source = (ASSETS / 'app' / 'router.js').read_text(encoding='utf-8')
     if 'bindAccountSearchFormsIn(app)' not in router_source:
         ok = fail('router.js no enlaza los campos de cuenta tras renderizar')

@@ -3,14 +3,16 @@
 
   window.Views = window.Views || {};
 
-  const { format0, num, pad, queryMonth, queryYear } = window.Plasticina.views.helpers;
+  const { dataset, format0, num, pad, queryMonth, queryYear } = window.Plasticina.views.helpers;
 
   window.Views.documentQueryResults = function (ctx) {
     const query = ctx.query || {};
     const typeVc = query.type_vc === undefined || query.type_vc === '' ? 'V' : query.type_vc;
     const month = queryMonth(query);
     const year = queryYear(query);
-    const documents = Store.queryDocuments(typeVc, month, year) || [];
+    const documents = dataset(ctx, 'documents.query', function () {
+      return Store.queryDocuments(typeVc, month, year) || [];
+    });
     const sumField = function (field) {
       return documents.reduce(function (sum, doc) { return sum + num(doc[field]); }, 0);
     };
@@ -97,4 +99,5 @@
     </div>
     `;
   };
+  window.Views.documentQueryResults.resources = ['documents.query'];
 })();

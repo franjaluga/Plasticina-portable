@@ -7,13 +7,20 @@
 
   function read() {
     return Promise.resolve(window.plasticinaSqlite.read()).then(function (value) {
-      if (value === null || value === undefined) return null;
-      return value instanceof Uint8Array ? value : new Uint8Array(value);
+      if (!value || typeof value !== 'object') return { bytes: null, revision: 0 };
+      const bytes = value.bytes || value;
+      return {
+        bytes: bytes === null || bytes === undefined ? null : (bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)),
+        revision: Number(value.revision) || 0
+      };
     });
   }
 
   function write(bytes) {
-    return Promise.resolve(window.plasticinaSqlite.write(bytes));
+    const writerId = window.Plasticina.db.internals.writerId;
+    return Promise.resolve(window.plasticinaSqlite.write(bytes, writerId)).then(function (value) {
+      return value && typeof value === 'object' ? value : {};
+    });
   }
 
   function withLock(callback) {
@@ -30,7 +37,8 @@
   }
 
   function onChanged(handler) {
-    if (typeof window.plasticinaSqlite.onChanged === 'function') window.plasticinaSqlite.onChanged(handler);
+    if (typeof window.plasticinaSqlite.onChanged !== 'function') return function () {};
+    return window.plasticinaSqlite.onChanged(handler);
   }
 
   window.Plasticina.db.internals.adapters = window.Plasticina.db.internals.adapters || {};

@@ -20,6 +20,7 @@ const lockWaiters = [];
 const lockOwners = new Map();
 let lockHeld = false;
 let lockSequence = 0;
+let databaseRevision = 1;
 
 function acquireLock(event) {
   if (!lockHeld) {
@@ -55,16 +56,22 @@ function releaseLocksFor(senderId) {
   }
 }
 
-function notifyDatabaseChanged() {
+function notifyDatabaseChanged(sourceId, writerId, revision) {
   BrowserWindow.getAllWindows().forEach(function (window) {
-    if (!window.isDestroyed()) window.webContents.send('sqlite:changed');
+    if (window.isDestroyed() || window.webContents.id === sourceId) return;
+    window.webContents.send('sqlite:changed', { writerId: writerId, revision: revision });
   });
 }
 
-ipcMain.handle('sqlite:read', function () { return readDatabase(); });
-ipcMain.handle('sqlite:write', function (_event, bytes) {
+ipcMain.handle('sqlite:read', function () {
+  const bytes = readDatabase();
+  return { bytes: bytes, revision: databaseRevision };
+});
+ipcMain.handle('sqlite:write', function (event, bytes, writerId) {
   writeDatabase(bytes);
-  notifyDatabaseChanged();
+  databaseRevision += 1;
+  notifyDatabaseChanged(event.sender.id, writerId, databaseRevision);
+  return { revision: databaseRevision };
 });
 ipcMain.handle('sqlite:acquire-lock', function (event) { return acquireLock(event); });
 ipcMain.handle('sqlite:release-lock', function (_event, token) { releaseLock(token); });

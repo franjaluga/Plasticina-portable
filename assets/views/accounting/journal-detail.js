@@ -3,10 +3,10 @@
 
   window.Views = window.Views || {};
 
-  const { capitalize, format0, format0OrDash } = window.Plasticina.views.helpers;
+  const { capitalize, dataset, format0, format0OrDash } = window.Plasticina.views.helpers;
 
   window.Views.journalDetail = function (ctx) {
-    const journal = Store.journal(ctx.params.id) || {};
+    const journal = dataset(ctx, 'journals.detail', function () { return Store.journal(ctx.params.id) || {}; });
     const doc = journal.document || null;
     const glosaFinal = journal.description || journal.glosa || (doc ? (doc.description || doc.glosa || doc.obs) : '') || '';
     const glosaBlock = glosaFinal
@@ -115,4 +115,5 @@
     </div>
     `;
   };
+  window.Views.journalDetail.resources = ['journals.detail'];
 })();

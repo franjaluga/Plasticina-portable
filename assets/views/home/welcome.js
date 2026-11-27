@@ -3,12 +3,21 @@
 
   window.Views = window.Views || {};
 
+  const { dataset } = window.Plasticina.views.helpers;
+
   window.Views.welcome = function (ctx) {
-    const owner = Store.activeOwner();
-    const workingYear = Store.workingYear();
+    const summary = dataset(ctx, 'home.summary', function () {
+      return {
+        owner: Store.activeOwner(),
+        workingYear: Store.workingYear(),
+        pendingCount: Store.pendingDocuments().length
+      };
+    });
+    const owner = summary.owner;
+    const workingYear = summary.workingYear;
     const range = Store.workingYearRange();
     const selectedYear = Store.clampWorkingYear(workingYear);
-    const pendingCount = Store.pendingDocuments().length;
+    const pendingCount = summary.pendingCount;
     const years = [];
     for (let year = range.max; year >= range.min; year--) {
       years.push(year);
@@ -176,4 +185,5 @@
     </script>
     `;
   };
+  window.Views.welcome.resources = ['home.summary'];
 })();

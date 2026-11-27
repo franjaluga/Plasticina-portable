@@ -3,12 +3,19 @@
 
   window.Views = window.Views || {};
 
-  const { accountSearchField, num, oldValue } = window.Plasticina.views.helpers;
+  const { accountSearchField, dataset, num, oldValue } = window.Plasticina.views.helpers;
 
   window.Views.editManualJournal = function (ctx) {
-    const journal = Store.journal(ctx.params.id) || {};
+    const editor = dataset(ctx, 'editors.journal', function () {
+      const journal = Store.journal(ctx.params.id) || {};
+      return {
+        journal: journal,
+        accounts: journal.owner ? Store.accounts(journal.owner.id) : Store.activeOwnerAccounts()
+      };
+    });
+    const journal = editor.journal || {};
     const owner = journal.owner || Store.activeOwner();
-    const accounts = owner ? Store.accounts(owner.id) : Store.activeOwnerAccounts();
+    const accounts = editor.accounts || [];
     const oldValues = UI.old() || {};
     const oldEntries = Array.isArray(oldValues.entries) ? oldValues.entries : [];
     const entries = journal.entries || [];
@@ -223,4 +230,5 @@
     </script>
     `;
   };
+  window.Views.editManualJournal.resources = ['editors.journal'];
 })();

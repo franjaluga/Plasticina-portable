@@ -3,9 +3,11 @@
 
   window.Views = window.Views || {};
 
+  const { dataset } = window.Plasticina.views.helpers;
+
   window.Views.ownersIndex = function (ctx) {
-    const owners = Store.owners();
-    const templates = Store.templates();
+    const owners = dataset(ctx, 'owners.list', function () { return Store.owners(); });
+    const templates = dataset(ctx, 'masters.templates', function () { return Store.templates(); });
     const activeOwner = Store.activeOwner();
     const oldValues = UI.old() || {};
     const selectedPlan = oldValues.account_plan_type === undefined ? 'standard_pyme' : oldValues.account_plan_type;
@@ -243,4 +245,5 @@
     </script>
     `;
   };
+  window.Views.ownersIndex.resources = ['owners.list', 'masters.templates'];
 })();

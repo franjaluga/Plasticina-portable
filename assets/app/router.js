@@ -187,7 +187,25 @@
     return helpButton() + helpGuide() + (viewName === 'welcome' ? '' : homeButton()) + html;
   }
 
-  function renderView(viewName, match, flash, query) {
+  let renderToken = 0;
+
+  function renderContext(parsed, match) {
+    const owner = Store.activeOwner ? Store.activeOwner() : null;
+    const workingYear = Store.workingYear();
+    const query = parsed.query || {};
+    const today = UI.today();
+    return {
+      ownerId: owner ? owner.id : null,
+      workingYear: workingYear,
+      year: query.year === undefined || query.year === '' ? workingYear : Number(query.year),
+      month: query.month === undefined || query.month === '' ? Number(today.slice(5, 7)) : Number(query.month),
+      params: match ? match.params : {},
+      query: query,
+      include: []
+    };
+  }
+
+  function renderView(viewName, match, flash, query, data, context) {
     document.body.className = config.bodyClasses[viewName] || config.bodyClasses.welcome;
     if (!match || typeof window.Views[viewName] !== 'function') {
       app.innerHTML = withFloatingButtons(renderNotFound(flash), viewName);
@@ -195,7 +213,12 @@
     }
     try {
       app.innerHTML = withFloatingButtons('<div class="w-full">' + flash +
-        window.Views[viewName]({ params: match.params, query: query }) + '</div>', viewName);
+        window.Views[viewName]({
+          params: match.params,
+          query: query,
+          data: data || {},
+          context: context
+        }) + '</div>', viewName);
       runScripts(app);
       if (window.Plasticina.views.helpers && window.Plasticina.views.helpers.bindAccountSearchFormsIn) {
         window.Plasticina.views.helpers.bindAccountSearchFormsIn(app);
@@ -205,7 +228,8 @@
     }
   }
 
-  function render() {
+  async function render() {
+    const token = ++renderToken;
     const parsed = UI.parseHash(window.location.hash);
     const rule = config.reportPeriodRoutes[parsed.path] || null;
     if (rule) {
@@ -237,9 +261,38 @@
     const match = matchRoute(parsed.path);
     const flash = UI.takeFlash();
     const viewName = match ? match.view : 'welcome';
-    renderView(viewName, match, flash, parsed.query);
-    sessionStorage.removeItem('plasticina_old');
+    const context = renderContext(parsed, match);
+    document.body.className = config.bodyClasses[viewName] || config.bodyClasses.welcome;
     window.scrollTo(0, 0);
+
+    if (!match || typeof window.Views[viewName] !== 'function') {
+      renderView(viewName, match, flash, parsed.query, null, context);
+      sessionStorage.removeItem('plasticina_old');
+      return;
+    }
+
+    const resources = app.viewData && window.Data
+      ? app.viewData.resourcesFor(viewName).filter(function (name, index, list) { return list.indexOf(name) === index; })
+      : [];
+    if (!resources.length) {
+      renderView(viewName, match, flash, parsed.query, null, context);
+      sessionStorage.removeItem('plasticina_old');
+      return;
+    }
+
+    app.innerHTML = withFloatingButtons('<div class="w-full">' + flash +
+      app.viewData.loading(viewName) + '</div>', viewName);
+    try {
+      const data = await window.Data.resolveMany(resources, context);
+      if (token !== renderToken) return;
+      renderView(viewName, match, flash, parsed.query, data, context);
+      sessionStorage.removeItem('plasticina_old');
+      window.scrollTo(0, 0);
+    } catch (error) {
+      if (token !== renderToken) return;
+      app.innerHTML = withFloatingButtons(renderError(flash, error), viewName);
+      sessionStorage.removeItem('plasticina_old');
+    }
   }
 
   function navigate(path) {
