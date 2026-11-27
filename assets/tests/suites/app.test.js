@@ -143,6 +143,41 @@
     window.location.hash = '#/';
   });
 
+  T.test('El botón AYUDA muestra la mini guía en todas las vistas', function () {
+    T.resetStore();
+    const help = 'aria-label="Ayuda"';
+    window.location.hash = '#/';
+    app.router.render();
+    let html = document.getElementById('app').innerHTML;
+    T.assertIncludes(html, help);
+    T.assertIncludes(html, 'id="plasticina-help-guide"');
+    T.assertIncludes(html, 'Mini guía del sistema');
+    T.assertIncludes(html, 'Asientos manuales o importadores');
+    T.assertIncludes(html, 'centralizan');
+    T.assertIncludes(html, 'se genera su propio asiento contable');
+    T.assertIncludes(html, 'tesorería');
+    T.assertIncludes(html, 'libro diario');
+    T.assertIncludes(html, 'plan de cuentas');
+    T.assertIncludes(html, UI.route('ingress.manual'));
+    T.assertIncludes(html, UI.route('ingress.import'));
+    T.assertIncludes(html, UI.route('vc_documents.pending'));
+    T.assertIncludes(html, UI.route('accounting.payments.index'));
+    T.assertIncludes(html, UI.route('reports.balance_context'));
+    T.assertEqual(typeof app.router.toggleHelp, 'function');
+    T.assertEqual(typeof app.router.closeHelp, 'function');
+
+    window.location.hash = UI.route('reports.analytics');
+    app.router.render();
+    html = document.getElementById('app').innerHTML;
+    T.assertIncludes(html, help);
+    T.assertIncludes(html, 'id="plasticina-help-guide"');
+
+    window.location.hash = '#/ruta-inexistente';
+    app.router.render();
+    T.assertIncludes(document.getElementById('app').innerHTML, help);
+    window.location.hash = '#/';
+  });
+
   T.test('El router muestra 404 para rutas desconocidas', function () {
     window.location.hash = '#/ruta-inexistente';
     app.router.render();
