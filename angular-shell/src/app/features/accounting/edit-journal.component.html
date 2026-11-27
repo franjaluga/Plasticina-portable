@@ -1,0 +1,127 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-gray-200 rounded-xl p-5 shadow-sm gap-4">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800 tracking-tight">Editar Asiento Contable N° <span class="text-indigo-600">{{ entryNumber }}</span></h1>
+            <div class="text-xs text-gray-600 mt-1.5 space-y-1">
+                <p>
+                    Periodo año: <span class="font-bold text-gray-800">{{ year }}</span> |
+                    Tipo Doc: <span class="font-semibold text-gray-800">{{ documentTypeName }}</span> |
+                    Folio:
+                    @if (hasDocument) {
+                        <a [href]="folioHref" target="_blank" class="font-bold text-indigo-600 hover:underline inline-flex items-center" title="Ver detalle del documento en nueva pestaña">{{ folio }} &nearr;</a>
+                    } @else {
+                        <span class="font-bold text-gray-800">N/A</span>
+                    }
+                </p>
+                <p>
+                    Entidad: <span class="font-bold font-mono text-gray-800">{{ entityRut }}</span> &mdash; <span class="font-semibold text-gray-800">{{ entityName }}</span>
+                </p>
+            </div>
+        </div>
+        <div>
+            <a [href]="route('accounting.system_journals')" class="inline-flex items-center text-xs font-semibold bg-white border border-gray-300 text-gray-700 px-3.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition">
+                &larr; Volver
+            </a>
+        </div>
+    </div>
+
+    <form data-action="journals.update" class="bg-white shadow-sm border border-gray-200 rounded-xl p-6" (submit)="submit('journals.update', $event)">
+        <input type="hidden" name="id" value="{{ journalId }}">
+        <input type="hidden" name="journal" value="{{ journalId }}">
+        <input type="hidden" name="_method" value="PUT">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Fecha del Asiento</label>
+                <input type="date" name="date" value="{{ date }}" class="w-full text-xs border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Glosa / Descripción</label>
+                <input type="text" name="description" value="{{ description }}" class="w-full text-xs border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Líneas del Asiento Contable</h3>
+            <button type="button" id="addRowBtn" (click)="addRowBeforeDevengo()" class="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-xs font-semibold hover:bg-gray-700 transition shadow-sm">
+                + Agregar Cuenta
+            </button>
+        </div>
+
+        <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-gray-800 text-white uppercase tracking-wider text-[11px]">
+                        <th class="py-2.5 px-4">Cuenta Contable</th>
+                        <th class="py-2.5 px-4 w-32 text-right">Debe</th>
+                        <th class="py-2.5 px-4 w-32 text-right">Haber</th>
+                        <th class="py-2.5 px-4 w-12 text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesTableBody" class="divide-y divide-gray-100">
+                    @for (row of rows; track row.key; let i = $index) {
+                        <tr class="entry-row bg-white">
+                            <td class="py-3 px-4">
+                                <input type="hidden" [name]="'entries[' + row.key + '][component_name]'" value="{{ row.componentName }}">
+                                <app-account-picker [name]="'entries[' + row.key + '][account_code]'" [value]="row.accountCode" [accounts]="accounts" [required]="true" class="w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Código o nombre" (valueChange)="onAccountChange(row, $event)"></app-account-picker>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" step="any" min="0" [name]="'entries[' + row.key + '][debit]'" [value]="row.debit" (input)="onAmountInput(row, 'debit', $event)" (focus)="selectInput($event)" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" step="any" min="0" [name]="'entries[' + row.key + '][credit]'" [value]="row.credit" (input)="onAmountInput(row, 'credit', $event)" (focus)="selectInput($event)" class="credit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <button type="button" (click)="removeRow(i)" class="remove-row-btn text-red-500 hover:text-red-700 font-bold text-sm px-2" title="Eliminar fila">&times;</button>
+                            </td>
+                        </tr>
+                    }
+                    @if (devengo) {
+                        <tr class="entry-row bg-gray-100/90 font-semibold" data-fixed="true">
+                            <td class="py-3 px-4">
+                                <input type="hidden" name="entries[devengo][component_name]" value="total">
+                                <input type="hidden" name="entries[devengo][account_code]" value="{{ devengo.accountCode }}">
+                                <div class="font-mono text-gray-700">{{ devengo.accountCode }} - {{ devengo.accountName }}</div>
+                                <span class="text-[10px] text-amber-600 font-semibold">(Devengo - Fijo y no modificable)</span>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" step="any" min="0" name="entries[devengo][debit]" value="{{ devengo.debit }}" class="debit-input w-full text-right text-xs bg-gray-100 text-gray-500 border-gray-300 rounded-md shadow-sm cursor-not-allowed" readonly required>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" step="any" min="0" name="entries[devengo][credit]" value="{{ devengo.credit }}" class="credit-input w-full text-right text-xs bg-gray-100 text-gray-500 border-gray-300 rounded-md shadow-sm cursor-not-allowed" readonly required>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="text-gray-400 text-xs">—</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray-50 font-mono text-xs border-t border-gray-200">
+                        <td class="py-3 px-4 text-right font-bold text-gray-700 font-sans">
+                            <div class="flex items-center justify-end space-x-2">
+                                <span id="balanceIndicatorDot" [class]="'h-3 w-3 rounded-full ' + balanceDotClass + ' inline-block'"></span>
+                                <span id="balanceIndicatorText" [class]="balanceTextClass">{{ balanceText }}</span>
+                                <span class="ml-2">Totales Provisorios:</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold text-indigo-600" id="sumDebit">{{ sumDebit }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-indigo-600" id="sumCredit">{{ sumCredit }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a [href]="route('accounting.system_journals')" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow-sm hover:bg-indigo-700 transition">
+                Actualizar Asiento
+            </button>
+        </div>
+    </form>
+
+</div>

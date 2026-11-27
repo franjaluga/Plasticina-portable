@@ -7,6 +7,15 @@ if (process.platform === 'linux') {
 }
 
 const DB_FILE = path.join(app.getPath('userData'), 'plasticina.sqlite');
+const RENDERER_INDEX = path.join(
+  __dirname,
+  '..',
+  'angular-shell',
+  'dist',
+  'angular-shell',
+  'browser',
+  'index.html'
+);
 
 function readDatabase() {
   if (!fs.existsSync(DB_FILE)) return null;
@@ -101,7 +110,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+  mainWindow.loadFile(RENDERER_INDEX);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);

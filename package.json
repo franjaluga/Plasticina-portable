@@ -6,10 +6,13 @@
   "main": "desktop/main.js",
   "scripts": {
     "start": "electron .",
+    "predist": "npm run build:shell",
     "dist": "electron-builder",
     "build:linux": "bash builds/linux_builds/export_appimage.sh",
     "build:windows": "bash builds/windows_builds/export_zip.sh",
-    "test": "node test/run.js",
+    "build:shell": "npm --prefix angular-shell run build",
+    "test": "node test/run-angular.js",
+    "test:angular": "npm --prefix angular-shell run test -- --watch=false --browsers=ChromeHeadless",
     "test:static": "python3 test/check_static.py"
   },
   "devDependencies": {
@@ -26,10 +29,11 @@
       "output": "builds/.cache"
     },
     "files": [
-      "index.html",
-      "assets/**/*",
-      "!assets/tests/**/*",
+      "angular-shell/dist/angular-shell/browser/**/*",
+      "!angular-shell/dist/angular-shell/browser/assets/tests/**/*",
       "desktop/**/*",
+      "!angular-shell/src/**/*",
+      "!angular-shell/node_modules/**/*",
       "!plasticina-master/**/*",
       "!builds/**/*",
       "!test/**/*",

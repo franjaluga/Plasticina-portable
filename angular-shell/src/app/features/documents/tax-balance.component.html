@@ -1,0 +1,111 @@
+<div class="bg-white text-slate-900 font-sans p-8 max-w-6xl mx-auto">
+
+    <div class="flex justify-between items-start border-b border-slate-300 pb-4 mb-6">
+        <div>
+            <h1 class="text-xl font-semibold tracking-tight">Balance Tributario de 8 Columnas</h1>
+            <div class="text-xs text-slate-600 mt-1 space-y-0.5">
+                <p><span class="font-bold text-slate-900">Empresa:</span> {{ ownerName }}</p>
+                <p><span class="font-bold text-slate-900">RUT:</span> {{ ownerRut }}</p>
+                <p><span class="font-bold text-slate-900">Periodo Comercial:</span> 01/01/{{ year }} al {{ pad(lastDay) }}/{{ pad(month) }}/{{ year }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a [href]="route('vc_documents.tax_balance.export_csv', { month: month, year: year })" class="inline-flex items-center text-xs font-semibold bg-green-600 text-white px-3 py-2 rounded-lg shadow-sm hover:bg-green-700 transition">
+                Exportar CSV
+            </a>
+            <a href="javascript:void(0)" (click)="$event.preventDefault(); back()" class="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition">
+                &larr; Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs border border-slate-200">
+            <thead>
+                <tr class="border-b border-slate-300 text-[10px] text-slate-600 uppercase text-center bg-slate-50">
+                    <th rowspan="2" class="py-2 px-2 text-left border-r border-slate-200">Código</th>
+                    <th rowspan="2" class="py-2 px-4 text-left border-r border-slate-200">Cuenta Contable</th>
+                    <th colspan="2" class="py-1 px-2 border-b border-r border-slate-200">Sumas</th>
+                    <th colspan="2" class="py-1 px-2 border-b border-r border-slate-200">Saldos</th>
+                    <th colspan="2" class="py-1 px-2 border-b border-r border-slate-200">Inventario</th>
+                    <th colspan="2" class="py-1 px-2 border-b border-slate-200">Resultados</th>
+                </tr>
+                <tr class="border-b border-slate-300 text-[10px] text-slate-500 uppercase text-right bg-slate-50">
+                    <th class="py-1 px-2 border-r border-slate-200">Débito</th>
+                    <th class="py-1 px-2 border-r border-slate-200">Crédito</th>
+                    <th class="py-1 px-2 border-r border-slate-200">Deudor</th>
+                    <th class="py-1 px-2 border-r border-slate-200">Acreedor</th>
+                    <th class="py-1 px-2 border-r border-slate-200">Activo</th>
+                    <th class="py-1 px-2 border-r border-slate-200">Pasivo</th>
+                    <th class="py-1 px-2 border-r border-slate-200">Pérdida</th>
+                    <th class="py-1 px-2">Ganancia</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-xs">
+                @if (rows.length) {
+                    @for (row of rows; track row.code) {
+                        <tr class="font-mono">
+                            <td class="py-1.5 px-2 font-bold text-slate-700 font-sans border-r border-slate-200">{{ row.code }}</td>
+                            <td class="py-1.5 px-4 font-sans text-slate-800 border-r border-slate-200">{{ row.name }}</td>
+
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.sumDebit }}</td>
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.sumCredit }}</td>
+
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.balanceDebit }}</td>
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.balanceCredit }}</td>
+
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.activo }}</td>
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.pasivo }}</td>
+
+                            <td class="py-1.5 px-2 text-right border-r border-slate-200">{{ row.perdida }}</td>
+                            <td class="py-1.5 px-2 text-right">{{ row.ganancia }}</td>
+                        </tr>
+                    }
+                } @else {
+                    <tr>
+                        <td colspan="10" class="text-center py-10 text-slate-400 font-sans">No hay registros contables en los asientos para generar el balance de este periodo.</td>
+                    </tr>
+                }
+            </tbody>
+            @if (rows.length) {
+                <tfoot class="border-t-2 border-slate-300 font-bold font-mono text-slate-900 bg-white text-xs">
+                    <tr class="border-b border-slate-200">
+                        <td colspan="2" class="py-2 px-4 text-left font-sans uppercase text-[10px] border-r border-slate-200">Sumas</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumSd) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumSc) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumBd) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumBc) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumAct) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumPas) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0(figures.sumPer) }}</td>
+                        <td class="py-2 px-2 text-right">{{ format0(figures.sumGan) }}</td>
+                    </tr>
+
+                    <tr class="border-b border-slate-200">
+                        <td colspan="2" class="py-2 px-4 text-left font-sans uppercase text-[10px] border-r border-slate-200">
+                            Resultado del Ejercicio ({{ resultLabel }})
+                        </td>
+                        <td colspan="4" class="border-r border-slate-200"></td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0OrDash(figures.resActivo) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0OrDash(figures.resPasivo) }}</td>
+                        <td class="py-2 px-2 text-right border-r border-slate-200">{{ format0OrDash(figures.resPerdida) }}</td>
+                        <td class="py-2 px-2 text-right">{{ format0OrDash(figures.resGanancia) }}</td>
+                    </tr>
+
+                    <tr class="border-t border-slate-300">
+                        <td colspan="2" class="py-2.5 px-4 text-left font-sans uppercase text-[10px] border-r border-slate-300">Sumas Iguales</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300">{{ format0(figures.sumSd) }}</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300">{{ format0(figures.sumSc) }}</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300">{{ format0(figures.sumBd) }}</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300">{{ format0(figures.sumBc) }}</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300 font-extrabold">{{ format0(figures.totalInvActivo) }}</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300 font-extrabold">{{ format0(figures.totalInvPasivo) }}</td>
+                        <td class="py-2.5 px-2 text-right border-r border-slate-300 font-extrabold">{{ format0(figures.totalResPerdida) }}</td>
+                        <td class="py-2.5 px-2 text-right font-extrabold">{{ format0(figures.totalResGanancia) }}</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+
+</div>

@@ -1,0 +1,54 @@
+<div class="bg-white text-black font-sans p-6 max-w-[95%] mx-auto">
+
+    <div class="flex justify-between items-baseline pb-3 mb-4 border-b border-gray-300">
+        <div>
+            <h1 class="text-base font-bold uppercase tracking-wider">Libro Mayor - Cuenta: <span class="text-indigo-600">{{ accountCode }}</span></h1>
+            <p class="text-xs text-gray-600 font-mono mt-0.5">Periodo: {{ periodLabel }}</p>
+        </div>
+        <div>
+            <a (click)="back()" class="text-xs font-medium text-black border border-gray-300 px-2.5 py-1 rounded">&larr; Volver</a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b-2 border-black text-[11px] font-bold uppercase text-gray-700">
+                    <th class="py-2.5 px-3">Fecha</th>
+                    <th class="py-2.5 px-3">Asiento ID</th>
+                    <th class="py-2.5 px-3">Glosa</th>
+                    <th class="py-2.5 px-3 text-right">Debe</th>
+                    <th class="py-2.5 px-3 text-right">Haber</th>
+                    <th class="py-2.5 px-3 text-right">Saldo</th>
+                </tr>
+            </thead>
+            <tbody class="font-mono text-[11px] divide-y divide-gray-200">
+                @for (row of rows; track $index) {
+                    <tr>
+                        <td class="py-2 px-3 text-gray-600 font-sans whitespace-nowrap">{{ row.date }}</td>
+                        <td class="py-2 px-3 font-bold">{{ row.journalId }}</td>
+                        <td class="py-2 px-3 text-gray-800 font-sans">{{ row.description }}</td>
+                        <td class="py-2 px-3 text-right">{{ row.debit }}</td>
+                        <td class="py-2 px-3 text-right">{{ row.credit }}</td>
+                        <td class="py-2 px-3 text-right font-bold">{{ row.balance }}</td>
+                    </tr>
+                } @empty {
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-gray-400 font-sans">No se encontraron movimientos para esta cuenta en el periodo seleccionado.</td>
+                    </tr>
+                }
+            </tbody>
+            @if (hasTotals) {
+                <tfoot>
+                    <tr class="border-t-2 border-black font-bold font-mono text-[11px] text-black">
+                        <td colspan="3" class="py-3 px-3 text-right uppercase font-sans">TOTALES:</td>
+                        <td class="py-3 px-3 text-right">{{ totalDebit }}</td>
+                        <td class="py-3 px-3 text-right">{{ totalCredit }}</td>
+                        <td class="py-3 px-3 text-right">{{ balance }}</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+
+    </div>

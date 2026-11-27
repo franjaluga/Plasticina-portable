@@ -1,0 +1,100 @@
+<div id="plasticina-notifications"></div>
+
+<ng-container *ngIf="ready; else startup">
+  <router-outlet></router-outlet>
+
+  <a *ngIf="!isHome" href="#/" aria-label="Ir al inicio" title="Inicio"
+     style="position:fixed;top:72px;right:16px;z-index:9998;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:#4f46e5;color:#fff;border-radius:9999px;box-shadow:0 4px 6px -1px rgba(0,0,0,.2);">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+    </svg>
+  </a>
+
+  <button type="button" aria-label="Ayuda" title="Mini guía del sistema" (click)="toggleHelp()"
+          style="position:fixed;bottom:16px;right:20px;z-index:9998;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:0;cursor:pointer;background:#4f46e5;color:#fff;border-radius:9999px;box-shadow:0 4px 6px -1px rgba(0,0,0,.2);">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22a10 10 0 100-20 10 10 0 000 20zM9.6 9a2.5 2.5 0 114.1 1.9c-.9.7-1.7 1.2-1.7 2.4M12 17h.01"></path>
+    </svg>
+  </button>
+
+  <div id="plasticina-help-guide" role="dialog" aria-modal="true" aria-label="Mini guía del sistema"
+       [attr.aria-hidden]="helpOpen ? 'false' : 'true'"
+       [style.display]="helpOpen ? 'flex' : 'none'"
+       (click)="closeHelp($event)"
+       style="position:fixed;inset:0;z-index:10005;align-items:center;justify-content:center;background:rgba(15,23,42,.55);padding:16px;">
+    <div style="max-width:680px;width:100%;max-height:85vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 20px 40px rgba(15,23,42,.25);border:1px solid #e2e8f0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-bottom:1px solid #e2e8f0;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:700;color:#0f172a;">Mini guía del sistema</h2>
+          <p style="margin:4px 0 0;font-size:11px;color:#64748b;">Cómo funciona Plasticina</p>
+        </div>
+        <button type="button" (click)="closeHelp()" aria-label="Cerrar ayuda" title="Cerrar"
+                style="border:0;background:transparent;color:#64748b;font-size:22px;line-height:1;cursor:pointer;">&times;</button>
+      </div>
+      <div style="padding:20px 24px;display:grid;gap:16px;font-size:12px;line-height:1.6;color:#475569;">
+        <section style="display:flex;gap:12px;">
+          <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;">1</span>
+          <div><h3 style="margin:0 0 4px;font-size:12px;font-weight:700;color:#0f172a;">Asientos manuales o importadores</h3>
+            <p style="margin:0;">Puedes registrar asientos manualmente en
+              <a [attr.href]="helpLinks['manual']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">asiento manual</a>
+              o cargar la información desde archivos usando los
+              <a [attr.href]="helpLinks['imports']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">importadores</a>.</p></div>
+        </section>
+        <section style="display:flex;gap:12px;">
+          <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;">2</span>
+          <div><h3 style="margin:0 0 4px;font-size:12px;font-weight:700;color:#0f172a;">Documentos: de la carga al cobro o pago</h3>
+            <p style="margin:0;">Los documentos vía importador primero se
+              <a [attr.href]="helpLinks['purchasesStart']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">suben</a>, se
+              <a [attr.href]="helpLinks['purchasesPreview']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">revisan</a> y se
+              <a [attr.href]="helpLinks['purchasesImported']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">guardan</a>
+              en el registro de compras y ventas. Luego se
+              <a [attr.href]="helpLinks['pending']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">centralizan</a>,
+              donde al asignar una cuenta contable se genera su propio asiento contable. Finalmente se pueden cobrar o pagar desde
+              <a [attr.href]="helpLinks['payments']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">tesorería</a>.</p></div>
+        </section>
+        <section style="display:flex;gap:12px;">
+          <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;">3</span>
+          <div><h3 style="margin:0 0 4px;font-size:12px;font-weight:700;color:#0f172a;">Reportes disponibles</h3>
+            <p style="margin:0;">Puedes consultar el
+              <a [attr.href]="helpLinks['balance']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">balance</a>, el
+              <a [attr.href]="helpLinks['journals']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">libro diario</a>, el
+              <a [attr.href]="helpLinks['ledger']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">libro mayor</a> y el
+              <a [attr.href]="helpLinks['taxBalance']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">libro de compras y ventas</a>, entre otros.</p></div>
+        </section>
+        <section style="display:flex;gap:12px;">
+          <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;">4</span>
+          <div><h3 style="margin:0 0 4px;font-size:12px;font-weight:700;color:#0f172a;">Configuración y empresas</h3>
+            <p style="margin:0;">También puedes ajustar el
+              <a [attr.href]="helpLinks['accountPlan']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">plan de cuentas</a>, usar
+              <a [attr.href]="helpLinks['templates']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">plantillas de cuentas</a>, cambiar la
+              <a [attr.href]="helpLinks['config']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">configuración general</a> y crear más
+              <a [attr.href]="helpLinks['owners']?.href" (click)="closeHelp()" style="color:#4f46e5;font-weight:600;text-decoration:none;">empresas</a>.</p></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <footer style="position:fixed;left:0;right:0;bottom:0;z-index:9997;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 24px;padding:8px 16px;background:#ffffff;border-top:1px solid #e2e8f0;box-shadow:0 -1px 3px rgba(15,23,42,.06);font-size:11px;line-height:1.4;color:#64748b;">
+    <span>Versión 1.0.0 · Última actualización: 27-11-2026</span>
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <svg style="width:14px;height:14px;flex:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"></path><path d="M22 6l-10 7L2 6"></path></svg>
+      <span>Desarrollado gratuitamente para todos. ¿Encontraste algún Bug en el sistema o te gustaría que implementaramos alguna funcionalidad nueva? ¡Es gratis!, escríbeme a:</span>
+      <a href="mailto:sistemas@tributacion-nacional.cl" style="color:#4f46e5;font-weight:600;text-decoration:none;">sistemas&#64;tributacion-nacional.cl</a>
+    </span>
+  </footer>
+</ng-container>
+
+<ng-template #startup>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10" role="status" aria-live="polite">
+    <div class="mb-6">
+      <h1 class="text-xl font-extrabold text-slate-800">Cargando datos…</h1>
+      <p class="text-xs text-slate-500 mt-1">Preparando la información de Plasticina.</p>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-6">
+      <div class="h-4 bg-slate-100 rounded w-1/3 mb-5"></div>
+      <div class="h-24 bg-slate-100 rounded mb-3"></div>
+      <div class="h-24 bg-slate-100 rounded"></div>
+    </div>
+    <p *ngIf="error" class="mt-4 text-sm text-red-700">{{ error }}</p>
+  </div>
+</ng-template>

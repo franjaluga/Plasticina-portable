@@ -1,0 +1,96 @@
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 pb-4 mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Comprobante de Asiento Contable</h1>
+            <p class="text-xs text-gray-500 mt-1">
+                Asiento N°: <span class="font-bold text-indigo-600">{{ entryNumber }}</span>
+                <span class="mx-1 text-gray-300">|</span>
+                Año: <span class="font-bold text-gray-800">{{ year }}</span>
+            </p>
+            @if (hasGlosa) {
+                <div class="mt-2.5 inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-900 px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <span class="font-bold uppercase tracking-wider text-[10px] text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">Glosa</span>
+                    <span>{{ glosa }}</span>
+                </div>
+            }
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a [href]="route('accounting.system_journals')" class="inline-flex items-center text-xs font-semibold bg-white border border-gray-300 text-gray-700 px-3.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition">
+                &larr; Volver al Listado
+            </a>
+
+            <form data-action="journals.delete-with-document" (submit)="submit('journals.delete-with-document', $event)">
+                <input type="hidden" name="id" value="{{ id }}">
+                <input type="hidden" name="journal" value="{{ id }}">
+                <input type="hidden" name="_method" value="DELETE">
+                <button type="submit" data-confirm="¿Estás seguro de eliminar este asiento y su documento asociado?" class="inline-flex items-center text-xs font-semibold bg-red-600 text-white px-3.5 py-2 rounded-lg shadow-sm hover:bg-red-700 transition">
+                    Eliminar Asiento
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-5 mb-6 text-xs space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <span class="font-bold text-gray-500 uppercase tracking-wider block text-[10px]">Fecha del Asiento</span>
+                <span class="text-gray-800 font-medium text-sm">{{ date }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-gray-500 uppercase tracking-wider block text-[10px]">Tipo de Origen</span>
+                <span class="text-gray-800 font-medium">{{ sourceLabel }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-gray-500 uppercase tracking-wider block text-[10px]">Estado</span>
+                <span [class]="statusClass">{{ statusLabel }}</span>
+            </div>
+        </div>
+        @if (hasEntity) {
+            <div class="pt-3 border-t border-gray-100">
+                <span class="font-bold text-gray-500 uppercase tracking-wider block text-[10px]">Entidad Asociada</span>
+                <span class="text-gray-800 font-medium">{{ entityName }} (RUT: {{ entityRut }})</span>
+            </div>
+        }
+    </div>
+
+    <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-gray-800 text-white uppercase tracking-wider text-[11px]">
+                        <th class="py-3 px-4 w-36">Código Cuenta</th>
+                        <th class="py-3 px-4">Nombre de la Cuenta</th>
+                        <th class="py-3 px-4 w-32">Componente</th>
+                        <th class="py-3 px-4 text-right w-32">Debe</th>
+                        <th class="py-3 px-4 text-right w-32">Haber</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @for (entry of entries; track $index) {
+                        <tr class="hover:bg-gray-50/80 transition">
+                            <td class="py-2.5 px-4 font-mono font-bold text-gray-700">{{ entry.accountCode }}</td>
+                            <td class="py-2.5 px-4 text-gray-900">{{ entry.accountName }}</td>
+                            <td class="py-2.5 px-4">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-700">
+                                    {{ entry.componentName }}
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-4 text-right font-mono text-gray-800">{{ entry.debit }}</td>
+                            <td class="py-2.5 px-4 text-right font-mono text-gray-800">{{ entry.credit }}</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray-50 border-t border-gray-200 font-bold font-mono text-xs text-gray-800">
+                        <td colspan="3" class="py-3 px-4 text-right uppercase font-sans text-[11px]">Totales:</td>
+                        <td class="py-3 px-4 text-right text-indigo-600">{{ totalDebit }}</td>
+                        <td class="py-3 px-4 text-right text-indigo-600">{{ totalCredit }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>

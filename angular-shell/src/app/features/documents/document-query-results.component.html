@@ -1,0 +1,73 @@
+<div class="bg-white text-black font-sans p-6 max-w-[95%] mx-auto">
+
+    <div class="flex justify-between items-baseline pb-3 mb-4 border-b border-gray-300">
+        <div>
+            <h1 class="text-base font-bold uppercase tracking-wider">Registro de {{ typeLabel }}</h1>
+            <p class="text-xs text-gray-600 font-mono mt-0.5">Periodo: {{ period }}</p>
+        </div>
+        <div>
+            <a href="javascript:void(0)" (click)="$event.preventDefault(); back()" class="text-xs font-medium text-black border border-gray-300 px-2.5 py-1 rounded">&larr; Volver</a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b-2 border-black text-[11px] font-bold uppercase text-gray-700">
+                    <th class="py-2.5 px-3">Folio</th>
+                    <th class="py-2.5 px-3">Fecha</th>
+                    <th class="py-2.5 px-3">RUT / Entidad</th>
+                    <th class="py-2.5 px-3">Documento</th>
+                    <th class="py-2.5 px-3 text-right">Neto</th>
+                    <th class="py-2.5 px-3 text-right">Exento</th>
+                    <th class="py-2.5 px-3 text-right">IVA</th>
+                    <th class="py-2.5 px-3 text-right">Imp. (+)</th>
+                    <th class="py-2.5 px-3 text-right">Imp. (-)</th>
+                    <th class="py-2.5 px-3 text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody class="font-mono text-[11px] divide-y divide-gray-200">
+                @if (documents.length) {
+                    @for (row of documents; track row.id) {
+                        <tr>
+                            <td class="py-2 px-3 font-bold"><a [href]="route('accounting.documents.detail', row.id)" class="underline">{{ row.folio }}</a></td>
+                            <td class="py-2 px-3 text-gray-600 font-sans whitespace-nowrap">{{ row.date }}</td>
+                            <td class="py-2 px-3 text-gray-800">
+                                <span class="font-bold">{{ row.entityRut }}</span>
+                                <span class="block text-[10px] text-gray-500 font-sans truncate max-w-[160px]">{{ row.entityName }}</span>
+                            </td>
+                            <td class="py-2 px-3 text-gray-800 font-sans">
+                                <span class="font-bold">{{ row.documentTypeId }}</span>
+                                <span class="text-gray-500 text-[10px] truncate block max-w-[130px]">{{ row.documentTypeName }}</span>
+                            </td>
+                            <td class="py-2 px-3 text-right">{{ row.net }}</td>
+                            <td class="py-2 px-3 text-right text-gray-500">{{ row.exempt }}</td>
+                            <td class="py-2 px-3 text-right">{{ row.vatRec }}</td>
+                            <td class="py-2 px-3 text-right text-gray-500">{{ row.plusOthTax }}</td>
+                            <td class="py-2 px-3 text-right text-gray-500">{{ row.minusOthTax }}</td>
+                            <td class="py-2 px-3 text-right font-bold">{{ row.total }}</td>
+                        </tr>
+                    }
+                } @else {
+                    <tr>
+                        <td colspan="10" class="text-center py-8 text-gray-400 font-sans">No se encontraron registros para este periodo.</td>
+                    </tr>
+                }
+            </tbody>
+            @if (documents.length) {
+                <tfoot>
+                    <tr class="border-t-2 border-black font-bold font-mono text-[11px] text-black">
+                        <td colspan="4" class="py-3 px-3 text-right uppercase font-sans">TOTALES:</td>
+                        <td class="py-3 px-3 text-right">{{ totals.net }}</td>
+                        <td class="py-3 px-3 text-right text-gray-600">{{ totals.exempt }}</td>
+                        <td class="py-3 px-3 text-right">{{ totals.vatRec }}</td>
+                        <td class="py-3 px-3 text-right text-gray-600">{{ totals.plusOthTax }}</td>
+                        <td class="py-3 px-3 text-right text-gray-600">{{ totals.minusOthTax }}</td>
+                        <td class="py-3 px-3 text-right">{{ totals.total }}</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+
+    </div>

@@ -1,0 +1,146 @@
+<header class="bg-white shadow-sm border-b border-gray-200 mb-6">
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ingresar Documento V/C</h2>
+        <div>
+            <a [href]="route('ingress.manual')" class="text-xs font-semibold bg-gray-100 text-gray-700 px-3.5 py-2 rounded-lg border border-gray-200 bg-gray-200:hover transition shadow-sm">
+                &larr; Volver al Inicio
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="py-4 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-white shadow-sm border border-gray-200 rounded-xl p-6">
+            <form data-action="documents.store" (submit)="submit('documents.store', $event)">
+                <input type="hidden" name="owner_id" [value]="ownerId">
+
+                <h3 [class]="sectionClass">1. Datos de Registro</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                    <div>
+                        <label for="month_register" [class]="labelClass">Mes de Registro</label>
+                        <input #monthRegisterInput type="number" name="month_register" id="month_register" min="1" max="12" [value]="monthRegister" (input)="monthRegister = monthRegisterInput.value" [class]="fieldClass" required>
+                    </div>
+                    <div>
+                        <label for="year_register" [class]="labelClass">Año de Registro</label>
+                        <input #yearRegisterInput type="number" name="year_register" id="year_register" min="2000" [value]="yearRegister" (input)="yearRegister = yearRegisterInput.value" [class]="fieldClass" required>
+                    </div>
+                    <div>
+                        <label for="type_vc" [class]="labelClass">Tipo (V/C)</label>
+                        <app-select name="type_vc" id="type_vc"
+                            [options]="typeOptions"
+                            [value]="typeVc"
+                            [required]="true"
+                            [class]="fieldClass"
+                            className="mt-1 block w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none border-indigo-500 ring-2 ring-indigo-500 ring-offset-2 transition"
+                            (valueChange)="onTypeVcChange($event)"></app-select>
+                    </div>
+                </div>
+
+                <h3 [class]="sectionClass">2. Detalles del Documento</h3>
+
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-6">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Datos de la Entidad</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label for="rut" [class]="labelClass">RUT (Ej: 12345678-9)</label>
+                            <input #rutInput type="text" name="rut" id="rut" maxlength="10" [value]="rut" (input)="onRutInput(rutInput.value)" (blur)="onRutBlur()" placeholder="Ej: 12345678-9" [class]="fieldClass" required>
+                            <p id="rut_message" [class]="rutMessageClass">{{ rutMessage }}</p>
+                        </div>
+                        <div>
+                            <label for="entity_name" [class]="labelClass">Nombre o Razón Social</label>
+                            <input #entityNameInput type="text" name="entity_name" id="entity_name" [value]="entityName" (input)="entityName = entityNameInput.value" placeholder="Nombre completo o razón social" [class]="fieldClass" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-6">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Tipo de Documento</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label for="doctype" [class]="labelClass">Código (Doctype)</label>
+                            <input #doctypeInput type="number" name="doctype" id="doctype" [value]="doctype" (input)="onDoctypeInput(doctypeInput.value)" (blur)="onDoctypeBlur()" placeholder="Ej: 33" [class]="fieldClass" required>
+                            <p id="doctype_message" [class]="doctypeMessageClass">{{ doctypeMessage }}</p>
+                        </div>
+                        <div>
+                            <label for="document_type_name" [class]="labelClass">Nombre del Documento</label>
+                            <input #documentTypeNameInput type="text" name="document_type_name" id="document_type_name" [value]="documentTypeName" (input)="documentTypeName = documentTypeNameInput.value" placeholder="Ej: Factura Electrónica" [class]="fieldClass" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="folio" [class]="labelClass">Folio</label>
+                        <input #folioInput type="number" name="folio" id="folio" [value]="folio" (input)="onFolioInput(folioInput.value)" placeholder="N° de folio" [class]="fieldClass" required>
+                    </div>
+                    <div>
+                        <label for="date" [class]="labelClass">Fecha Documento</label>
+                        <input #dateInput type="date" name="date" id="date" [value]="date" (input)="date = dateInput.value" [class]="fieldClass" required>
+                    </div>
+                </div>
+
+                <h3 [class]="sectionClass">3. Referencias</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div>
+                        <label for="rut_ref" [class]="labelClass">RUT Ref</label>
+                        <input #rutRefInput type="text" name="rut_ref" id="rut_ref" maxlength="10" [value]="rutRef" (input)="onRutRefInput(rutRefInput.value)" placeholder="Ej: 12345678-9" [class]="fieldClass">
+                    </div>
+                    <div>
+                        <label for="folio_ref" [class]="labelClass">Folio Ref</label>
+                        <input #folioRefInput type="number" name="folio_ref" id="folio_ref" [value]="folioRef" (input)="onFolioRefInput(folioRefInput.value)" placeholder="N° de folio" [class]="fieldClass">
+                    </div>
+                    <div>
+                        <label for="td_ref" [class]="labelClass">Tipo Doc Ref</label>
+                        <input #tdRefInput type="text" name="td_ref" id="td_ref" maxlength="2" [value]="tdRef" (input)="onTdRefInput(tdRefInput.value)" placeholder="Ej: 33" [class]="fieldClass">
+                    </div>
+                    <div>
+                        <label for="date_centralize" [class]="labelClass">Fecha Centralización</label>
+                        <input #dateCentralizeInput type="date" name="date_centralize" id="date_centralize" [value]="dateCentralize" (input)="dateCentralize = dateCentralizeInput.value" [class]="fieldClass">
+                    </div>
+                </div>
+
+                <h3 [class]="sectionClass">4. Montos</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div>
+                        <label for="net" [class]="labelClass">Neto</label>
+                        <input #netInput type="number" name="net" id="net" [value]="net" (input)="net = netInput.value; onAmountInput()" step="0.01" inputmode="decimal" placeholder="0.00" [class]="amountClass">
+                    </div>
+                    <div>
+                        <label for="exempt" [class]="labelClass">Exento</label>
+                        <input #exemptInput type="number" name="exempt" id="exempt" [value]="exempt" (input)="exempt = exemptInput.value; onAmountInput()" step="0.01" inputmode="decimal" placeholder="0.00" [class]="amountClass">
+                    </div>
+                    <div>
+                        <label for="vat_rec" [class]="labelClass">IVA Recuperable</label>
+                        <input #vatRecInput type="number" name="vat_rec" id="vat_rec" [value]="vatRec" (input)="vatRec = vatRecInput.value; onAmountInput()" step="0.01" inputmode="decimal" placeholder="0.00" [class]="amountClass">
+                    </div>
+                    <div>
+                        <label for="vat_no_rec" [class]="labelClass">IVA No Recup.</label>
+                        <input #vatNoRecInput type="number" name="vat_no_rec" id="vat_no_rec" [value]="vatNoRec" (input)="vatNoRec = vatNoRecInput.value; onAmountInput()" step="0.01" inputmode="decimal" placeholder="0.00" [class]="amountClass">
+                    </div>
+                    <div>
+                        <label for="plus_oth_tax" [class]="labelClass">Otros Imp. (+)</label>
+                        <input #plusOthTaxInput type="number" name="plus_oth_tax" id="plus_oth_tax" [value]="plusOthTax" (input)="plusOthTax = plusOthTaxInput.value; onAmountInput()" step="0.01" inputmode="decimal" placeholder="0.00" [class]="amountClass">
+                    </div>
+                    <div>
+                        <label for="minus_oth_tax" [class]="labelClass">Otros Imp. (-)</label>
+                        <input #minusOthTaxInput type="number" name="minus_oth_tax" id="minus_oth_tax" [value]="minusOthTax" (input)="minusOthTax = minusOthTaxInput.value; onAmountInput()" step="0.01" inputmode="decimal" placeholder="0.00" [class]="amountClass">
+                    </div>
+                    <div class="sm:col-span-2 md:col-span-4">
+                        <label for="total" class="block text-sm font-bold text-gray-900 mb-1">TOTAL</label>
+                        <input #totalInput type="number" name="total" id="total" [value]="total" (input)="total = totalInput.value" step="0.01" inputmode="decimal" placeholder="0.00" [class]="totalClass" required>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+                    <a [href]="route('welcome')" class="bg-white py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-gray-50:hover transition text-center">
+                        Cancelar / Volver
+                    </a>
+                    <button type="submit" class="bg-indigo-600 border border-transparent rounded-lg shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-white bg-indigo-700:hover outline-none ring-2 ring-offset-2 ring-indigo-500 transition">
+                        Guardar Documento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>

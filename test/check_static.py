@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Comprobaciones estáticas del port cuando Node no está disponible."""
 from pathlib import Path
+import json
 import re
 import sys
 
@@ -246,6 +247,62 @@ def main():
             declared = re.search(r'\bfunction\s+' + helper + r'\s*\(', create_view) is not None
             if used and not declared:
                 ok = fail('assets/views/documents/create.js usa ' + helper + '() sin declararlo')
+
+    angular_dir = ROOT / 'angular-shell'
+    output_index = angular_dir / 'dist' / 'angular-shell' / 'browser' / 'index.html'
+    if output_index.exists():
+        generated = output_index.read_text(encoding='utf-8')
+        if '<app-root></app-root>' not in generated:
+            ok = fail('el index Angular generado no contiene app-root')
+        if 'type="module"' in generated:
+            ok = fail('el index Angular generado no es compatible con file://')
+        if 'assets/core/db/index.js' not in generated:
+            ok = fail('el index Angular generado no carga el núcleo SQLite')
+        for token in ('assets/views/', 'assets/actions/'):
+            if token in generated:
+                ok = fail('el index Angular generado todavía carga scripts legacy: ' + token)
+        for legacy_dir in ('views', 'actions'):
+            if (output_index.parent / 'assets' / legacy_dir).exists():
+                ok = fail('el bundle Angular todavía empaqueta assets/' + legacy_dir)
+        for script in re.findall(r'<script\s+src="([^"]+\.js)"></script>', generated):
+            if not re.match(r'(?:main|polyfills|chunk|runtime)-.+\.js$', Path(script).name):
+                continue
+            chunk = output_index.parent / script
+            if not chunk.is_file():
+                ok = fail('falta el chunk generado ' + script)
+            elif not chunk.read_text(encoding='utf-8').startswith('(function(){\n'):
+                ok = fail('el chunk generado no está aislado del ámbito global: ' + script)
+        angular_main_source = (angular_dir / 'src' / 'main.ts').read_text(encoding='utf-8')
+        if '@angular/compiler' in angular_main_source:
+            ok = fail('main.ts importa @angular/compiler; el bundle no debe incluir el compilador JIT')
+    else:
+        ok = fail('falta el index Angular generado; ejecuta npm run build:shell')
+
+    angular_sources = ''.join(
+        path.read_text(encoding='utf-8')
+        for path in (angular_dir / 'src' / 'app').rglob('*')
+        if path.suffix in ('.ts', '.html')
+    )
+    for token in ('window.Views', 'window.Actions', 'window.Plasticina.views',
+                  'window.Plasticina.actions', 'DynamicViewComponent'):
+        if token in angular_sources:
+            ok = fail('la app Angular todavía usa una fachada legacy: ' + token)
+
+    routes_file = angular_dir / 'src' / 'app' / 'app.routes.ts'
+    if routes_file.exists():
+        route_source = routes_file.read_text(encoding='utf-8')
+        view_count = route_source.count('...view(')
+        if view_count != 36:
+            ok = fail('Angular declara ' + str(view_count) + ' vistas; se esperaban 36')
+
+    desktop_main = (ROOT / 'desktop' / 'main.js').read_text(encoding='utf-8')
+    if 'angular-shell' not in desktop_main or 'RENDERER_INDEX' not in desktop_main:
+        ok = fail('Electron no carga el documento Angular generado')
+
+    package = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))
+    packaged = package.get('build', {}).get('files', [])
+    if not any('angular-shell/dist/angular-shell/browser' in item for item in packaged):
+        ok = fail('electron-builder no incluye el bundle Angular')
 
     print('OK comprobaciones estáticas' if ok else 'Hay errores estáticos')
     return 0 if ok else 1

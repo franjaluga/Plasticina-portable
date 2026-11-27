@@ -6,6 +6,7 @@
   window.Store = {
     get state() { return s.state; },
     load: s.load,
+    refresh: s.refresh,
     save: s.save,
     reset: s.reset,
     replaceState: s.replaceState,
