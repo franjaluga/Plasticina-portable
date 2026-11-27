@@ -219,6 +219,9 @@
           data: data || {},
           context: context
         }) + '</div>', viewName);
+      if (window.Plasticina.views.helpers && window.Plasticina.views.helpers.bindDropdowns) {
+        window.Plasticina.views.helpers.bindDropdowns(app);
+      }
       runScripts(app);
       if (window.Plasticina.views.helpers && window.Plasticina.views.helpers.bindAccountSearchFormsIn) {
         window.Plasticina.views.helpers.bindAccountSearchFormsIn(app);

@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { capitalize, queryMonth, queryYear } = window.Plasticina.views.helpers;
+  const { capitalize, queryMonth, queryYear, selectField } = window.Plasticina.views.helpers;
 
   window.Views.accountingAnalytics = function (ctx) {
     const query = ctx.query || {};
@@ -11,9 +11,9 @@
     const year = queryYear(query);
     const typeVc = query.type_vc === 'C' ? 'C' : 'V';
     const start = Store.ownerStartPeriod();
-    let monthOptions = '';
+    const monthOptions = [];
     for (let value = 1; value <= 12; value++) {
-      monthOptions += `<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)} - ${UI.h(capitalize(UI.monthName(value)))}</option>`;
+      monthOptions.push({ value: String(value), label: String(value) + ' - ' + capitalize(UI.monthName(value)) });
     }
 
     return `
@@ -50,16 +50,22 @@
                 <form data-action="vc_documents.query" class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
                     <div>
                         <label for="type_vc" class="block text-xs font-semibold text-slate-600 mb-1">Libro</label>
-                        <select name="type_vc" id="type_vc" class="w-full text-xs rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 bg-white border" required>
-                            <option value="V"${typeVc === 'V' ? ' selected' : ''}>Libro de ventas</option>
-                            <option value="C"${typeVc === 'C' ? ' selected' : ''}>Libro de compras</option>
-                        </select>
+                        ${selectField('type_vc', [
+                          { value: 'V', label: 'Libro de ventas' },
+                          { value: 'C', label: 'Libro de compras' }
+                        ], {
+                          id: 'type_vc',
+                          value: typeVc,
+                          className: 'w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border'
+                        })}
                     </div>
                     <div>
                         <label for="month" class="block text-xs font-semibold text-slate-600 mb-1">Mes</label>
-                        <select name="month" id="month" class="w-full text-xs rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 bg-white border" required>
-                            ${monthOptions}
-                        </select>
+                        ${selectField('month', monthOptions, {
+                          id: 'month',
+                          value: String(month),
+                          className: 'w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border'
+                        })}
                     </div>
                     <div>
                         <label for="year" class="block text-xs font-semibold text-slate-600 mb-1">Año</label>

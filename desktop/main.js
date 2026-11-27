@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+}
+
 const DB_FILE = path.join(app.getPath('userData'), 'plasticina.sqlite');
 
 function readDatabase() {

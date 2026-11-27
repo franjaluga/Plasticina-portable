@@ -165,12 +165,21 @@
     });
   }
 
-  function batchProcess(ids, customNetAccount, glosa) {
+  function batchProcess(ids, accountsByDocument, glosa) {
     const success = [];
     const errors = [];
+    const byDocument = accountsByDocument && typeof accountsByDocument === 'object' && !Array.isArray(accountsByDocument)
+      ? accountsByDocument
+      : null;
     (Array.isArray(ids) ? ids : []).forEach(function (id) {
       try {
-        registerDocumentJournal(id, customNetAccount, glosa);
+        const account = byDocument
+          ? (byDocument[String(id)] || byDocument[id])
+          : accountsByDocument;
+        if (!account || !String(account).trim()) {
+          throw new Error('No se indicó la cuenta contable para el Neto.');
+        }
+        registerDocumentJournal(id, account, glosa);
         success.push(Number(id));
       } catch (error) {
         errors.push('Doc ID ' + id + ': ' + error.message);

@@ -295,7 +295,7 @@
     });
     const elements = [
       { name: 'document_ids[]', type: 'checkbox', value: String(sourceDocument.id), checked: true },
-      { name: 'custom_net_account', type: 'text', value: '4010101', checked: true },
+      { name: 'custom_net_account[' + sourceDocument.id + '][code]', type: 'text', value: '4010101', checked: true },
       { name: 'glosa', type: 'text', value: 'Contabilización masiva', checked: true }
     ];
     await window.Actions['documents.batch']({
@@ -306,6 +306,96 @@
     T.assertIncludes(UI.takeFlash(), 'Se procesaron correctamente 1 documentos.');
     T.assertEqual(window.location.hash, UI.route('vc_documents.batch_processed', { processed: 1 }));
     T.assertEqual(Store.pendingDocuments().length, 0);
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
+  T.test('documents.batch exige la cuenta de cada documento seleccionado', async function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    window.location.hash = UI.route('vc_documents.pending');
+    const period = Store.ownerStartPeriod();
+    const sourceDocument = Store.createDocument({
+      month_register: period.month,
+      year_register: period.year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 125,
+      date: period.year + '-' + String(period.month).padStart(2, '0') + '-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+    const elements = [
+      { name: 'document_ids[]', type: 'checkbox', value: String(sourceDocument.id), checked: true },
+      { name: 'custom_net_account[' + sourceDocument.id + '][code]', type: 'text', value: '', checked: true },
+      { name: 'glosa', type: 'text', value: 'Contabilización masiva', checked: true }
+    ];
+    const app = window.App;
+    window.App = { render: function () {} };
+    try {
+      await window.Actions['documents.batch']({
+        elements: elements,
+        dataset: { action: 'documents.batch' },
+        getAttribute: function () { return null; }
+      });
+    } finally {
+      window.App = app;
+    }
+    T.assertIncludes(UI.takeFlash(), 'Debe indicar el código de la cuenta contable para el Neto');
+    T.assertEqual(Store.pendingDocuments().length, 1);
+    T.assertEqual(window.location.hash, UI.route('vc_documents.pending'));
+    window.location.hash = '#/';
+    T.resetStore();
+  });
+
+  T.test('documents.batch usa la cuenta indicada para cada documento', async function () {
+    T.resetStore();
+    sessionStorage.removeItem('plasticina_flash');
+    window.location.hash = UI.route('vc_documents.pending');
+    const period = Store.ownerStartPeriod();
+    function makeDocument(folio) {
+      return Store.createDocument({
+        month_register: period.month,
+        year_register: period.year,
+        type_vc: 'V',
+        rut: '11111111-1',
+        entity_name: 'Cliente Prueba',
+        doctype: 33,
+        document_type_name: 'Factura Electrónica',
+        folio: folio,
+        date: period.year + '-' + String(period.month).padStart(2, '0') + '-10',
+        net: 1000,
+        vat_rec: 190,
+        total: 1190
+      });
+    }
+    const first = makeDocument(126);
+    const second = makeDocument(127);
+    const elements = [
+      { name: 'document_ids[]', type: 'checkbox', value: String(first.id), checked: true },
+      { name: 'document_ids[]', type: 'checkbox', value: String(second.id), checked: true },
+      { name: 'custom_net_account[' + first.id + '][code]', type: 'text', value: '4010101', checked: true },
+      { name: 'custom_net_account[' + second.id + '][code]', type: 'text', value: '1010101', checked: true },
+      { name: 'glosa', type: 'text', value: 'Contabilización individual', checked: true }
+    ];
+    await window.Actions['documents.batch']({
+      elements: elements,
+      dataset: { action: 'documents.batch' },
+      getAttribute: function () { return null; }
+    });
+    T.assertIncludes(UI.takeFlash(), 'Se procesaron correctamente 2 documentos.');
+    const codes = {};
+    Store.journals().forEach(function (journal) {
+      if (!journal.vc_document_id) return;
+      const net = Store.journal(journal.id).entries.find(function (entry) { return entry.component_name === 'net'; });
+      if (net) codes[journal.vc_document_id] = net.account_code;
+    });
+    T.assertEqual(codes[first.id], '4010101');
+    T.assertEqual(codes[second.id], '1010101');
     window.location.hash = '#/';
     T.resetStore();
   });
@@ -333,7 +423,7 @@
     Store.registerDocumentJournal(sourceDocument.id, '4010101', 'Asiento previo');
     const elements = [
       { name: 'document_ids[]', type: 'checkbox', value: String(sourceDocument.id), checked: true },
-      { name: 'custom_net_account', type: 'text', value: '4010101', checked: true },
+      { name: 'custom_net_account[' + sourceDocument.id + '][code]', type: 'text', value: '4010101', checked: true },
       { name: 'glosa', type: 'text', value: 'Contabilización masiva', checked: true }
     ];
     const app = window.App;

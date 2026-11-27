@@ -3,15 +3,15 @@
 
   window.Views = window.Views || {};
 
-  const { renderUpload, capitalize } = window.Plasticina.views.helpers;
+  const { renderUpload, capitalize, selectField } = window.Plasticina.views.helpers;
 
   window.Views.ingressImport = function (ctx) {
     const month = new Date().getMonth() + 1;
     const year = Store.workingYear();
     const range = Store.workingYearRange();
-    let monthOptions = '';
+    const monthOptions = [];
     for (let value = 1; value <= 12; value++) {
-      monthOptions += `<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)} - ${UI.h(capitalize(UI.monthName(value)))}</option>`;
+      monthOptions.push({ value: String(value), label: String(value) + ' - ' + capitalize(UI.monthName(value)) });
     }
 
     return `
@@ -38,7 +38,11 @@
                     <div class="mt-4 grid grid-cols-2 gap-3">
                         <div>
                             <label for="purchase_month" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Mes del libro</label>
-                            <select name="month_register" id="purchase_month" class="w-full text-xs rounded-lg border border-slate-300 bg-white p-2" required>${monthOptions}</select>
+                            ${selectField('month_register', monthOptions, {
+                              id: 'purchase_month',
+                              value: String(month),
+                              className: 'w-full text-xs rounded-lg border border-slate-300 bg-white p-2'
+                            })}
                         </div>
                         <div>
                             <label for="purchase_year" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Año del libro</label>
@@ -63,14 +67,22 @@
                     <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div class="md:col-span-3">
                             <label for="sale_format" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Tipo de venta</label>
-                            <select name="sale_format" id="sale_format" class="w-full text-xs rounded-lg border border-slate-300 bg-white p-2" required>
-                                <option value="factura" selected>Ventas facturas</option>
-                                <option value="boleta">Ventas boletas</option>
-                            </select>
+                            ${selectField('sale_format', [
+                              { value: 'factura', label: 'Ventas facturas' },
+                              { value: 'boleta', label: 'Ventas boletas' }
+                            ], {
+                              id: 'sale_format',
+                              value: 'factura',
+                              className: 'w-full text-xs rounded-lg border border-slate-300 bg-white p-2'
+                            })}
                         </div>
                         <div>
                             <label for="sales_month" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Mes del libro</label>
-                            <select name="month_register" id="sales_month" class="w-full text-xs rounded-lg border border-slate-300 bg-white p-2" required>${monthOptions}</select>
+                            ${selectField('month_register', monthOptions, {
+                              id: 'sales_month',
+                              value: String(month),
+                              className: 'w-full text-xs rounded-lg border border-slate-300 bg-white p-2'
+                            })}
                         </div>
                         <div class="md:col-span-2">
                             <label for="sales_year" class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Año del libro</label>

@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { dataset } = window.Plasticina.views.helpers;
+  const { dataset, selectField } = window.Plasticina.views.helpers;
 
   window.Views.ownersAccounts = function (ctx) {
     const detail = dataset(ctx, 'owners.accounts', function () {
@@ -130,13 +130,17 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Categoría</label>
-                    <select id="category" name="category" class="w-full text-xs border-slate-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 px-3 bg-white" required>
-                        <option value="activo">Activo</option>
-                        <option value="pasivo">Pasivo</option>
-                        <option value="patrimonio">Patrimonio</option>
-                        <option value="perdida">Pérdida</option>
-                        <option value="ganancia">Ganancia</option>
-                    </select>
+                    ${selectField('category', [
+                      { value: 'activo', label: 'Activo' },
+                      { value: 'pasivo', label: 'Pasivo' },
+                      { value: 'patrimonio', label: 'Patrimonio' },
+                      { value: 'perdida', label: 'Pérdida' },
+                      { value: 'ganancia', label: 'Ganancia' }
+                    ], {
+                      id: 'category',
+                      value: 'activo',
+                      className: 'w-full text-xs border-slate-300 rounded-xl shadow-sm p-2.5 bg-white border'
+                    })}
                 </div>
 
                 <div class="flex justify-end space-x-2 pt-2">

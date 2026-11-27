@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { dataset } = window.Plasticina.views.helpers;
+  const { dataset, selectField } = window.Plasticina.views.helpers;
 
   window.Views.welcome = function (ctx) {
     const summary = dataset(ctx, 'home.summary', function () {
@@ -77,11 +77,15 @@
 
                 <form data-action="period.update" class="flex items-center space-x-2">
                     <input type="hidden" name="owner_id" value="${UI.h(owner ? owner.id : '')}">
-                    <select name="working_year" id="workingYearSelect" disabled class="w-full text-sm font-bold text-slate-800 bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-not-allowed shadow-sm transition">
-                        ${years.map(function (year) {
-                          return `<option value="${UI.h(year)}"${selectedYear === year ? ' selected' : ''}>${UI.h(year)}</option>`;
-                        }).join('')}
-                    </select>
+                    ${selectField('working_year', years.map(function (year) {
+                      return { value: String(year), label: String(year) };
+                    }), {
+                      id: 'workingYearSelect',
+                      value: String(selectedYear),
+                      disabled: true,
+                      className: 'w-full text-sm font-bold text-slate-800 bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 shadow-sm transition',
+                      required: false
+                    })}
                     <button type="submit" id="saveYearBtn" class="hidden text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap">
                         Guardar
                     </button>
@@ -163,18 +167,14 @@
       if (selectElement) { selectElement.value = String(config.workingYear); }
       if (!selectElement || !editBtn || !saveBtn) { return; }
       editBtn.addEventListener('click', function () {
-        if (selectElement.hasAttribute('disabled')) {
-          selectElement.removeAttribute('disabled');
-          selectElement.classList.remove('bg-slate-100', 'cursor-not-allowed');
-          selectElement.classList.add('bg-white', 'cursor-pointer', 'border-indigo-500');
+        if (selectElement.isDisabled()) {
+          selectElement.setDisabled(false);
           editBtn.textContent = 'Cancelar';
           editBtn.classList.remove('text-indigo-600', 'bg-indigo-50');
           editBtn.classList.add('text-rose-600', 'bg-rose-50');
           saveBtn.classList.remove('hidden');
         } else {
-          selectElement.setAttribute('disabled', 'disabled');
-          selectElement.classList.add('bg-slate-100', 'cursor-not-allowed');
-          selectElement.classList.remove('bg-white', 'cursor-pointer', 'border-indigo-500');
+          selectElement.setDisabled(true);
           editBtn.textContent = 'Cambiar ejercicio contable';
           editBtn.classList.add('text-indigo-600', 'bg-indigo-50');
           editBtn.classList.remove('text-rose-600', 'bg-rose-50');

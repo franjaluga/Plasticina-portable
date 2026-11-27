@@ -182,15 +182,17 @@
   T.test('El formulario de documentos mantiene funcional el selector V/C', function () {
     T.resetStore();
     const html = window.Views.documentCreate(ctx);
-    T.assertIncludes(html, '<option value="V" selected>Venta</option>');
-    T.assertIncludes(html, '<option value="C">Compra</option>');
+    T.assertIncludes(html, 'data-ui-select data-name="type_vc"');
+    T.assertIncludes(html, 'data-value="V"');
+    T.assertIncludes(html, 'data-value="C"');
+    T.assert(html.indexOf('<select') === -1, 'No debe usar select nativo');
   });
 
   T.test('La tarjeta de importar compras pide el libro, mes y año antes de abrir el importador', function () {
     T.resetStore();
     const html = window.Views.ingressImport(ctx);
     T.assertIncludes(html, 'data-action="imports.purchases_start"');
-    T.assertIncludes(html, 'name="month_register" id="purchase_month"');
+    T.assertIncludes(html, 'id="purchase_month" data-ui-select data-name="month_register"');
     T.assertIncludes(html, 'name="year_register" id="purchase_year"');
     T.assertIncludes(html, 'Mes del libro');
     T.assertIncludes(html, 'Año del libro');
@@ -319,7 +321,7 @@
 
     const first = window.Views.balanceContext({ params: {}, query: { month: '3', year: String(year) } });
     T.assertIncludes(first, '<form id="balanceContextForm" data-action="vc_documents.tax_balance"');
-    T.assertIncludes(first, '<option value="03" selected>');
+    T.assertIncludes(first, 'id="balanceMonth" data-ui-select data-name="month" data-value="03"');
     T.assertIncludes(first, 'id="balancePeriodHelp"');
     T.assertIncludes(first, 'Se procesa desde 01/01/' + year + ' hasta el 31/03/' + year + '.');
     T.assertIncludes(first, 'id="balanceGenerateBtn"');
@@ -423,12 +425,43 @@
     T.assert(controller.resolveValue(accounts, accounts[0].name).account, 'El nombre exacto debe resolver la cuenta');
     T.assert(controller.search(accounts, 'banco', 8).length <= 8, 'Las sugerencias deben quedarse acotadas');
 
+    const period = Store.ownerStartPeriod();
+    const pendingDocument = Store.createDocument({
+      month_register: period.month,
+      year_register: period.year,
+      type_vc: 'V',
+      rut: '11111111-1',
+      entity_name: 'Cliente Prueba',
+      doctype: 33,
+      document_type_name: 'Factura Electrónica',
+      folio: 321,
+      date: period.year + '-' + String(period.month).padStart(2, '0') + '-10',
+      net: 1000,
+      vat_rec: 190,
+      total: 1190
+    });
+
     const pending = window.Views.documentPending(ctx);
-    T.assertIncludes(pending, 'custom_net_account');
-    T.assertIncludes(pending, 'Código o nombre');
-    T.assertIncludes(pending, 'data-account-picker="net"');
+    T.assert(pending.indexOf('name="custom_net_account"') === -1, 'Ya no debe existir el campo global de cuenta');
+    T.assert(pending.indexOf('id="custom_net_account"') === -1, 'Ya no debe existir el id global de cuenta');
+    T.assertIncludes(pending, 'name="custom_net_account[' + pendingDocument.id + '][code]"');
+    T.assertIncludes(pending, 'id="custom_net_account_' + pendingDocument.id + '"');
+    T.assertIncludes(pending, 'placeholder="Código"');
+    T.assertIncludes(pending, 'data-account-picker="code"');
     T.assertIncludes(pending, 'data-account-source="catalogs.accounts"');
+    T.assertIncludes(pending, 'class="account-name-label truncate text-[10px] text-gray-400 italic"');
+    T.assertIncludes(pending, 'Escriba el código');
+    T.assertIncludes(pending, 'autocomplete="off">');
+    T.assertIncludes(pending, 'Cuenta Neto');
+    T.assertEqual(pending.split('<th scope="col"').length - 1, 9, 'La tabla debe tener 9 columnas');
     T.assertIncludes(pending, 'data-select-all=".doc-checkbox"');
+    T.assertEqual(pending.split('data-account-picker="code"').length - 1, 1, 'Debe haber un campo de cuenta por documento');
+    T.assert(pending.indexOf('data-account-search') === -1, 'El campo de código no debe usar el buscador legacy');
+    T.assert(pending.indexOf('<div class="overflow-x-auto">') !== -1 &&
+      pending.indexOf('<div class="overflow-x-auto">') < pending.indexOf('<table'),
+      'La tabla de pendientes debe ser desplazable horizontalmente');
+    T.assertIncludes(pending, '<table class="min-w-full divide-y divide-gray-200 text-left text-xs" style="min-width:1080px">');
+    T.assertIncludes(pending, '<td class="px-4 py-3" style="min-width:12rem">');
     T.assert(pending.indexOf('<script>') === -1, 'La vista de pendientes ya no debe incrustar scripts');
     T.assert(pending.indexOf('list="accounts_list"') === -1, 'El formulario aún usa datalist');
     T.assert(pending.indexOf('accountsData =') === -1, 'La vista no debe incrustar un snapshot de cuentas');
@@ -448,9 +481,21 @@
       T.assert(!input.listeners.focus, 'El campo no debe renderizar al enfocar');
       T.assert(!input.listeners.click, 'El campo no debe renderizar al hacer clic');
     }
+
+    const codeInput = document.createElement('input');
+    parent.appendChild(codeInput);
+    codeInput.setAttribute('data-account-picker', 'code');
+    codeInput.setAttribute('data-account-source', 'none');
+    const codeBinding = controller.bindInput(codeInput, accounts, {});
+    T.assert(codeBinding.codeOnly, 'El modo código no debe abrir sugerencias');
+    T.assertEqual(codeBinding.panel, null, 'El modo código no debe crear panel');
+    if (codeInput.listeners) T.assert(!codeInput.listeners.keydown, 'El modo código no debe enlazar navegación de sugerencias');
+    T.assertEqual(controller.bindings().length, 2, 'Debe existir un binding por campo');
+
     input.isConnected = false;
+    codeInput.isConnected = false;
     controller.prune();
-    T.assertEqual(controller.bindings().length, 0, 'El binding desconectado debe limpiarse');
+    T.assertEqual(controller.bindings().length, 0, 'Los bindings desconectados deben limpiarse');
 
     const ledger = window.Views.ledgerContext({ params: {}, query: {} });
     T.assertIncludes(ledger, 'data-account-search');
@@ -719,10 +764,10 @@
     T.resetStore();
     const html = window.Views.ingressImport(ctx);
     T.assertIncludes(html, 'data-action="imports.sales_start"');
-    T.assertIncludes(html, 'name="sale_format" id="sale_format"');
-    T.assertIncludes(html, '<option value="factura" selected>Ventas facturas</option>');
-    T.assertIncludes(html, '<option value="boleta">Ventas boletas</option>');
-    T.assertIncludes(html, 'name="month_register" id="sales_month"');
+    T.assertIncludes(html, 'id="sale_format" data-ui-select data-name="sale_format"');
+    T.assertIncludes(html, 'data-value="factura"');
+    T.assertIncludes(html, 'data-value="boleta"');
+    T.assertIncludes(html, 'id="sales_month" data-ui-select data-name="month_register"');
     T.assertIncludes(html, 'name="year_register" id="sales_year"');
     T.assertIncludes(html, 'Mes del libro');
     T.assertIncludes(html, 'Año del libro');

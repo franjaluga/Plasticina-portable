@@ -121,10 +121,15 @@
     const id = opts.id ? ' id="' + UI.h(opts.id) + '"' : '';
     const required = opts.required === false ? '' : ' required';
     const showLabel = opts.showLabel !== false;
-    const labelState = opts.label === undefined
+    let labelState = opts.label === undefined
       ? accountLabelState(opts.accounts, value)
       : { text: String(opts.label), state: 'valid' };
+    if (opts.label === undefined && opts.emptyLabel !== undefined && !String(value === undefined || value === null ? '' : value).trim()) {
+      labelState = { text: String(opts.emptyLabel), state: 'empty' };
+    }
+    const codeOnly = opts.picker === 'code';
     const picker = opts.picker === false ? '' : ' data-account-picker="' + UI.h(opts.picker || '') + '"';
+    const searchMarker = codeOnly ? '' : ' data-account-search';
     const source = opts.source === undefined ? '' : ' data-account-source="' + UI.h(opts.source) + '"';
     const ownerId = opts.ownerId === undefined || opts.ownerId === null || opts.ownerId === ''
       ? '' : ' data-owner-id="' + UI.h(opts.ownerId) + '"';
@@ -142,7 +147,7 @@
       '<input type="text"' + id + ' name="' + UI.h(name) + '" value="' + UI.h(value || '') +
       '" placeholder="' + UI.h(opts.placeholder || 'Código o nombre') +
       '" class="' + UI.h(opts.inputClass || 'w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white') +
-      '" data-account-search' + picker + source + ownerId + workingYear + ' autocomplete="off"' + required + '>' +
+      '"' + searchMarker + picker + source + ownerId + workingYear + ' autocomplete="off"' + required + '>' +
       '</div>' + label + '</div>';
   }
 
@@ -174,6 +179,22 @@
     return (accounts || []).map(function (acc) {
       return `<option value="${UI.h(acc.code)}"${String(selectedCode) === String(acc.code) ? ' selected' : ''}>${UI.h(acc.code)} - ${UI.h(acc.name)}</option>`;
     }).join('');
+  }
+
+  function dropdown() {
+    return window.Plasticina.views.dropdown || null;
+  }
+
+  function selectField(name, options, settings) {
+    const api = dropdown();
+    if (!api) return '';
+    const config = Object.assign({ name: name, options: options }, settings || {});
+    return api.render(config);
+  }
+
+  function bindDropdowns(container) {
+    const api = dropdown();
+    return api ? api.mount(container) : [];
   }
 
   function format0(value) {
@@ -313,7 +334,8 @@
     normalizeAccountText, accountLabel, accountName, accountSource, searchAccounts, resolveAccount,
     accountDisplayName, accountLabelState, updateAccountLabel, defaultAccountResolver,
     accountSearchField, bindAccountSearch, bindAccountSearchForm, bindAccountSearchFormsIn,
-    accountOptions, format0, format0OrDash, taxBalanceFigures, queryYear, queryMonth,
+    accountOptions, dropdown, selectField, bindDropdowns,
+    format0, format0OrDash, taxBalanceFigures, queryYear, queryMonth,
     reportPeriodHelp, balancePeriodHelp, docTypeName, renderUpload
   });
 })();

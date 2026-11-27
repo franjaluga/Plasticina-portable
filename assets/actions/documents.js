@@ -2,7 +2,7 @@
   'use strict';
 
   const helpers = window.Plasticina.actions.helpers;
-  const { afterSuccess, fail, readForm, run } = helpers;
+  const { afterSuccess, fail, grouped, readForm, run } = helpers;
 
   window.Actions = window.Actions || {};
 
@@ -39,8 +39,14 @@
   window.Actions['documents.batch'] = function (form) {
     run(form, async function (values) {
       const ids = Array.isArray(values['document_ids[]']) ? values['document_ids[]'] : [];
-      if (ids.length === 0 || !values.custom_net_account || !values.glosa) throw new Error('Debe seleccionar documentos, una cuenta contable para el Neto y una glosa.');
-      const result = await Store.batchProcess(ids, values.custom_net_account, values.glosa);
+      const accountByDocument = {};
+      grouped(form, 'custom_net_account').forEach(function (item) {
+        accountByDocument[String(item._key)] = String(item.code || '').trim();
+      });
+      if (ids.length === 0 || !values.glosa) throw new Error('Debe seleccionar documentos y una glosa.');
+      const missing = ids.filter(function (id) { return !accountByDocument[String(id)]; });
+      if (missing.length) throw new Error('Debe indicar el código de la cuenta contable para el Neto en cada documento seleccionado.');
+      const result = await Store.batchProcess(ids, accountByDocument, values.glosa);
       const errors = Array.isArray(result.errors) ? result.errors : [];
       const processed = Number(result.success_count) || 0;
       if (errors.length) {

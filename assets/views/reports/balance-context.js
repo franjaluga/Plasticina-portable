@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { pad, queryMonth, queryYear, balancePeriodHelp } = window.Plasticina.views.helpers;
+  const { pad, queryMonth, queryYear, balancePeriodHelp, selectField } = window.Plasticina.views.helpers;
   const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -18,9 +18,8 @@
     const help = balancePeriodHelp(status);
     const monthOptions = MONTH_NAMES.map(function (name, index) {
       const value = index + 1;
-      return '<option value="' + pad(value) + '"' + (month === value ? ' selected' : '') + '>' +
-        pad(value) + ' - ' + name + '</option>';
-    }).join('');
+      return { value: pad(value), label: pad(value) + ' - ' + name };
+    });
     const buttonClass = help.valid
       ? 'text-xs font-semibold text-indigo-600 mt-6 flex items-center group-hover:text-indigo-800'
       : 'text-xs font-semibold text-slate-400 mt-6 flex items-center cursor-not-allowed opacity-60';
@@ -49,9 +48,11 @@
                     <div class="mt-5 grid grid-cols-2 gap-3">
                         <div>
                             <label for="balanceMonth" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Mes</label>
-                            <select name="month" id="balanceMonth" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                ${monthOptions}
-                            </select>
+                            ${selectField('month', monthOptions, {
+                              id: 'balanceMonth',
+                              value: pad(month),
+                              className: 'w-full text-xs border-slate-300 rounded-lg shadow-sm p-2 bg-white border'
+                            })}
                         </div>
                         <div>
                             <label for="balanceYear" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Año</label>

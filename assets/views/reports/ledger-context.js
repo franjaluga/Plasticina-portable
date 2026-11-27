@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { accountSearchField } = window.Plasticina.views.helpers;
+  const { accountSearchField, selectField } = window.Plasticina.views.helpers;
 
   window.Views.ledgerContext = function (ctx) {
     const owner = Store.activeOwner();
@@ -15,7 +15,7 @@
     const start = Store.ownerStartPeriod();
     const monthOptions = [];
     for (let value = 1; value <= 12; value++) {
-      monthOptions.push(`<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)}</option>`);
+      monthOptions.push({ value: String(value), label: String(value) });
     }
 
     return `
@@ -45,9 +45,11 @@
                 </div>
                 <div>
                     <label for="ledger_month" class="block text-xs font-semibold text-slate-600 mb-1">Mes</label>
-                    <select name="month" id="ledger_month" class="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border" required>
-                        ${monthOptions.join('')}
-                    </select>
+                    ${selectField('month', monthOptions, {
+                      id: 'ledger_month',
+                      value: String(month),
+                      className: 'w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border'
+                    })}
                 </div>
                 <div>
                     <label for="ledger_year" class="block text-xs font-semibold text-slate-600 mb-1">Año</label>

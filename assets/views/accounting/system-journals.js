@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { dataset, queryYear } = window.Plasticina.views.helpers;
+  const { dataset, queryYear, selectField } = window.Plasticina.views.helpers;
 
   window.Views.systemJournals = function (ctx) {
     const query = ctx.query || {};
@@ -18,10 +18,9 @@
     const start = Store.ownerStartPeriod();
     const startIso = start.year + '-' + String(start.month).padStart(2, '0') + '-01';
 
-    const documentTypeOptions = documentTypes.map(function (dtype) {
-      const selected = filters.document_type_id !== undefined && String(filters.document_type_id) === String(dtype.doctype) ? ' selected' : '';
-      return `<option value="${UI.h(dtype.doctype)}"${selected}>${UI.h(dtype.name)}</option>`;
-    }).join('');
+    const documentTypeOptions = [{ value: '', label: '-- Todos --' }].concat(documentTypes.map(function (dtype) {
+      return { value: dtype.doctype, label: dtype.name };
+    }));
 
     const rows = journals.length
       ? journals.map(function (journal) {
@@ -138,10 +137,12 @@
 
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Tipo Documento</label>
-                        <select name="document_type_id" class="w-full text-xs border border-gray-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                            <option value="">-- Todos --</option>
-                            ${documentTypeOptions}
-                        </select>
+                        ${selectField('document_type_id', documentTypeOptions, {
+                          value: filters.document_type_id || '',
+                          className: 'w-full text-xs border border-gray-300 rounded-lg p-2 bg-white',
+                          required: false,
+                          emptyLabel: '-- Todos --'
+                        })}
                     </div>
 
                     <div>

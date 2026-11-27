@@ -105,6 +105,13 @@
     }
   }
 
+  function ensureDropdownBindings(target) {
+    if (!viewHelpers || !viewHelpers.bindDropdowns) return;
+    const select = target && target.closest ? target.closest('[data-ui-select]') : null;
+    if (!select || select.__plasticinaSelect) return;
+    viewHelpers.bindDropdowns(document);
+  }
+
   document.addEventListener('submit', onSubmit);
   document.addEventListener('click', onClick);
   document.addEventListener('change', function (event) {
@@ -118,9 +125,11 @@
   });
   document.addEventListener('focusin', function (event) {
     ensureAccountSearchBindings(event.target);
+    ensureDropdownBindings(event.target);
   });
   document.addEventListener('click', function (event) {
     ensureAccountSearchBindings(event.target);
+    ensureDropdownBindings(event.target);
   });
   window.addEventListener('hashchange', router.render);
 

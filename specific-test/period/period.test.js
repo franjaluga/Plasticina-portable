@@ -24,7 +24,7 @@
     T.assertIncludes(html, 'disabled');
     T.assertIncludes(html, 'id="saveYearBtn"');
     T.assertIncludes(html, 'Guardar');
-    T.assertIncludes(html, 'value="' + Store.workingYear() + '" selected');
+    T.assertIncludes(html, 'aria-selected="true" data-value="' + Store.workingYear() + '"');
   });
 
   T.test('Cambiar ejercicio contable: period.update guarda el año en SQLite', function () {
@@ -63,13 +63,13 @@
     T.assertDeepEqual(range, { min: Store.activeOwner().start_year, max: Store.maxWorkingYear() });
 
     const html = window.Views.welcome(ctx);
-    const select = html.split('id="workingYearSelect"')[1].split('</select>')[0];
-    T.assertIncludes(select, 'value="' + range.min + '"');
-    T.assertIncludes(select, 'value="' + range.max + '"');
-    T.assert(select.indexOf('value="' + (range.max + 1) + '"') === -1,
+    const select = html.split('id="workingYearSelect"')[1].split('</ul>')[0];
+    T.assertIncludes(select, 'data-value="' + range.min + '"');
+    T.assertIncludes(select, 'data-value="' + range.max + '"');
+    T.assert(select.indexOf('data-value="' + (range.max + 1) + '"') === -1,
       'El selector no debe superar el año actual + 1');
     if (range.min > 2020) {
-      T.assert(select.indexOf('value="2020"') === -1, 'El selector no debe usar el mínimo fijo 2020');
+      T.assert(select.indexOf('data-value="2020"') === -1, 'El selector no debe usar el mínimo fijo 2020');
     }
     T.assertIncludes(html, 'Empresa Activa');
     T.resetStore();
@@ -118,9 +118,9 @@
     T.assertEqual(Store.workingYear(), futureYear);
     T.assertEqual(window.Plasticina.db.repositories.settings.get('working_year'), String(futureYear));
 
-    const select = window.Views.welcome(ctx).split('id="workingYearSelect"')[1].split('</select>')[0];
-    T.assertIncludes(select, 'value="' + futureYear + '" selected');
-    T.assert(select.indexOf('value="' + (futureYear - 1) + '"') === -1,
+    const select = window.Views.welcome(ctx).split('id="workingYearSelect"')[1].split('</ul>')[0];
+    T.assertIncludes(select, 'aria-selected="true" data-value="' + futureYear + '"');
+    T.assert(select.indexOf('data-value="' + (futureYear - 1) + '"') === -1,
       'El año anterior al inicio de la empresa no debe estar disponible');
     T.resetStore();
   });

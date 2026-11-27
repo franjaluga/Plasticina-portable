@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { dataset } = window.Plasticina.views.helpers;
+  const { dataset, selectField } = window.Plasticina.views.helpers;
 
   window.Views.templatesEdit = function (ctx) {
     const detail = dataset(ctx, 'masters.templateDetail', function () {
@@ -13,9 +13,13 @@
     const template = detail.template || {};
     const items = detail.items || [];
 
-    function selected(value, expected) {
-      return String(value) === expected ? ' selected' : '';
-    }
+    const categoryOptions = [
+      { value: 'activo', label: 'Activo' },
+      { value: 'pasivo', label: 'Pasivo' },
+      { value: 'patrimonio', label: 'Patrimonio' },
+      { value: 'ganancia', label: 'Ganancia' },
+      { value: 'perdida', label: 'Pérdida' }
+    ];
 
     const rows = items.map(function (item) {
       const category = String(item.category === undefined || item.category === null ? '' : item.category);
@@ -24,13 +28,10 @@
                             <td class="py-2 px-4"><input type="text" name="items[${UI.h(item.id)}][code]" value="${UI.h(item.code)}" class="w-full text-xs border-slate-300 rounded-md" required></td>
                             <td class="py-2 px-4"><input type="text" name="items[${UI.h(item.id)}][name]" value="${UI.h(item.name)}" class="w-full text-xs border-slate-300 rounded-md" required></td>
                             <td class="py-2 px-4">
-                                <select name="items[${UI.h(item.id)}][category]" class="w-full text-xs border-slate-300 rounded-md" required>
-                                    <option value="activo"${selected(category, 'activo')}>Activo</option>
-                                    <option value="pasivo"${selected(category, 'pasivo')}>Pasivo</option>
-                                    <option value="patrimonio"${selected(category, 'patrimonio')}>Patrimonio</option>
-                                    <option value="ganancia"${selected(category, 'ganancia')}>Ganancia</option>
-                                    <option value="perdida"${selected(category, 'perdida')}>Pérdida</option>
-                                </select>
+                                ${selectField('items[' + item.id + '][category]', categoryOptions, {
+                                  value: category,
+                                  className: 'w-full text-xs border-slate-300 rounded-md p-1.5 bg-white border'
+                                })}
                             </td>
                             <td class="py-2 px-4 text-center"><button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 font-bold text-base">&times;</button></td>
                         </tr>`;
@@ -89,6 +90,15 @@
     (function () {
       var config = ${UI.json({ accountTemplateId: template.id === undefined ? null : template.id })};
       var form = document.getElementById('templateForm');
+      var selectField = window.Plasticina.views.helpers.selectField;
+      var dropdown = window.Plasticina.views.dropdown;
+      var categoryOptions = [
+        { value: 'activo', label: 'Activo' },
+        { value: 'pasivo', label: 'Pasivo' },
+        { value: 'patrimonio', label: 'Patrimonio' },
+        { value: 'ganancia', label: 'Ganancia' },
+        { value: 'perdida', label: 'Pérdida' }
+      ];
       if (form) {
         form.dataset.accountTemplateId = config.accountTemplateId === null ? '' : String(config.accountTemplateId);
       }
@@ -100,18 +110,11 @@
         tr.innerHTML = \`
                 <td class="py-2 px-4"><input type="text" name="items[\${newId}][code]" class="w-full text-xs border-slate-300 rounded-md" required placeholder="Ej: 1010199"></td>
                 <td class="py-2 px-4"><input type="text" name="items[\${newId}][name]" class="w-full text-xs border-slate-300 rounded-md" required placeholder="Nombre de cuenta"></td>
-                <td class="py-2 px-4">
-                    <select name="items[\${newId}][category]" class="w-full text-xs border-slate-300 rounded-md" required>
-                        <option value="activo">Activo</option>
-                        <option value="pasivo">Pasivo</option>
-                        <option value="patrimonio">Patrimonio</option>
-                        <option value="ganancia">Ganancia</option>
-                        <option value="perdida">Pérdida</option>
-                    </select>
-                </td>
+                <td class="py-2 px-4">\${selectField('items[' + newId + '][category]', categoryOptions, { value: 'activo', className: 'w-full text-xs border-slate-300 rounded-md p-1.5 bg-white border' })}</td>
                 <td class="py-2 px-4 text-center"><button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 font-bold text-base">&times;</button></td>
             \`;
         tbody.appendChild(tr);
+        if (dropdown) dropdown.mount(tr);
       });
     })();
     </script>

@@ -49,7 +49,7 @@
 
   function closeOthers(current) {
     bindings.forEach(function (binding) {
-      if (binding !== current) binding.hide();
+      if (binding !== current && binding.panel) binding.hide();
     });
   }
 
@@ -68,6 +68,7 @@
     prune();
     const target = event && event.target;
     bindings.forEach(function (binding) {
+      if (!binding.panel) return;
       if (!target || target === binding.input || target === binding.panel ||
           (typeof binding.panel.contains === 'function' && binding.panel.contains(target))) return;
       binding.hide();
@@ -81,18 +82,20 @@
   }
 
   function hide(binding) {
-    binding.panel.classList.add('hidden');
+    if (binding.panel) binding.panel.classList.add('hidden');
     binding.input.setAttribute('aria-expanded', 'false');
     binding.active = -1;
   }
 
   function show(binding) {
     closeOthers(binding);
+    if (!binding.panel) return;
     binding.panel.classList.remove('hidden');
     binding.input.setAttribute('aria-expanded', 'true');
   }
 
   function markActive(binding) {
+    if (!binding.panel) return;
     const options = binding.panel.querySelectorAll('[role="option"]');
     Array.prototype.forEach.call(options, function (option, index) {
       const selected = index === binding.active;
@@ -110,6 +113,10 @@
 
   function render(binding) {
     if (binding.disposed) return;
+    if (binding.codeOnly) {
+      syncLabel(binding);
+      return;
+    }
     const api = helpers();
     const limit = binding.options.limit === undefined ? 8 : Math.max(1, Number(binding.options.limit) || 8);
     binding.matches = api.searchAccounts(binding.accounts, binding.input.value, limit);
@@ -180,19 +187,24 @@
     if (input.__plasticinaAccountPicker) return input.__plasticinaAccountPicker;
 
     const opts = options || {};
-    const panel = document.createElement('div');
-    panel.id = 'account-suggestions-' + (++sequence);
-    panel.className = 'account-suggestions hidden';
-    panel.setAttribute('role', 'listbox');
+    const mode = typeof input.getAttribute === 'function' ? (input.getAttribute('data-account-picker') || '') : '';
+    const codeOnly = mode === 'code';
+    const panel = codeOnly ? null : document.createElement('div');
     input.setAttribute('role', 'combobox');
-    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-autocomplete', codeOnly ? 'none' : 'list');
     input.setAttribute('aria-expanded', 'false');
-    input.setAttribute('aria-controls', panel.id);
-    input.parentElement.appendChild(panel);
+    if (panel) {
+      panel.id = 'account-suggestions-' + (++sequence);
+      panel.className = 'account-suggestions hidden';
+      panel.setAttribute('role', 'listbox');
+      input.setAttribute('aria-controls', panel.id);
+      input.parentElement.appendChild(panel);
+    }
 
     const binding = {
       input: input,
       panel: panel,
+      codeOnly: codeOnly,
       options: opts,
       accounts: [],
       matches: [],
@@ -222,52 +234,61 @@
       }
     }
 
-    panel.addEventListener('mousedown', function (event) {
-      const option = event.target && typeof event.target.closest === 'function'
-        ? event.target.closest('[data-index]')
-        : null;
-      if (!option) return;
-      event.preventDefault();
-      select(binding, Number(option.getAttribute('data-index')));
-    });
+    if (panel) {
+      panel.addEventListener('mousedown', function (event) {
+        const option = event.target && typeof event.target.closest === 'function'
+          ? event.target.closest('[data-index]')
+          : null;
+        if (!option) return;
+        event.preventDefault();
+        select(binding, Number(option.getAttribute('data-index')));
+      });
+    }
 
     input.addEventListener('input', function () {
       input.setCustomValidity('');
       syncLabel(binding);
-      scheduleRender(binding);
+      if (!codeOnly) scheduleRender(binding);
       if (typeof opts.onInput === 'function') opts.onInput(input);
     });
-    input.addEventListener('keydown', function (event) {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        if (!binding.matches.length || binding.panel.classList.contains('hidden')) render(binding);
-        if (!binding.matches.length) return;
-        binding.active = event.key === 'ArrowDown'
-          ? Math.min(binding.active + 1, binding.matches.length - 1)
-          : Math.max(binding.active - 1, 0);
-        markActive(binding);
-        return;
-      }
-      if (event.key === 'Enter' && binding.active >= 0 && binding.matches[binding.active]) {
-        event.preventDefault();
-        select(binding, binding.active);
-        return;
-      }
-      if (event.key === 'Enter') {
-        const result = helpers().resolveAccount(binding.accounts, input.value);
-        if (result.account) {
+    if (!codeOnly) {
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
           event.preventDefault();
-          select(binding, binding.matches.indexOf(result.account));
-          if (binding.input.value !== String(result.account.code)) {
-            binding.input.value = String(result.account.code);
-            helpers().updateAccountLabel(binding.input, helpers().accountName(result.account), 'valid');
-            hide(binding);
-          }
+          if (!binding.matches.length || binding.panel.classList.contains('hidden')) render(binding);
+          if (!binding.matches.length) return;
+          binding.active = event.key === 'ArrowDown'
+            ? Math.min(binding.active + 1, binding.matches.length - 1)
+            : Math.max(binding.active - 1, 0);
+          markActive(binding);
+          return;
         }
-        return;
-      }
-      if (event.key === 'Escape') hide(binding);
-    });
+        if (event.key === 'Enter' && binding.active >= 0 && binding.matches[binding.active]) {
+          event.preventDefault();
+          select(binding, binding.active);
+          return;
+        }
+        if (event.key === 'Enter') {
+          const result = helpers().resolveAccount(binding.accounts, input.value);
+          if (result.account) {
+            event.preventDefault();
+            select(binding, binding.matches.indexOf(result.account));
+            if (binding.input.value !== String(result.account.code)) {
+              binding.input.value = String(result.account.code);
+              helpers().updateAccountLabel(binding.input, helpers().accountName(result.account), 'valid');
+              hide(binding);
+            }
+          }
+          return;
+        }
+        if (event.key === 'Escape') hide(binding);
+      });
+      input.addEventListener('focusout', function (event) {
+        if (event && event.relatedTarget && typeof panel.contains === 'function' && panel.contains(event.relatedTarget)) return;
+        hide(binding);
+      });
+    }
+
     input.addEventListener('focusout', function (event) {
       if (event && event.relatedTarget && typeof panel.contains === 'function' && panel.contains(event.relatedTarget)) return;
       hide(binding);

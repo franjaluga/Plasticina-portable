@@ -3,6 +3,8 @@
 
   window.Views = window.Views || {};
 
+  const { selectField } = window.Plasticina.views.helpers;
+
   window.Views.documentCreate = function (ctx) {
     const owner = Store.activeOwner();
     const values = UI.old() || {};
@@ -10,9 +12,6 @@
       const stored = values[name];
       if (stored === undefined || stored === null || stored === '') return fallback === undefined ? '' : fallback;
       return stored;
-    }
-    function selected(name, expected, fallback) {
-      return String(value(name, fallback)) === String(expected) ? ' selected' : '';
     }
     const fieldClass = 'mt-1 block w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none border-indigo-500 ring-2 ring-indigo-500 ring-offset-2 transition';
     const amountClass = fieldClass + ' text-right font-mono';
@@ -50,10 +49,14 @@
                         </div>
                         <div>
                             <label for="type_vc" class="${labelClass}">Tipo (V/C)</label>
-                            <select name="type_vc" id="type_vc" class="${fieldClass}" required>
-                                <option value="V"${selected('type_vc', 'V', 'V')}>Venta</option>
-                                <option value="C"${selected('type_vc', 'C', 'V')}>Compra</option>
-                            </select>
+                            ${selectField('type_vc', [
+                              { value: 'V', label: 'Venta' },
+                              { value: 'C', label: 'Compra' }
+                            ], {
+                              id: 'type_vc',
+                              value: value('type_vc', 'V'),
+                              className: fieldClass
+                            })}
                         </div>
                     </div>
 

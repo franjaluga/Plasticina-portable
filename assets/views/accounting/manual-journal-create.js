@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { capitalize, dataset, oldValue } = window.Plasticina.views.helpers;
+  const { capitalize, dataset, oldValue, selectField } = window.Plasticina.views.helpers;
 
   window.Views.manualJournalCreate = function (ctx) {
     const editor = dataset(ctx, 'editors.manualJournal', function () {
@@ -39,9 +39,9 @@
         'El número definitivo se asigna al guardar; si otro asiento se registra primero, se recalculará automáticamente.'
       : 'Seleccione una empresa activa para ver el número propuesto.';
 
-    let monthOptions = '';
+    const monthOptions = [];
     for (let value = 1; value <= 12; value++) {
-      monthOptions += `<option value="${UI.h(value)}"${value === month ? ' selected' : ''}>${UI.h(value)}</option>`;
+      monthOptions.push({ value: String(value), label: String(value) });
     }
 
     const templateButtons = Object.keys(templates).map(function (key) {
@@ -79,7 +79,10 @@
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Mes</label>
-                <select name="month" class="w-full text-xs p-2 border border-gray-300 bg-white" required>${monthOptions}</select>
+                ${selectField('month', monthOptions, {
+                  value: String(month),
+                  className: 'w-full text-xs p-2 border border-gray-300 bg-white'
+                })}
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Año</label>

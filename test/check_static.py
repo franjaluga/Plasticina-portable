@@ -177,6 +177,22 @@ def main():
     if 'viewHelpers.bindAccountSearchFormsIn(document)' not in events_source:
         ok = fail('events.js no tiene enlace delegado de cuentas')
 
+    pending_source = (ASSETS / 'views' / 'documents' / 'pending.js').read_text(encoding='utf-8')
+    for token in ("custom_net_account[' + doc.id + '][code]", "picker: 'code'",
+                  'emptyLabel: ', 'Cuenta Neto', 'colspan="9"', 'overflow-x-auto', 'min-width:1080px'):
+        if token not in pending_source:
+            ok = fail('La vista de pendientes no usa cuenta por documento: ' + token)
+    if 'name="custom_net_account"' in pending_source:
+        ok = fail('La vista de pendientes conserva el campo global de cuenta')
+    helpers_source = (ASSETS / 'views' / 'shared' / 'helpers.js').read_text(encoding='utf-8')
+    if 'const searchMarker = codeOnly ?' not in helpers_source:
+        ok = fail('helpers.js no distingue el campo de código del buscador legacy')
+
+    batch_source = (ASSETS / 'actions' / 'documents.js').read_text(encoding='utf-8')
+    for token in ("grouped(form, 'custom_net_account')", 'accountByDocument', 'Store.batchProcess(ids, accountByDocument'):
+        if token not in batch_source:
+            ok = fail('documents.batch no agrupa las cuentas por documento: ' + token)
+
     styles = (ASSETS / 'styles' / 'app.css').read_text(encoding='utf-8')
     if 'z-index:10000' not in styles:
         ok = fail('app.css no eleva las sugerencias de cuentas sobre los elementos fijos')

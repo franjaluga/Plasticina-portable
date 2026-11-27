@@ -3,7 +3,7 @@
 
   window.Views = window.Views || {};
 
-  const { dataset } = window.Plasticina.views.helpers;
+  const { dataset, selectField } = window.Plasticina.views.helpers;
 
   window.Views.ownersIndex = function (ctx) {
     const owners = dataset(ctx, 'owners.list', function () { return Store.owners(); });
@@ -19,9 +19,8 @@
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const startMonthOptions = monthNames.map(function (name, index) {
       const value = String(index + 1).padStart(2, '0');
-      return '<option value="' + value + '"' + (selectedStartMonth === value ? ' selected' : '') + '>' +
-        value + ' - ' + name + '</option>';
-    }).join('');
+      return { value: value, label: value + ' - ' + name };
+    });
 
     function startLabel(owner) {
       return String(owner.start_month || 1).padStart(2, '0') + '/' + String(owner.start_year || currentDate.getFullYear());
@@ -36,11 +35,7 @@
     }
 
     const planOptions = [{ value: 'standard_pyme', label: 'Plan Estándar PyME (Base)' }]
-      .concat(templates.map(function (item) { return { value: item.slug, label: item.name }; }))
-      .map(function (item) {
-        return `<option value="${UI.h(item.value)}"${String(selectedPlan) === String(item.value) ? ' selected' : ''}>${UI.h(item.label)}</option>`;
-      })
-      .join('');
+      .concat(templates.map(function (item) { return { value: item.slug, label: item.name }; }));
 
     const ownerBlocks = owners.length
       ? owners.map(function (owner) {
@@ -163,15 +158,18 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 mb-1">Plan de Cuentas Inicial</label>
-                        <select name="account_plan_type" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                            ${planOptions}
-                        </select>
+                        ${selectField('account_plan_type', planOptions, {
+                          value: selectedPlan,
+                          className: 'w-full text-xs border-slate-300 rounded-lg shadow-sm p-2 bg-white border'
+                        })}
                     </div>
                     <div class="md:col-span-2">
                         <label for="owner_start_month" class="block text-xs font-bold text-slate-700 mb-1">Mes de Inicio</label>
-                        <select name="start_month" id="owner_start_month" class="w-full text-xs border-slate-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                            ${startMonthOptions}
-                        </select>
+                        ${selectField('start_month', startMonthOptions, {
+                          id: 'owner_start_month',
+                          value: selectedStartMonth,
+                          className: 'w-full text-xs border-slate-300 rounded-lg shadow-sm p-2 bg-white border'
+                        })}
                     </div>
                     <div class="md:col-span-2">
                         <label for="owner_start_year" class="block text-xs font-bold text-slate-700 mb-1">Año de Inicio</label>
