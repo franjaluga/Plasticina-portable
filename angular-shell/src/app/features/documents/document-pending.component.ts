@@ -45,13 +45,11 @@ export class DocumentPendingComponent extends ViewBaseComponent implements OnIni
   public documentTypeOptions: SelectOption[] = [{ value: '', label: 'Todos los tipos' }];
   public selectedIds: string[] = [];
 
-  private readonly previous: Record<string, unknown>;
+  private previous: Record<string, unknown> = {};
   private readonly subscription = new Subscription();
 
   constructor(app: PlasticinaService, state: ViewStateService, actions: ActionService) {
     super(app, state, actions);
-    const stored = this.app.ui.old();
-    this.previous = stored && typeof stored === 'object' ? stored as Record<string, unknown> : {};
   }
 
   public ngOnInit(): void {
@@ -105,7 +103,7 @@ export class DocumentPendingComponent extends ViewBaseComponent implements OnIni
   public toggleDocument(id: string, event: Event): void {
     const checked = event.target instanceof HTMLInputElement ? event.target.checked : false;
     if (checked) {
-      if (!this.selectedIds.includes(id)) this.selectedIds.push(id);
+      if (!this.selectedIds.includes(id)) this.selectedIds = [...this.selectedIds, id];
       return;
     }
     this.selectedIds = this.selectedIds.filter((value) => value !== id);
@@ -123,6 +121,8 @@ export class DocumentPendingComponent extends ViewBaseComponent implements OnIni
 
   private load(): void {
     const query = this.ctx.query || {};
+    const stored = this.app.ui.old();
+    this.previous = stored && typeof stored === 'object' ? stored as Record<string, unknown> : {};
     const owner = this.store.activeOwner ? this.store.activeOwner() : null;
     this.ownerId = owner ? owner.id : '';
     this.workingYear = Number(this.store.workingYear ? this.store.workingYear() : new Date().getFullYear());

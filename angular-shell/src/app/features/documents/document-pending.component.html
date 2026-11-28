@@ -109,15 +109,18 @@
                                     <td class="px-6 py-3 text-right text-gray-600">{{ row.vatRec }}</td>
                                     <td class="px-6 py-3 text-right font-bold text-gray-900">{{ row.total }}</td>
                                     <td class="px-4 py-3" style="min-width:12rem">
-                                        <app-account-picker
-                                            [name]="'custom_net_account[' + row.id + '][code]'"
-                                            [attr.id]="'custom_net_account_' + row.id"
-                                            [accounts]="accounts"
-                                            [value]="row.account"
-                                            [ownerId]="ownerId"
-                                            [workingYear]="workingYear"
-                                            [required]="false"
-                                            (valueChange)="onAccountChange(row.id, $event)"></app-account-picker>
+                                        @if (isSelected(row.id)) {
+                                            <app-account-picker
+                                                [name]="'custom_net_account[' + row.id + '][code]'"
+                                                [attr.id]="'custom_net_account_' + row.id"
+                                                [accounts]="accounts"
+                                                [value]="row.account"
+                                                [ownerId]="ownerId"
+                                                [workingYear]="workingYear"
+                                                [required]="false"
+                                                [codeOnly]="true"
+                                                (valueChange)="onAccountChange(row.id, $event)"></app-account-picker>
+                                        }
                                     </td>
                                 </tr>
                             }

@@ -70,30 +70,32 @@ const DEFAULT_INPUT_CLASS = 'w-full text-xs border border-gray-300 rounded px-3 
           (focusout)="onFocusout($event)"
         >
         <input #hiddenInput type="hidden" [attr.name]="name" [value]="text">
-        <div
-          #panel
-          [attr.id]="panelId"
-          class="account-suggestions"
-          [class.hidden]="!panelOpen"
-          role="listbox"
-        >
-          @if (!suggestions.length) {
-            <div class="account-suggestion-empty">Sin coincidencias</div>
-          } @else {
-            @for (suggestion of suggestions; track $index) {
-              <button
-                type="button"
-                role="option"
-                [attr.aria-selected]="active === $index ? 'true' : 'false'"
-                [class.account-suggestion-active]="active === $index"
-                [attr.data-index]="$index"
-                class="account-suggestion"
-                [attr.data-code]="suggestion.code"
-                (mousedown)="onSuggestionMousedown($event)"
-              ><span class="font-mono font-semibold text-slate-800">{{ suggestion.code }}</span><span class="text-slate-400"> - </span><span class="text-slate-600">{{ suggestion.name }}</span></button>
+        @if (!codeOnly) {
+          <div
+            #panel
+            [attr.id]="panelId"
+            class="account-suggestions"
+            [class.hidden]="!panelOpen"
+            role="listbox"
+          >
+            @if (!suggestions.length) {
+              <div class="account-suggestion-empty">Sin coincidencias</div>
+            } @else {
+              @for (suggestion of suggestions; track $index) {
+                <button
+                  type="button"
+                  role="option"
+                  [attr.aria-selected]="active === $index ? 'true' : 'false'"
+                  [class.account-suggestion-active]="active === $index"
+                  [attr.data-index]="$index"
+                  class="account-suggestion"
+                  [attr.data-code]="suggestion.code"
+                  (mousedown)="onSuggestionMousedown($event)"
+                ><span class="font-mono font-semibold text-slate-800">{{ suggestion.code }}</span><span class="text-slate-400"> - </span><span class="text-slate-600">{{ suggestion.name }}</span></button>
+              }
             }
-          }
-        </div>
+          </div>
+        }
       </div>
       <span
         class="account-name-label truncate text-xs"
@@ -113,6 +115,7 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
   @Input() ownerId: number | string | null = null;
   @Input() workingYear: number = new Date().getFullYear();
   @Input() required = true;
+  @Input() codeOnly = false;
   @Input() className = '';
   @Input() inputClass = '';
   @Output() readonly valueChange = new EventEmitter<string>();
@@ -196,10 +199,11 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
     if (this.hiddenInput) this.hiddenInput.nativeElement.value = input.value;
     this.valueChange.emit(input.value);
     this.syncLabel();
-    this.scheduleRender();
+    if (this.codeOnly) this.hide(); else this.scheduleRender();
   }
 
   onKeydown(event: KeyboardEvent): void {
+    if (this.codeOnly && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       if (!this.suggestions.length || !this.panelOpen) this.renderSuggestions();
@@ -251,7 +255,10 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
 
   @HostListener('document:pointerdown', ['$event'])
   onDocumentPointerDown(event: Event): void {
-    if (!this.panelOpen) return;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
     const target = event.target as Node | null;
     if (!target) return;
     if (target === this.searchInput?.nativeElement ||
@@ -385,6 +392,7 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
   }
 
   private renderSuggestions(): void {
+    if (this.codeOnly) return;
     this.suggestions = this.searchAccounts(this.text, 8).map((account) => ({
       account,
       code: String(account.code ?? ''),
@@ -395,6 +403,7 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
   }
 
   private show(): void {
+    if (this.codeOnly) return;
     openPanels.forEach((hide) => {
       if (hide !== this.hideSelf) hide();
     });
@@ -402,6 +411,10 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
   }
 
   private hide(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
     this.panelOpen = false;
     this.active = -1;
   }

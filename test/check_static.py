@@ -308,6 +308,21 @@ def main():
         if view_count != 36:
             ok = fail('Angular declara ' + str(view_count) + ' vistas; se esperaban 36')
 
+    pending_template = (angular_dir / 'src' / 'app' / 'features' / 'documents' /
+                        'document-pending.component.html').read_text(encoding='utf-8')
+    for token in ('@if (isSelected(row.id))', '[codeOnly]="true"', 'custom_net_account['):
+        if token not in pending_template:
+            ok = fail('document-pending.component.html no cumple el contrato de cuenta neto: ' + token)
+    pending_source = (angular_dir / 'src' / 'app' / 'features' / 'documents' /
+                      'document-pending.component.ts').read_text(encoding='utf-8')
+    if 'this.selectedIds.push(id)' in pending_source:
+        ok = fail('toggleDocument no reasigna selectedIds; Angular no propagará el campo')
+    picker_source = (angular_dir / 'src' / 'app' / 'shared' / 'ui' /
+                     'app-account-picker.component.ts').read_text(encoding='utf-8')
+    for token in ('@Input() codeOnly = false;', '@if (!codeOnly)', 'if (this.codeOnly) return;'):
+        if token not in picker_source:
+            ok = fail('app-account-picker no soporta modo codeOnly: ' + token)
+
     desktop_main = (ROOT / 'desktop' / 'main.js').read_text(encoding='utf-8')
     if 'angular-shell' not in desktop_main or 'RENDERER_INDEX' not in desktop_main:
         ok = fail('Electron no carga el documento Angular generado')
