@@ -278,6 +278,19 @@ def main():
     else:
         ok = fail('falta el index Angular generado; ejecuta npm run build:shell')
 
+    resolver_source = (angular_dir / 'src' / 'app' / 'core' / 'view-data.resolver.ts').read_text(encoding='utf-8')
+    if "removeItem('plasticina_old')" in resolver_source:
+        ok = fail('el resolver borra plasticina_old antes de renderizar la vista')
+    app_component_source = (angular_dir / 'src' / 'app' / 'app.component.ts').read_text(encoding='utf-8')
+    navigation_end = app_component_source.find('instanceof NavigationEnd')
+    old_clear = app_component_source.find("removeItem('plasticina_old')")
+    if navigation_end < 0 or old_clear < navigation_end:
+        ok = fail('plasticina_old debe limpiarse después de NavigationEnd')
+    session_source = (ASSETS / 'core' / 'ui' / 'session.js').read_text(encoding='utf-8')
+    old_function = session_source.split('function old(key, fallback) {', 1)[1].split('\n  }', 1)[0]
+    if 'removeItem' in old_function:
+        ok = fail('UI.old consume la bolsa al leerla')
+
     angular_sources = ''.join(
         path.read_text(encoding='utf-8')
         for path in (angular_dir / 'src' / 'app').rglob('*')

@@ -45,7 +45,6 @@
 
   function old(key, fallback) {
     const values = readSessionJson(OLD_KEY, '{}');
-    sessionStorage.removeItem(OLD_KEY);
     if (key === undefined || key === null) return values;
     return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : fallback;
   }

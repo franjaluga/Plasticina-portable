@@ -30,7 +30,7 @@
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Mes</label>
-                <app-select name="month" [options]="monthOptions" [value]="month" [required]="true" class="w-full text-xs p-2 border border-gray-300 bg-white" className="w-full text-xs p-2 border border-gray-300 bg-white"></app-select>
+                <app-select name="month" [options]="monthOptions" [value]="month" [required]="true" class="w-full" className="w-full text-xs p-2 border border-gray-300 bg-white"></app-select>
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Año</label>
@@ -57,7 +57,7 @@
                 @for (row of rows; track row.key; let i = $index) {
                     <tr>
                         <td class="py-2 px-2">
-                            <app-account-picker [name]="'entries[' + row.key + '][account_code]'" [value]="row.accountCode" [accounts]="accounts" [required]="false" class="account-input w-28 text-xs p-1.5 border border-gray-300 font-sans" placeholder="Código o nombre" (valueChange)="onAccountChange(row, $event)"></app-account-picker>
+                            <app-account-picker [name]="'entries[' + row.key + '][account_code]'" [value]="row.accountCode" [accounts]="accounts" [required]="false" class="w-28" className="account-input w-full text-xs p-1.5 border border-gray-300 font-sans" placeholder="Código o nombre" (valueChange)="onAccountChange(row, $event)"></app-account-picker>
                         </td>
                         <td class="py-2 px-2 text-right">
                             <input type="number" step="1" min="0" [name]="'entries[' + row.key + '][debit]'" [value]="row.debit" (input)="onAmountInput(row, 'debit', $event)" (blur)="onAmountBlur(row, 'debit', $event)" (focus)="selectInput($event)" (click)="selectInput($event)" class="w-full text-xs p-1.5 border border-gray-300 text-right debit-input">

@@ -42,10 +42,12 @@ type LabelState = 'valid' | 'empty' | 'invalid';
 
 let sequence = 0;
 const openPanels = new Set<() => void>();
+const DEFAULT_INPUT_CLASS = 'w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white';
 
 @Component({
   selector: 'app-account-picker',
   standalone: true,
+  host: { class: 'block min-w-0' },
   template: `
     <div class="account-search-wrap flex items-center gap-2">
       <div class="account-search-field relative min-w-0 flex-1">
@@ -60,7 +62,7 @@ const openPanels = new Set<() => void>();
           [attr.aria-controls]="panelId"
           [value]="text"
           placeholder="Código o nombre"
-          class="w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white"
+          [class]="inputClassValue"
           autocomplete="off"
           [attr.required]="required ? '' : null"
           (input)="onInput($event)"
@@ -111,6 +113,8 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
   @Input() ownerId: number | string | null = null;
   @Input() workingYear: number = new Date().getFullYear();
   @Input() required = true;
+  @Input() className = '';
+  @Input() inputClass = '';
   @Output() readonly valueChange = new EventEmitter<string>();
 
   @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
@@ -130,6 +134,10 @@ export class AppAccountPickerComponent implements OnChanges, AfterViewInit, OnDe
   private form: HTMLFormElement | null = null;
   private readonly hideSelf = () => this.hide();
   private readonly submitHandler = (event: Event): void => this.onFormSubmit(event);
+
+  get inputClassValue(): string {
+    return DEFAULT_INPUT_CLASS + ' ' + (this.className || this.inputClass);
+  }
 
   constructor(
     private readonly host: ElementRef<HTMLElement>,

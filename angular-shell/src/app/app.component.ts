@@ -42,7 +42,10 @@ export class AppComponent implements OnInit {
       this.updateRoute(this.router.url);
       this.subscriptions.add(
         this.router.events.subscribe((event) => {
-          if (event instanceof NavigationEnd) this.updateRoute(event.urlAfterRedirects);
+          if (event instanceof NavigationEnd) {
+            this.updateRoute(event.urlAfterRedirects);
+            window.sessionStorage.removeItem('plasticina_old');
+          }
         })
       );
       await this.router.navigateByUrl(this.router.url || '/');

@@ -24,10 +24,12 @@ interface NormalizedOption {
 
 let sequence = 0;
 const openBindings = new Set<() => void>();
+const DEFAULT_TRIGGER_CLASS = 'w-full text-xs border-slate-300 rounded-lg shadow-sm p-2 bg-white border';
 
 @Component({
   selector: 'app-select',
   standalone: true,
+  host: { class: 'block min-w-0' },
   template: `
     <div
       #root
@@ -53,7 +55,7 @@ const openBindings = new Set<() => void>();
       <button
         #trigger
         type="button"
-        class="ui-select-trigger w-full text-xs border-slate-300 rounded-lg shadow-sm p-2 bg-white border"
+        [class]="triggerClass"
         role="combobox"
         aria-haspopup="listbox"
         [attr.aria-expanded]="open ? 'true' : 'false'"
@@ -79,7 +81,6 @@ const openBindings = new Set<() => void>();
       >
         @for (item of items; track $index) {
           <li
-            type="button"
             class="ui-select-option"
             role="option"
             [class.ui-select-option-active]="open && active === $index"
@@ -99,6 +100,7 @@ export class AppSelectComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() required = true;
   @Input() disabled = false;
   @Input() placeholder = 'Seleccione una opción';
+  @Input() className = '';
   @Output() readonly valueChange = new EventEmitter<string | number | null>();
 
   @ViewChild('root') private root?: ElementRef<HTMLElement>;
@@ -124,6 +126,10 @@ export class AppSelectComponent implements OnChanges, AfterViewInit, OnDestroy {
   get selectedLabel(): string {
     const current = this.items.find((item) => item.value === this.selectedValue);
     return current ? current.label : this.placeholder;
+  }
+
+  get triggerClass(): string {
+    return 'ui-select-trigger ' + (this.className || DEFAULT_TRIGGER_CLASS);
   }
 
   ngOnChanges(changes: SimpleChanges): void {

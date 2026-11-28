@@ -64,7 +64,7 @@
                         <tr class="entry-row bg-white">
                             <td class="py-3 px-4">
                                 <input type="hidden" [name]="'entries[' + row.key + '][component_name]'" value="{{ row.componentName }}">
-                                <app-account-picker [name]="'entries[' + row.key + '][account_code]'" [value]="row.accountCode" [accounts]="accounts" [required]="true" class="w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Código o nombre" (valueChange)="onAccountChange(row, $event)"></app-account-picker>
+                                <app-account-picker [name]="'entries[' + row.key + '][account_code]'" [value]="row.accountCode" [accounts]="accounts" [required]="true" class="w-full" className="w-full text-xs border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Código o nombre" (valueChange)="onAccountChange(row, $event)"></app-account-picker>
                             </td>
                             <td class="py-3 px-4 text-right">
                                 <input type="number" step="any" min="0" [name]="'entries[' + row.key + '][debit]'" [value]="row.debit" (input)="onAmountInput(row, 'debit', $event)" (focus)="selectInput($event)" class="debit-input w-full text-right text-xs border-gray-300 rounded-md shadow-sm" required>

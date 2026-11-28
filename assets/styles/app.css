@@ -435,6 +435,8 @@ button,[role=button] { cursor:pointer; }
 .account-suggestion { display:block; width:100%; padding:0.4rem 0.75rem; text-align:left; font-size:0.75rem; line-height:1.25rem; background:transparent; border:0; cursor:pointer }
 .account-suggestion:hover, .account-suggestion:focus, .account-suggestion-active { background:#eef2ff; outline:none }
 .account-suggestion-empty { padding:0.4rem 0.75rem; font-size:0.75rem; color:#64748b }
+app-select, app-account-picker, .ui-select, .account-search-wrap { min-width:0; box-sizing:border-box }
+app-select, app-account-picker, .ui-select, .account-search-wrap:not(.flex) { display:block }
 .ui-select { position:relative }
 .ui-select-value { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
 .ui-select-trigger { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; width:100%; text-align:left; cursor:pointer; appearance:none; -webkit-appearance:none }

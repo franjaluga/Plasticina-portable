@@ -20,7 +20,7 @@
                     [workingYear]="startYear"
                     wrapperClass="account-search-wrap flex items-center gap-3"
                     labelClass="account-name-label truncate text-xs text-slate-600 font-semibold"
-                    inputClass="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border"
+                    className="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border"
                     placeholder="Código o nombre"
                     (valueChange)="onAccountChange($event)"></app-account-picker>
             </div>
@@ -30,7 +30,7 @@
                     [options]="monthOptions"
                     [value]="month"
                     [required]="true"
-                    class="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border"
+                    class="w-full"
                     className="w-full text-xs rounded-lg border-slate-300 shadow-sm p-2 bg-white border"
                     (valueChange)="onMonthChange($event)"></app-select>
             </div>

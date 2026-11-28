@@ -23,7 +23,6 @@ export const viewDataResolver: ResolveFn<ViewDataResult> = async (route: Activat
   await app.initialize();
   const context = app.context(strings(route.params), strings(route.queryParams));
   const data = await app.resolve(VIEW_RESOURCES[view] || [], context);
-  window.sessionStorage.removeItem('plasticina_old');
   state.set(context, data);
   app.applyBodyClass(view);
   return { context, data };

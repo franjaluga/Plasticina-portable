@@ -44,6 +44,7 @@
   T.test('UI.remember y UI.old conservan valores', function () {
     UI.remember({ total: 100 });
     T.assertEqual(UI.old('total', 0), 100);
+    T.assertEqual(UI.old('total', 0), 100);
     T.assertEqual(UI.old('missing', 'fallback'), 'fallback');
   });
 

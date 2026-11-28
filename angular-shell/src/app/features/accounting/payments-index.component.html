@@ -39,7 +39,7 @@
                                 <input type="hidden" name="document_id" value="{{ doc.id }}">
                                 <input type="date" name="date" value="{{ doc.dateValue }}" class="text-xs border border-slate-300 rounded px-2 py-1">
                                 <input type="number" name="amount" step="0.01" max="{{ doc.rawBalance }}" value="{{ doc.amount }}" placeholder="Monto" class="w-24 text-xs border border-slate-300 rounded px-2 py-1 font-mono">
-                                <app-account-picker name="bank_account_code" [value]="bankAccountCode" [accounts]="accounts" [required]="true" class="w-32 text-xs border border-slate-300 rounded px-2 py-1 bg-white" placeholder="Código o nombre"></app-account-picker>
+                                <app-account-picker name="bank_account_code" [value]="bankAccountCode" [accounts]="accounts" [required]="true" class="w-32" className="w-full text-xs border border-slate-300 rounded px-2 py-1 bg-white" placeholder="Código o nombre"></app-account-picker>
                                 <button type="submit" class="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">{{ doc.isSale ? 'Cobrar' : 'Pagar' }}</button>
                             </form>
                         </td>
